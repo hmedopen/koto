@@ -47,13 +47,13 @@ class KotoAccessibilityLayoutTest {
         compose.onNodeWithTag("tab_map").performClick()
         compose.onNodeWithTag("level_2").assertIsDisplayed().performClick()
         compose.runOnIdle { saveOverlayScreenshot("map-v2-popup-large-text") }
-        compose.onNodeWithText("Complete Foundation to unlock.")
+        compose.onNodeWithText("Everyday nouns · 6 questions")
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getLayout ->
                 val results = mutableListOf<TextLayoutResult>()
                 assertTrue(getLayout(results))
                 assertTrue("The expectation must wrap without clipping", results.none { it.hasVisualOverflow })
             }
-        compose.onNodeWithTag("lesson_2-1").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("level_action").performScrollTo().assertIsDisplayed()
 
     }
 
@@ -98,8 +98,3 @@ class KotoAccessibilityLayoutTest {
         assertEquals(bounds[1].width, bounds[2].width, 1f)
     }
 }
-
-
-
-
-

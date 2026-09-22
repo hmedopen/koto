@@ -11,9 +11,9 @@
     <string name="map_phase_two">Phase two</string>
     <string name="map_special">Special activity</string>
     <string name="map_adjacent_description">%1$s, attached to level %2$s</string>
-    <string name="map_stage_kana">KANA BASICS</string>
-    <string name="map_stage_words">FIRST WORDS</string>
-    <string name="map_stage_sentences">SIMPLE SENTENCES</string>
+    <string name="map_stage_kana">FIRST CONTACT</string>
+    <string name="map_stage_words">BUILD &amp; USE</string>
+    <string name="map_stage_sentences">CONVERSATION TEST</string>
     <string name="map_expect_sounds">Learn the first Japanese sounds.</string>
     <string name="map_expect_kana">Meet the next small group of kana.</string>
     <string name="map_expect_practice">Practice recognizing familiar kana.</string>
@@ -23,7 +23,7 @@
     <string name="map_replay">Replay</string>
     <string name="map_close">Close level preview</string>
     <string name="map_done">Done</string>
-    <string name="map_locked_hint">This level is locked in the preview.</string>
+    <string name="map_locked_hint">Complete the preceding level to unlock available lessons.</string>
     <string name="map_lesson_placeholder">Preview only. Lessons will be added later.</string>
     <string name="map_settings_hint">Interaction preview only. These controls do not change app settings.</string>
     <string name="map_settings_dropdown">Placeholder option</string>

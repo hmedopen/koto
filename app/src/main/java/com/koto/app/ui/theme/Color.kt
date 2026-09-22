@@ -3,6 +3,13 @@ package com.koto.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 object KotoColors {
+    val LessonBlue = Color(0xFF236CB1)
+    val BlueWash = Color(0xFFEDF5FD)
+    val BlueEdge = Color(0xFFA8C9E9)
+    val Correct = Color(0xFF28734D)
+    val CorrectWash = Color(0xFFE8F5ED)
+    val Wrong = Color(0xFFAB4942)
+    val WrongWash = Color(0xFFFCEDEB)
     val Background = Color.White
     val BarSurface = Color.White
     val Gold = Color(0xFFAA9260)

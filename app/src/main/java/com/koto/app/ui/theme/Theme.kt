@@ -3,6 +3,8 @@ package com.koto.app.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
 
 private val Colors = lightColorScheme(
     primary = KotoColors.Accent,
@@ -31,5 +33,7 @@ private val Colors = lightColorScheme(
 
 @Composable
 fun KotoTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Colors, typography = KotoTypography, content = content)
+    MaterialTheme(colorScheme = Colors, typography = KotoTypography) {
+        CompositionLocalProvider(LocalContentColor provides KotoColors.Navy, content = content)
+    }
 }

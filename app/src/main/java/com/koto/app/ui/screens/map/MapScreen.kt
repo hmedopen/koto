@@ -5,27 +5,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.koto.app.R
 import com.koto.app.ui.theme.KotoColors
-import com.koto.app.ui.theme.KotoType
-import kotlinx.coroutines.launch
 
 @Composable
-fun MapScreen() {
+fun MapScreen(completed: Set<Int> = emptySet(), onPlay: (Int) -> Unit = {}) {
     var selectedNumber by rememberSaveable { mutableStateOf<Int?>(null) }
     val listState = rememberLazyListState()
-    val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val prototypeMessage = stringResource(R.string.map_lesson_placeholder)
+    val rows = remember(completed) { MapFixtures.rows(completed) }
     val openLevel: (Int) -> Unit = remember { { selectedNumber = it } }
 
     Box(Modifier.fillMaxSize().background(KotoColors.Background).testTag("screen_map")) {
@@ -36,7 +28,7 @@ fun MapScreen() {
                 contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                items(MapFixtures.rows, key = { it.key }, contentType = {
+                items(rows, key = { it.key }, contentType = {
                     when (it) { is MapRow.Stage -> "stage"; is MapRow.Level -> "level" }
                 }) { row ->
                     when (row) {
@@ -47,14 +39,10 @@ fun MapScreen() {
                 }
             }
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
-    MapFixtures.level(selectedNumber)?.let { level ->
+    MapFixtures.level(selectedNumber, completed)?.let { level ->
         LevelPopup(level, onDismiss = { selectedNumber = null }, onPlay = {
-            scope.launch {
-                snackbar.currentSnackbarData?.dismiss()
-                snackbar.showSnackbar(prototypeMessage)
-            }
+            onPlay(level.number)
         })
     }
 }

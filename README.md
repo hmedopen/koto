@@ -1,6 +1,6 @@
-# Koto · Map Level System 2.0
+# Koto · Minigame Prototype v1
 
-Native Android navigation shell for learning Japanese. Exactly three sections — **Map | Learn | Cards** — with Learn in the middle. Map now implements the V2.0 progression prototype; Learn and Cards remain quiet placeholders. Open Map using the left tab; the existing Learn launch default is preserved. There is no lesson content, database, network permission, account flow, analytics, or other product infrastructure.
+Native Android navigation shell for learning Japanese. Exactly three sections — **Map | Learn | Cards** — with Learn in the middle. Map opens 10 playable lessons containing 60 questions across five reusable minigames. Learn and Cards remain quiet placeholders, and Learn remains the fresh-launch default. Lessons provide Japanese TTS, first-try scoring, saved completion, and replay. Fonts and question content are bundled locally. See `docs/MINIGAME_PROTOTYPE_QA.md` for the current implementation and validation status.
 
 ## Build and run
 
@@ -30,7 +30,7 @@ One `MainActivity` hosts Compose. `KotoApp` owns a single, explicit `KotoDestina
 
 `KotoNavigation` replaces content with `AnimatedContent`. There is no stack of tab taps. Back from Map or Cards selects Learn; at Learn, Back is left to Android's normal root-activity behavior. Internal destination stacks can be added when real screens need them.
 
-`MapScreen` owns a keyed LazyColumn, a level preview dialog, and a settings preview sheet. Its scroll position survives tab switches through a SaveableStateHolder. Learn and Cards retain the original placeholder treatment. Map data is immutable and separate from rendering; no progress is saved. See `docs/MAP_V2_QA.md` for architecture and validation details.
+`MapScreen` owns the unchanged keyed LazyColumn and level preview dialog. Its scroll position survives tab switches and lessons through SaveableStateHolder. `KotoApp` holds one optional lesson ID; `LessonScreen` replaces the main shell while active. A saveable `LessonSession` owns question state, and completion IDs persist in local preferences. One shared settings sheet controls Japanese audio. Learn and Cards retain their placeholder treatment.
 
 ## The custom bar
 
@@ -54,7 +54,7 @@ Compose's interruptible animation primitives follow the latest target; there are
 | Content replacement | 180 ms in, 100 ms out, 6 dp travel | `ui/theme/Motion.kt` and `Dimens.kt` |
 | Typography | Fixed 12 sp navigation labels, stable weight | `ui/theme/Type.kt` |
 
-The launch-window background and accent in `res/values/colors.xml` mirror `Color.kt`; keep these two XML values in sync when adjusting the palette. No external font, image download, shader, blur, or custom animation engine is required.
+The launch-window background and accent in `res/values/colors.xml` mirror `Color.kt`; keep these two XML values in sync when adjusting the palette. M PLUS Rounded 1c is bundled for Latin and Japanese. No runtime font or image download, shader, blur, or custom animation engine is required.
 
 Each icon has an inactive line-art state and a unique active illustration state. The existing icon geometry remains; detail uses muted gold and soft grey to match the Map V2 palette. The icon animations are interruptible and the destination changes immediately; Compose's duration scaling handles reduced-motion settings without delaying navigation.
 
@@ -77,10 +77,8 @@ The foundation includes:
 
 API 26 is a deliberately small baseline with light navigation-bar icon support. Compile/target API 37 uses the SDK already installed here. This phase is light-only, including when the device uses dark mode. Standard Android/Compose APIs handle edge-to-edge insets, root Back, and animation scaling. No experimental navigation framework is necessary for three static destinations.
 
-Local Robolectric tests run against an API 35 Android runtime with native graphics. Map interaction coverage and additional overlay renders extend the original 10 shell tests. Current results are recorded in `docs/MAP_LEVEL_SYSTEM_2_QA.md`; older QA documents describe superseded prototypes. They can check state, rendering, semantics, and geometry, but cannot establish physical-device frame pacing, gesture-navigation appearance, or the subjective feel of presses. See `docs/PHASE_1_QA.md` for the exact validation status; Phase 1 must not be called fully accepted before the phone checks pass.
+Local Robolectric tests run against an API 35 Android runtime with native graphics. Map interaction coverage and additional overlay renders extend the original 10 shell tests. Current results are recorded in `docs/MINIGAME_PROTOTYPE_QA.md`; older QA documents describe superseded prototypes. They can check state, rendering, semantics, and geometry, but cannot establish physical-device frame pacing, gesture-navigation appearance, or the subjective feel of presses. The minigame prototype still needs the physical-phone checks listed in the current QA document.
 
 Test-tool compatibility: Robolectric 4.16.1's native loader mishandles spaces in Maven cache paths. The test task uses a `koto-robolectric-maven` cache beneath the system temporary directory (a short path on this Windows installation). If that directory contains spaces on another machine, pass `-ProbolectricMavenCache=<a-path-without-spaces>`. Screenshots use native `PixelCopy` directly to avoid Compose's device-only frame-commit wait in this runtime. These accommodations are test-only and add nothing to the APK.
 
 Implementation references: [Android state restoration](https://developer.android.com/develop/ui/compose/state-saving), [system insets](https://developer.android.com/develop/ui/compose/system/insets-ui), [accessibility defaults](https://developer.android.com/develop/ui/compose/accessibility/api-defaults), [AGP 9.1.1 compatibility](https://developer.android.com/build/releases/agp-9-1-0-release-notes).
-
-

@@ -20,7 +20,7 @@ import com.koto.app.ui.theme.KotoDimens
 import com.koto.app.ui.theme.KotoMotion
 
 @Composable
-fun KotoNavigation(selected: KotoDestination, modifier: Modifier = Modifier) {
+fun KotoNavigation(selected: KotoDestination, modifier: Modifier = Modifier, completed: Set<Int> = emptySet(), onPlay: (Int) -> Unit = {}) {
     val stateHolder = rememberSaveableStateHolder()
     val distance = with(LocalDensity.current) { KotoDimens.ContentDisplacement.roundToPx() }
     val layoutSign = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
@@ -40,7 +40,7 @@ fun KotoNavigation(selected: KotoDestination, modifier: Modifier = Modifier) {
     ) { destination ->
         stateHolder.SaveableStateProvider(destination.name) {
             when (destination) {
-                KotoDestination.Map -> MapScreen()
+                KotoDestination.Map -> MapScreen(completed, onPlay)
                 KotoDestination.Learn -> LearnScreen()
                 KotoDestination.Cards -> CardsScreen()
             }
