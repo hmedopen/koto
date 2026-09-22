@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_settings">Settings</string>
+    <string name="map_level">Level %1$s</string>
+    <string name="map_locked">Locked</string>
+    <string name="map_available">Available</string>
+    <string name="map_current">Current level</string>
+    <string name="map_completed">Completed</string>
+    <string name="map_review">Review</string>
+    <string name="map_mini">Mini practice</string>
+    <string name="map_phase_two">Phase two</string>
+    <string name="map_special">Special activity</string>
+    <string name="map_adjacent_description">%1$s, attached to level %2$s</string>
+    <string name="map_stage_kana">KANA BASICS</string>
+    <string name="map_stage_words">FIRST WORDS</string>
+    <string name="map_stage_sentences">SIMPLE SENTENCES</string>
+    <string name="map_expect_sounds">Learn the first Japanese sounds.</string>
+    <string name="map_expect_kana">Meet the next small group of kana.</string>
+    <string name="map_expect_practice">Practice recognizing familiar kana.</string>
+    <string name="map_expect_words">Explore a few simple Japanese words.</string>
+    <string name="map_expect_sentences">Begin putting simple words together.</string>
+    <string name="map_play">Play</string>
+    <string name="map_replay">Replay</string>
+    <string name="map_close">Close level preview</string>
+    <string name="map_done">Done</string>
+    <string name="map_locked_hint">This level is locked in the preview.</string>
+    <string name="map_lesson_placeholder">Preview only. Lessons will be added later.</string>
+    <string name="map_settings_hint">Interaction preview only. These controls do not change app settings.</string>
+    <string name="map_settings_dropdown">Placeholder option</string>
+    <string name="map_option_default">Option A</string>
+    <string name="map_option_alternative">Option B</string>
+    <string name="map_settings_sound">Sound preview</string>
+    <string name="map_settings_reminders">Reminder preview</string>
+    <string name="map_settings_slider">Volume preview</string>
+</resources>

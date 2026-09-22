@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Koto</string>
+    <string name="destination_map">Map</string>
+    <string name="destination_learn">Learn</string>
+    <string name="destination_cards">Cards</string>
+    <string name="placeholder_message">A little space for what comes next.</string>
+</resources>
