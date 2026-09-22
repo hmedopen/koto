@@ -10,6 +10,8 @@ object KotoColors {
     val CorrectWash = Color(0xFFE8F5ED)
     val Wrong = Color(0xFFAB4942)
     val WrongWash = Color(0xFFFCEDEB)
+    val Warning = Color(0xFFB56A1D)
+    val WarningWash = Color(0xFFFFF3E3)
     val Background = Color.White
     val BarSurface = Color.White
     val Gold = Color(0xFFAA9260)

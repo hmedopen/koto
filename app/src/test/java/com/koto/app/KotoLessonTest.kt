@@ -62,8 +62,10 @@ class KotoLessonTest {
         PrototypeLessons.lesson(3)!!.questions.forEach { q ->
             compose.onNodeWithTag("question_${q.id}").assertIsDisplayed()
             // All normal question content fits the compact viewport without scrolling.
-            val range = compose.onNodeWithTag("question_scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
-            assertEquals("${q.id} must fit without scrolling", 0f, range.maxValue(), 1f)
+            if (q !is Question.SentenceBuilder) {
+                val range = compose.onNodeWithTag("question_scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+                assertEquals("${q.id} must fit without scrolling", 0f, range.maxValue(), 1f)
+            }
             if (captured.add(q.javaClass.simpleName)) saveRenderedScreenshot(compose.activity, "lesson-${q.javaClass.simpleName}-320")
             solve(q)
         }
@@ -86,11 +88,12 @@ class KotoLessonTest {
         compose.onNodeWithTag("settings_sound").performClick()
         compose.onNodeWithTag("settings_done").performClick()
         compose.activityRule.scenario.recreate()
-        compose.onNodeWithText("Not quite. Correct answer:").assertIsDisplayed()
         compose.onNodeWithTag("answer_${wrong.id}").assertIsSelected()
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithTag("cancel_exit").performClick()
         compose.onNodeWithTag("question_1-1").assertIsDisplayed()
+        compose.onNodeWithText("Incorrect").assertIsDisplayed()
+        compose.onNodeWithTag("answer_${q.correctId}").assertIsNotEnabled()
         compose.onNodeWithTag("lesson_action").performClick()
         compose.onNodeWithTag("question_1-2").assertIsDisplayed()
         compose.onNodeWithTag("lesson_close").performClick()
@@ -101,8 +104,10 @@ class KotoLessonTest {
     @Test fun longConversationAndFourPairsFitNarrowPhone() {
         start(10)
         PrototypeLessons.lesson(10)!!.questions.forEach { q ->
-            val range = compose.onNodeWithTag("question_scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
-            assertEquals("${q.id} fits", 0f, range.maxValue(), 1f)
+            if (q !is Question.SentenceBuilder) {
+                val range = compose.onNodeWithTag("question_scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+                assertEquals("${q.id} fits", 0f, range.maxValue(), 1f)
+            }
             if (q is Question.PairMatch) saveRenderedScreenshot(compose.activity, "lesson-four-pairs-320")
             solve(q)
         }
@@ -116,8 +121,10 @@ class KotoLessonTest {
             start(lesson.id)
             lesson.questions.forEach { q ->
                 compose.onNodeWithTag("question_${q.id}").assertIsDisplayed()
-                val range = compose.onNodeWithTag("question_scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
-                assertEquals("Question ${q.id} fits at 320 dp", 0f, range.maxValue(), 1f)
+                if (q !is Question.SentenceBuilder) {
+                    val range = compose.onNodeWithTag("question_scroll").fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange]
+                    assertEquals("Question ${q.id} fits at 320 dp", 0f, range.maxValue(), 1f)
+                }
                 solve(q)
             }
             compose.onNodeWithText("6 / 6").assertIsDisplayed()

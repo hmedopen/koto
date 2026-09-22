@@ -1,6 +1,7 @@
 package com.koto.app.feature.lesson
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -12,10 +13,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -65,8 +71,8 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
     }
     val progress by animateFloatAsState(session.progress, tween(220), label = "Lesson progress")
     Box(Modifier.fillMaxSize().background(KotoColors.Background).windowInsetsPadding(WindowInsets.safeDrawing).testTag("lesson_screen")) {
-        Column(Modifier.widthIn(max = 560.dp).fillMaxSize().align(Alignment.TopCenter).padding(horizontal = 20.dp)) {
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp),
+        Column(Modifier.widthIn(max = 560.dp).fillMaxSize().align(Alignment.TopCenter)) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 TactileButton(requestExit, Modifier.size(48.dp, 52.dp).testTag("lesson_close"), tone = TactileTone.Quiet,
                     description = "Close lesson", padding = PaddingValues(12.dp)) {
@@ -80,7 +86,7 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
                 }
             }
             if (session.finished) {
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+                Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp).verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
                     Text("Level ${lesson.id.toString().padStart(2, '0')} complete", fontSize = 26.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.testTag("lesson_complete").semantics { heading() })
@@ -95,24 +101,10 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
                     ActionButton("Back to Map", "lesson_map", tone = TactileTone.Default, onClick = exit)
                 }
             } else {
-                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                    val available = maxHeight
-                    key(session.state.index) {
-                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("question_scroll")) {
-                            QuestionRenderer(session, available, audio.enabled && audio.status == SpeechStatus.Ready, audio::speak)
-                        }
-                    }
+                key(session.state.index) {
+                    LessonExercise(session, audio.enabled && audio.status == SpeechStatus.Ready,
+                        audio::speak, audio::stop, Modifier.weight(1f).fillMaxWidth())
                 }
-                val manual = session.question is Question.SentenceBuilder || session.question is Question.Cloze
-                if (session.question !is Question.PairMatch && (manual || session.checked)) {
-                    Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp)) {
-                        if (session.checked) Feedback(session)
-                        ActionButton(if (session.checked) "CONTINUE" else "CHECK", "lesson_action",
-                            enabled = session.checked || session.canCheck) {
-                            if (session.checked) { audio.stop(); session.next() } else session.check()?.let(audio::speak)
-                        }
-                    }
-                } else Spacer(Modifier.height(12.dp))
             }
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
@@ -125,10 +117,47 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
         dismissButton = { ActionButton("Keep playing", "cancel_exit", tone = TactileTone.Default) { exitRequested = false } })
 }
 
+/** Base measurements depend only on the always-present action, never on feedback. */
 @Composable
-internal fun ActionButton(text: String, tag: String, enabled: Boolean = true,
+internal fun LessonExercise(session: LessonSession, speechReady: Boolean, speak: (JapaneseText) -> Unit,
+    stopSpeech: () -> Unit, modifier: Modifier = Modifier) {
+    val index = session.state.index
+    val submitted = session.checked
+    val pairs = session.question is Question.PairMatch
+    val manual = session.question is Question.SentenceBuilder || session.question is Question.Cloze
+    var actionHeight by remember { mutableIntStateOf(0) }
+    val actionSpace = if (pairs) 12.dp else if (actionHeight == 0) 72.dp else with(LocalDensity.current) { actionHeight.toDp() }
+    Box(modifier) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(bottom = actionSpace).padding(horizontal = 20.dp)) {
+            val available = maxHeight
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState(), enabled = !submitted).testTag("question_scroll")) {
+                QuestionRenderer(session, available, speechReady, speak)
+            }
+        }
+        if (!pairs) {
+            // Drawn above the exercise, below the single persistent action control.
+            if (submitted) FeedbackOverlay(session, actionSpace, Modifier.align(Alignment.BottomCenter))
+            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .onSizeChanged { actionHeight = it.height }
+                .padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 12.dp)) {
+                ActionButton(if (manual && !submitted) "CHECK" else "CONTINUE", "lesson_action",
+                    enabled = submitted || session.canCheck) {
+                    // A stale Check callback must never turn into Continue after submission.
+                    // A stale Continue callback must never act on the next question.
+                    if (session.state.index == index) {
+                        if (submitted) { stopSpeech(); session.next() }
+                        else session.check()?.let(speak)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+internal fun ActionButton(text: String, tag: String, enabled: Boolean = true, shake: Int = 0,
     tone: TactileTone = TactileTone.Primary, onClick: () -> Unit) {
-    TactileButton(onClick, Modifier.fillMaxWidth().testTag(tag), enabled,
+    TactileButton(onClick, Modifier.fillMaxWidth().feedbackWiggle(shake).testTag(tag), enabled,
         if (enabled) tone else TactileTone.Default) {
         Text(text, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -136,19 +165,32 @@ internal fun ActionButton(text: String, tag: String, enabled: Boolean = true,
 }
 
 @Composable
-private fun Feedback(session: LessonSession) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 10.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
-        Text(if (session.correct == true) "Correct!" else "Not quite. Correct answer:", fontWeight = FontWeight.Bold,
-            color = if (session.correct == true) KotoColors.Correct else KotoColors.Wrong)
-        if (session.correct == false) {
-            val answer = when (val q = session.question) {
-                is Question.MeaningChoice -> q.options.first { it.id == q.correctId }.text
-                is Question.ConversationResponse -> LessonText.Japanese(q.responses.first { it.id == q.correctId }.let { (it.text as LessonText.Japanese).value })
-                is Question.Cloze -> LessonText.Japanese(q.filled(q.correctId))
-                is Question.SentenceBuilder -> LessonText.Japanese(q.sentence)
-                else -> null
+private fun FeedbackOverlay(session: LessonSession, actionSpace: Dp, modifier: Modifier = Modifier) {
+    val entrance = remember { Animatable(1f) }
+    LaunchedEffect(Unit) { entrance.animateTo(0f, tween(220)) }
+    val correct = session.correct == true
+    Surface(modifier.fillMaxWidth().graphicsLayer { translationY = size.height * entrance.value }
+        .testTag("lesson_feedback").pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) awaitPointerEvent().changes.forEach { it.consume() }
             }
-            answer?.let { ContentText(it, 16.sp) }
+        }, color = if (correct) KotoColors.CorrectWash else KotoColors.WrongWash) {
+        Column(Modifier.padding(horizontal = 20.dp).padding(top = 16.dp, bottom = actionSpace)
+            .verticalScroll(rememberScrollState()).semantics { liveRegion = LiveRegionMode.Polite },
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(if (correct) "Correct!" else "Incorrect", fontWeight = FontWeight.Bold,
+                color = if (correct) KotoColors.Correct else KotoColors.Wrong)
+            if (!correct) {
+                Text("Correct answer:", style = MaterialTheme.typography.bodyMedium)
+                val answer = when (val q = session.question) {
+                    is Question.MeaningChoice -> q.options.first { it.id == q.correctId }.text
+                    is Question.ConversationResponse -> q.responses.first { it.id == q.correctId }.text
+                    is Question.Cloze -> LessonText.Japanese(q.filled(q.correctId))
+                    is Question.SentenceBuilder -> LessonText.Japanese(q.sentence)
+                    else -> null
+                }
+                answer?.let { ContentText(it, 16.sp) }
+            }
         }
     }
 }

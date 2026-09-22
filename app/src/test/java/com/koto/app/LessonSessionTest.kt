@@ -37,7 +37,7 @@ class LessonSessionTest {
         }
     }
 
-    @Test fun manualChoicesAreReversibleAndWrongAnswersNeverEarnFirstTryCredit() {
+    @Test fun manualChoicesAreEditableUntilCheckThenFreezeAndScoreOnce() {
         val lesson = PrototypeLessons.lesson(3)!!
         val session = LessonSession(lesson, SessionState(index = 2, results = listOf(true, true)))
         val cloze = session.question as Question.Cloze
@@ -47,10 +47,14 @@ class LessonSessionTest {
         assertEquals("わたしは みず を のみます", cloze.filled(session.state.selected).kana)
         session.select(cloze.options.first { it.id != cloze.correctId }.id)
         session.check()
-        assertEquals(false, session.correct)
+        assertTrue(session.checked)
+        val submitted = session.state
         session.select(cloze.correctId)
+        session.check()
+        assertEquals(submitted, session.state)
         assertEquals(false, session.correct)
         session.next()
+        session.next() // A second Continue cannot skip the unanswered question.
         val builder = session.question as Question.SentenceBuilder
         session.toggleTile(builder.correctOrder.first())
         session.toggleTile(builder.correctOrder.first())
@@ -59,7 +63,37 @@ class LessonSessionTest {
         assertTrue(session.canCheck)
         session.toggleTile("missing")
         session.check()
-        assertEquals(false, session.correct)
+        assertTrue(session.checked)
+        assertEquals(QuizFeedback.Wrong, session.state.feedback)
+        val checkedBuilder = session.state
+        session.toggleTile(builder.correctOrder.first())
+        session.check()
+        assertEquals(checkedBuilder, session.state)
+    }
+
+    @Test fun wrongAutoChecksFreezeTheSelectionAndContinueResetsFeedback() {
+        listOf(PrototypeLessons.lesson(1)!!.questions.first(), PrototypeLessons.lesson(9)!!.questions.first()).forEach { q ->
+            val (answers, correctId) = when (q) {
+                is Question.MeaningChoice -> q.options to q.correctId
+                is Question.ConversationResponse -> q.responses to q.correctId
+                else -> error("Expected an auto-check question")
+            }
+            val session = LessonSession(PrototypeLessons.lesson(1)!!.copy(questions = listOf(q, q)))
+            session.select(answers.first { it.id != correctId }.id)
+            assertTrue(session.checked)
+            assertEquals(false, session.correct)
+            val submitted = session.state
+            session.select(correctId)
+            session.check()
+            assertEquals(submitted, session.state)
+            session.next()
+            session.next()
+            assertEquals(SessionState(index = 1, results = listOf(false)), session.state)
+            session.select(correctId)
+            assertTrue(session.checked)
+            assertEquals(correctId, session.state.selected)
+            assertEquals(listOf(false, true), session.state.results)
+        }
     }
 
     @Test fun pairErrorsResetButFirstTryFailureSurvivesUntilCompletion() {

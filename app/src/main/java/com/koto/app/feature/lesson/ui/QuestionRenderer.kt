@@ -1,7 +1,14 @@
 package com.koto.app.feature.lesson.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -11,11 +18,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.feature.lesson.LessonSession
+import com.koto.app.feature.lesson.QuizFeedback
 import com.koto.app.feature.lesson.model.*
 import com.koto.app.ui.components.*
 import com.koto.app.ui.theme.KotoColors
@@ -41,6 +51,10 @@ fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean
             is Question.Cloze -> ClozeQuestion(q, session, speechReady, speak)
             is Question.ConversationResponse -> ConversationQuestion(q, session, speechReady, speak)
             is Question.PairMatch -> PairMatchQuestion(q, session, speak)
+        }
+        if (q !is Question.PairMatch) {
+            // Reserve breathing room from the outset, independent of feedback visibility.
+            Spacer(Modifier.height((minHeight * .065f).coerceIn(24.dp, 40.dp)))
         }
     }
 }
@@ -90,7 +104,7 @@ internal fun ColumnScope.ConversationQuestion(q: Question.ConversationResponse, 
 @Composable
 internal fun ColumnScope.ClozeQuestion(q: Question.Cloze, session: LessonSession,
     speechReady: Boolean, speak: (JapaneseText) -> Unit) {
-    Prompt(LessonText.Japanese(q.filled(session.state.selected)), speechReady, speak, sentence = true)
+    ClozePrompt(q, session.state.selected, speechReady, speak)
     AnswerGap()
     q.options.forEach { answer -> key(answer.id) {
         AnswerButton(answer, session, q.correctId, speak, Modifier.fillMaxWidth())
@@ -99,19 +113,40 @@ internal fun ColumnScope.ClozeQuestion(q: Question.Cloze, session: LessonSession
 }
 
 @Composable
+private fun ClozePrompt(q: Question.Cloze, selectedId: String?, speechReady: Boolean, speak: (JapaneseText) -> Unit) {
+    val selected = (q.options.firstOrNull { it.id == selectedId }?.text as? LessonText.Japanese)?.value
+    fun underlined(source: String, replacement: String?) = buildAnnotatedString {
+        val pieces = source.split("___")
+        append(pieces[0])
+        pushStyle(androidx.compose.ui.text.SpanStyle(textDecoration = TextDecoration.Underline))
+        append(replacement ?: "     ")
+        pop()
+        append(pieces[1])
+    }
+    Surface(Modifier.fillMaxWidth(), color = KotoColors.Background, shape = RoundedCornerShape(22.dp), border = BorderStroke(1.dp, KotoColors.Hairline)) {
+        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(underlined(q.sentence.romaji, selected?.romaji), fontSize = 16.sp, color = KotoColors.QuietInk, textAlign = TextAlign.Center)
+            Text(underlined(q.sentence.kana, selected?.kana), fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            SpeakerButton(q.filled(selectedId), speechReady, speak)
+        }
+    }
+}
+
+@Composable
 private fun AnswerButton(answer: Answer, session: LessonSession, correctId: String,
     speak: (JapaneseText) -> Unit, modifier: Modifier, minHeight: Dp = 60.dp) {
     val selected = session.state.selected == answer.id
     val tone = when {
         session.checked && answer.id == correctId -> TactileTone.Correct
-        session.checked && selected -> TactileTone.Wrong
+        session.checked && selected && session.correct == false -> TactileTone.Wrong
+        answer.id in session.state.failedAnswers -> TactileTone.Wrong
         selected -> TactileTone.Selected
         else -> TactileTone.Default
     }
     TactileButton({
         (answer.text as? LessonText.Japanese)?.let { speak(it.value) }
         session.select(answer.id)
-    }, modifier.testTag("answer_${answer.id}"), enabled = !session.checked, tone = tone, selected = selected,
+    }, modifier.testTag("answer_${answer.id}"), enabled = !session.checked && answer.id !in session.state.failedAnswers, tone = tone, selected = selected,
         stateLabel = when (tone) { TactileTone.Correct -> "Correct answer"; TactileTone.Wrong -> "Incorrect answer"; else -> null }) {
         Box(Modifier.fillMaxWidth().heightIn(min = minHeight - 24.dp), contentAlignment = Alignment.Center) {
             ContentText(answer.text, 20.sp)
@@ -127,33 +162,35 @@ internal fun ColumnScope.SentenceBuilderQuestion(q: Question.SentenceBuilder, se
     Text("Your sentence · tap a tile to return it", style = MaterialTheme.typography.labelMedium,
         color = KotoColors.QuietInk, modifier = Modifier.align(Alignment.Start))
     Spacer(Modifier.height(8.dp))
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        repeat(q.correctOrder.size) { index ->
-            val tile = q.tiles.firstOrNull { it.id == session.state.tiles.getOrNull(index) }
-            if (tile == null) Surface(Modifier.weight(1f).heightIn(min = 80.dp).fillMaxHeight(),
-                color = KotoColors.SoftGrey, shape = RoundedCornerShape(17.dp)) {
-                Box(contentAlignment = Alignment.Center) { Text("${index + 1}", color = KotoColors.QuietInk) }
-            } else key(tile.id) {
-                TileButton(tile, Modifier.weight(1f).fillMaxHeight(), !session.checked,
-                    if (session.checked) { if (session.correct == true) TactileTone.Correct else TactileTone.Wrong } else TactileTone.Selected,
-                    "assembled_${tile.id}") { speak((tile.text as LessonText.Japanese).value); session.toggleTile(tile.id) }
-            }
-        }
-    }
-    AnswerGap()
-    q.tiles.chunked(3).forEach { row ->
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            row.forEach { tile -> key(tile.id) {
-                val used = tile.id in session.state.tiles
-                TileButton(tile, Modifier.weight(1f).fillMaxHeight(), !session.checked && !used,
-                    TactileTone.Default, "tile_${tile.id}", if (used) "In your sentence" else null) {
+    FlowRow(Modifier.fillMaxWidth().heightIn(min = 80.dp).animateContentSize(tween(160)),
+        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        q.tiles.forEach { tile -> key(tile.id) {
+            val tone = sentenceTone(tile.id, session)
+            AnimatedVisibility(tile.id in session.state.tiles, enter = fadeIn(tween(100)) + expandIn(tween(160)), exit = fadeOut(tween(80)) + shrinkOut(tween(120))) {
+                TileButton(tile, Modifier.widthIn(max = 104.dp), !session.checked, tone, "assembled_${tile.id}") {
                     speak((tile.text as LessonText.Japanese).value); session.toggleTile(tile.id)
                 }
-            } }
-            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-        }
-        Spacer(Modifier.height(10.dp))
+            }
+        } }
     }
+    AnswerGap()
+    FlowRow(Modifier.fillMaxWidth().animateContentSize(tween(160)), horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        q.tiles.forEach { tile -> key(tile.id) {
+            AnimatedVisibility(tile.id !in session.state.tiles, enter = fadeIn(tween(100)) + expandIn(tween(160)), exit = fadeOut(tween(80)) + shrinkOut(tween(120))) {
+                TileButton(tile, Modifier.widthIn(max = 104.dp), !session.checked, TactileTone.Default, "tile_${tile.id}") {
+                    speak((tile.text as LessonText.Japanese).value); session.toggleTile(tile.id)
+                }
+            }
+        } }
+    }
+}
+
+private fun sentenceTone(id: String, session: LessonSession): TactileTone = when (session.state.feedback) {
+    QuizFeedback.WarningExtra -> if (session.state.tiles.count { it == id } > 1 || id !in (session.question as Question.SentenceBuilder).correctOrder) TactileTone.Warning else TactileTone.Selected
+    QuizFeedback.WarningOrder -> if (session.state.tiles.indexOf(id) != (session.question as Question.SentenceBuilder).correctOrder.indexOf(id)) TactileTone.Warning else TactileTone.Selected
+    QuizFeedback.Wrong -> TactileTone.Wrong
+    else -> if (session.checked && session.correct == true) TactileTone.Correct else TactileTone.Selected
 }
 
 @Composable
@@ -169,7 +206,7 @@ private fun TileButton(tile: Answer, modifier: Modifier, enabled: Boolean, tone:
 internal fun ColumnScope.PairMatchQuestion(q: Question.PairMatch, session: LessonSession, speak: (JapaneseText) -> Unit) {
     Text("Tap one Japanese card and its English match.", style = MaterialTheme.typography.bodyMedium,
         color = KotoColors.QuietInk, modifier = Modifier.fillMaxWidth())
-    AnswerGap()
+    Spacer(Modifier.height(24.dp))
     val english = remember(q.id) { q.pairs.drop(1) + q.pairs.take(1) }
     q.pairs.indices.forEach { index ->
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -185,14 +222,13 @@ internal fun ColumnScope.PairMatchQuestion(q: Question.PairMatch, session: Lesso
                 TactileButton({
                     if (japanese) speak(pair.japanese)
                     session.pair(pair.id, japanese)
-                }, Modifier.weight(1f).fillMaxHeight().testTag("pair_${if (japanese) "ja" else "en"}_${pair.id}"),
+                }, Modifier.weight(1f).fillMaxHeight().feedbackWiggle(matched).testTag("pair_${if (japanese) "ja" else "en"}_${pair.id}"),
                     enabled = !matched && !session.checked && !session.state.mismatch, tone = tone, selected = selected,
                     stateLabel = if (matched) "Matched" else if (selected && session.state.mismatch) "Not a match" else null) {
                     Column(Modifier.fillMaxWidth().heightIn(min = 58.dp), horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center) {
                         if (japanese) JapaneseTextBlock(pair.japanese, size = 18.sp)
                         else Text(pair.english, fontSize = 18.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                        if (matched) Text("✓", color = KotoColors.Correct, fontSize = 12.sp)
                     }
                 }
             } }
