@@ -18,10 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import com.koto.app.ui.theme.KotoColors
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class TactileTone { Default, Primary, Selected, Correct, Wrong, Warning, Quiet }
 
@@ -53,6 +57,9 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
     padding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
     content: @Composable () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
+    val actionScope = rememberCoroutineScope()
+    var actionPending by remember { mutableStateOf(false) }
+    var pointerTap by remember { mutableStateOf(false) }
     val pressed by interaction.collectIsPressedAsState()
     // Press state is applied synchronously on down; only the return uses a short transition.
     val displacement by animateFloatAsState(if (pressed) 4f else 0f,
@@ -79,7 +86,31 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
     val ink = if (emphasized) Color.White else KotoColors.Navy
     val shape = RoundedCornerShape(17.dp)
     Box(modifier.padding(bottom = 4.dp)
-        .clickable(enabled = enabled, role = Role.Button, interactionSource = interaction, indication = null, onClick = onClick)
+        .pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent()
+                    if (event.changes.any { it.changedToDown() }) pointerTap = true
+                    if (event.changes.any { it.changedToUp() }) pointerTap = false
+                }
+            }
+        }
+        .clickable(enabled = enabled && !actionPending, role = Role.Button, interactionSource = interaction, indication = null) {
+            actionPending = true
+            if (pointerTap) {
+                actionScope.launch {
+                    // Keep the instantaneous down state on screen for one brief beat before a
+                    // callback can replace it. The local guard also rejects rapid repeat taps.
+                    delay(70)
+                    onClick()
+                    actionPending = false
+                }
+            } else {
+                // Accessibility and test semantics have no visible pointer press to preserve.
+                onClick()
+                actionPending = false
+            }
+        }
         .semantics(mergeDescendants = true) {
             this.selected = selected
             description?.let { contentDescription = it }

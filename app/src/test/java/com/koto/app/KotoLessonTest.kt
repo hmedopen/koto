@@ -51,7 +51,8 @@ class KotoLessonTest {
             compose.onNodeWithText("Correct!").assertIsDisplayed()
             compose.onNodeWithTag("lesson_action").performClick()
         } else {
-            compose.mainClock.advanceTimeBy(500)
+            compose.onNodeWithText("Correct!").assertIsDisplayed()
+            compose.onNodeWithTag("lesson_action").assertIsEnabled().assertTextContains("CONTINUE").performClick()
         }
         compose.waitForIdle()
     }

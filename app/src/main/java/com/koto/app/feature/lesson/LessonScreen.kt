@@ -64,11 +64,6 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
     LaunchedEffect(session.state.mismatch, session.state.index, settings, exitRequested, resumed) {
         if (session.state.mismatch && !settings && !exitRequested && resumed) { delay(200); session.clearMismatch() }
     }
-    LaunchedEffect(session.checked, session.state.index, settings, exitRequested, resumed) {
-        if (session.question is Question.PairMatch && session.checked && !settings && !exitRequested && resumed) {
-            delay(450); session.next()
-        }
-    }
     val progress by animateFloatAsState(session.progress, tween(220), label = "Lesson progress")
     Box(Modifier.fillMaxSize().background(KotoColors.Background).windowInsetsPadding(WindowInsets.safeDrawing).testTag("lesson_screen")) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxSize().align(Alignment.TopCenter)) {
@@ -127,6 +122,7 @@ internal fun LessonExercise(session: LessonSession, speechReady: Boolean, speak:
     val manual = session.question is Question.SentenceBuilder || session.question is Question.Cloze
     var actionHeight by remember { mutableIntStateOf(0) }
     val actionSpace = if (pairs) 12.dp else if (actionHeight == 0) 72.dp else with(LocalDensity.current) { actionHeight.toDp() }
+    val completionActionSpace = if (actionHeight == 0) 72.dp else with(LocalDensity.current) { actionHeight.toDp() }
     Box(modifier) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(bottom = actionSpace).padding(horizontal = 20.dp)) {
             val available = maxHeight
@@ -134,9 +130,9 @@ internal fun LessonExercise(session: LessonSession, speechReady: Boolean, speak:
                 QuestionRenderer(session, available, speechReady, speak)
             }
         }
-        if (!pairs) {
+        if (!pairs || submitted) {
             // Drawn above the exercise, below the single persistent action control.
-            if (submitted) FeedbackOverlay(session, actionSpace, Modifier.align(Alignment.BottomCenter))
+            if (submitted) FeedbackOverlay(session, if (pairs) completionActionSpace else actionSpace, Modifier.align(Alignment.BottomCenter))
             Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .onSizeChanged { actionHeight = it.height }
                 .padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 12.dp)) {

@@ -222,7 +222,7 @@ internal fun ColumnScope.PairMatchQuestion(q: Question.PairMatch, session: Lesso
                 TactileButton({
                     if (japanese) speak(pair.japanese)
                     session.pair(pair.id, japanese)
-                }, Modifier.weight(1f).fillMaxHeight().feedbackWiggle(matched).testTag("pair_${if (japanese) "ja" else "en"}_${pair.id}"),
+                }, Modifier.weight(1f).fillMaxHeight().feedbackWiggle(selected && session.state.mismatch).testTag("pair_${if (japanese) "ja" else "en"}_${pair.id}"),
                     enabled = !matched && !session.checked && !session.state.mismatch, tone = tone, selected = selected,
                     stateLabel = if (matched) "Matched" else if (selected && session.state.mismatch) "Not a match" else null) {
                     Column(Modifier.fillMaxWidth().heightIn(min = 58.dp), horizontalAlignment = Alignment.CenterHorizontally,

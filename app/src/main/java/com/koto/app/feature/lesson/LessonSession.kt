@@ -17,7 +17,6 @@ data class SessionState(
     val left: String? = null,
     val right: String? = null,
     val mismatch: Boolean = false,
-    val pairMistake: Boolean = false,
     val failedAnswers: Set<String> = emptySet(),
     val feedback: QuizFeedback = QuizFeedback.None,
     val feedbackEpoch: Int = 0,
@@ -88,8 +87,10 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
         if (state.left != null && state.right != null) {
             if (state.left == state.right) {
                 state = state.copy(matched = state.matched + id, left = null, right = null)
-                if (state.matched.size == q.pairs.size) evaluate(!state.pairMistake)
-            } else state = state.copy(mismatch = true, pairMistake = true)
+                // Completing the board is always a successful result. A prior rejected
+                // pairing only controls transient mismatch feedback, not the final outcome.
+                if (state.matched.size == q.pairs.size) evaluate(true)
+            } else state = state.copy(mismatch = true)
         }
     }
     fun clearMismatch() { if (state.mismatch) state = state.copy(left = null, right = null, mismatch = false) }
@@ -116,14 +117,14 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
                     putInt("index", index); putString("selected", selected)
                     putStringArrayList("tiles", ArrayList(tiles)); putStringArrayList("matched", ArrayList(matched))
                     putString("left", left); putString("right", right); putBoolean("mismatch", mismatch)
-                    putBoolean("mistake", pairMistake); putBooleanArray("results", results.toBooleanArray())
+                    putBooleanArray("results", results.toBooleanArray())
                     putStringArrayList("failed", ArrayList(failedAnswers)); putString("feedback", feedback.name); putInt("feedbackEpoch", feedbackEpoch)
                     putBoolean("solved", solved); putBoolean("hadMistake", hadMistake)
                 }
             } },
             restore = { b -> LessonSession(lesson, SessionState(b.getInt("index"), b.getString("selected"),
                 b.getStringArrayList("tiles")?.toList().orEmpty(), b.getStringArrayList("matched")?.toSet().orEmpty(),
-                b.getString("left"), b.getString("right"), b.getBoolean("mismatch"), b.getBoolean("mistake"),
+                b.getString("left"), b.getString("right"), b.getBoolean("mismatch"),
                 b.getStringArrayList("failed")?.toSet().orEmpty(),
                 b.getString("feedback")?.let { runCatching { QuizFeedback.valueOf(it) }.getOrDefault(QuizFeedback.None) } ?: QuizFeedback.None,
                 b.getInt("feedbackEpoch"), b.getBoolean("solved"), b.getBoolean("hadMistake"),

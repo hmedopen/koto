@@ -96,7 +96,7 @@ class LessonSessionTest {
         }
     }
 
-    @Test fun pairErrorsResetButFirstTryFailureSurvivesUntilCompletion() {
+    @Test fun pairErrorsResetAndCompletionIsStillCorrect() {
         val session = LessonSession(PrototypeLessons.lesson(1)!!, SessionState(index = 2, results = listOf(true, true)))
         val q = session.question as Question.PairMatch
         session.pair(q.pairs[0].id, false)
@@ -106,9 +106,31 @@ class LessonSessionTest {
         assertTrue(session.state.matched.isEmpty())
         session.clearMismatch()
         q.pairs.forEach { session.pair(it.id, false); session.pair(it.id, true) }
-        assertEquals(false, session.correct)
+        assertEquals(true, session.correct)
         assertEquals(3, session.state.matched.size)
         assertEquals(3, session.state.results.size)
+    }
+
+    @Test fun placesPairsCompleteCorrectlyAfterHomeToSchoolMismatch() {
+        val question = PrototypeLessons.lesson(8)!!.questions
+            .filterIsInstance<Question.PairMatch>().single()
+        val session = LessonSession(PrototypeLessons.lesson(8)!!.copy(questions = listOf(question)))
+        val home = question.pairs.single { it.english == "Home" }
+        val school = question.pairs.single { it.english == "School" }
+
+        session.pair(home.id, false)
+        session.pair(school.id, true)
+        assertTrue(session.state.mismatch)
+        assertTrue(session.state.matched.isEmpty())
+
+        session.clearMismatch()
+        question.pairs.forEach { pair ->
+            session.pair(pair.id, true)
+            session.pair(pair.id, false)
+        }
+
+        assertEquals(question.pairs.size, session.state.matched.size)
+        assertEquals(true, session.correct)
     }
 
     @Test fun progressionIsSequentialWithoutDebugOverrideAndFutureNodesStayLocked() {

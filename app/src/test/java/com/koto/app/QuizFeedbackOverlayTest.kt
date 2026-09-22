@@ -149,6 +149,24 @@ class QuizFeedbackOverlayTest {
         compose.onNodeWithTag("lesson_action").assertIsNotEnabled().assertTextContains("CHECK")
     }
 
+    @Test fun matchingPairsCompletionOverlaysTheBoardUntilContinue() {
+        val pairs = PrototypeLessons.lesson(3)!!.questions.first { it is Question.PairMatch } as Question.PairMatch
+        val next = questions.first()
+        show(listOf(pairs, next))
+        val boardBefore = compose.onNodeWithTag("question_scroll").fetchSemanticsNode().boundsInRoot
+        pairs.pairs.forEach { pair ->
+            compose.onNodeWithTag("pair_ja_${pair.id}").performClick()
+            compose.onNodeWithTag("pair_en_${pair.id}").performClick()
+        }
+        compose.mainClock.advanceTimeBy(500)
+        compose.onNodeWithTag("question_${pairs.id}").assertIsDisplayed()
+        compose.onNodeWithTag("lesson_feedback").assertIsDisplayed()
+        compose.onNodeWithTag("lesson_action").assertIsEnabled().assertTextContains("CONTINUE")
+        assertEquals(boardBefore, compose.onNodeWithTag("question_scroll").fetchSemanticsNode().boundsInRoot)
+        compose.onNodeWithTag("lesson_action").performClick()
+        compose.onNodeWithTag("question_${next.id}").assertIsDisplayed()
+    }
+
     @Test fun rtlLargeTextKeepsCorrectionAndContinueInsideTheSafeArea() {
         val q = questions[1] as Question.ConversationResponse
         show(listOf(q, questions[2]), rtl = true, fontScale = 2f)
