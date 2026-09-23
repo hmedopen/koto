@@ -120,14 +120,15 @@ internal fun LessonExercise(session: LessonSession, speechReady: Boolean, speak:
     val submitted = session.checked
     val pairs = session.question is Question.PairMatch
     val manual = session.question is Question.SentenceBuilder || session.question is Question.Cloze
+    val questionScroll = rememberScrollState()
     var actionHeight by remember { mutableIntStateOf(0) }
     val actionSpace = if (pairs) 12.dp else if (actionHeight == 0) 72.dp else with(LocalDensity.current) { actionHeight.toDp() }
     val completionActionSpace = if (actionHeight == 0) 72.dp else with(LocalDensity.current) { actionHeight.toDp() }
     Box(modifier) {
         BoxWithConstraints(Modifier.fillMaxSize().padding(bottom = actionSpace).padding(horizontal = 20.dp)) {
             val available = maxHeight
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState(), enabled = !submitted).testTag("question_scroll")) {
-                QuestionRenderer(session, available, speechReady, speak)
+            Column(Modifier.fillMaxSize().verticalScroll(questionScroll, enabled = !submitted).testTag("question_scroll")) {
+                QuestionRenderer(session, available, speechReady, speak, sentenceScrollState = questionScroll)
             }
         }
         if (!pairs || submitted) {
@@ -164,7 +165,10 @@ internal fun ActionButton(text: String, tag: String, enabled: Boolean = true, sh
 private fun FeedbackOverlay(session: LessonSession, actionSpace: Dp, modifier: Modifier = Modifier) {
     val entrance = remember { Animatable(1f) }
     LaunchedEffect(Unit) { entrance.animateTo(0f, tween(220)) }
-    val correct = session.correct == true
+    // Sentence retries retain first-try scoring, but a solved build is successful feedback.
+    val correct = if (session.question is Question.SentenceBuilder)
+        session.checked && session.sentenceGame.validation == SentenceValidation.Correct
+    else session.correct == true
     Surface(modifier.fillMaxWidth().graphicsLayer { translationY = size.height * entrance.value }
         .testTag("lesson_feedback").pointerInput(Unit) {
             awaitPointerEventScope {

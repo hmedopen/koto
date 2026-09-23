@@ -39,7 +39,10 @@ class KotoLessonTest {
             }
             is Question.SentenceBuilder -> {
                 compose.onNodeWithTag("lesson_action").assertIsNotEnabled()
-                q.correctOrder.forEach { compose.onNodeWithTag("tile_$it").performClick() }
+                q.correctOrder.forEach {
+                    compose.onNodeWithTag("tile_$it").performScrollTo().performClick()
+                    compose.waitForIdle()
+                }
                 compose.onNodeWithTag("lesson_action").performClick()
             }
             is Question.PairMatch -> q.pairs.forEach {

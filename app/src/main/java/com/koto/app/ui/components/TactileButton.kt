@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -55,6 +56,8 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
     tone: TactileTone = TactileTone.Default, selected: Boolean = false,
     description: String? = null, stateLabel: String? = null,
     padding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+    deferPointerClick: Boolean = true,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val actionScope = rememberCoroutineScope()
@@ -85,7 +88,23 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
     }
     val ink = if (emphasized) Color.White else KotoColors.Navy
     val shape = RoundedCornerShape(17.dp)
-    Box(modifier.padding(bottom = 4.dp)
+    val activate: () -> Unit = {
+        actionPending = true
+        if (pointerTap && deferPointerClick) {
+            actionScope.launch {
+                // Keep the instantaneous down state on screen for one brief beat before a
+                // callback can replace it. The local guard also rejects rapid repeat taps.
+                delay(70)
+                onClick()
+                actionPending = false
+            }
+        } else {
+            // Accessibility and test semantics have no visible pointer press to preserve.
+            onClick()
+            actionPending = false
+        }
+    }
+    val interactiveModifier = modifier.padding(bottom = 4.dp)
         .pointerInput(Unit) {
             awaitPointerEventScope {
                 while (true) {
@@ -95,22 +114,15 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
                 }
             }
         }
-        .clickable(enabled = enabled && !actionPending, role = Role.Button, interactionSource = interaction, indication = null) {
-            actionPending = true
-            if (pointerTap) {
-                actionScope.launch {
-                    // Keep the instantaneous down state on screen for one brief beat before a
-                    // callback can replace it. The local guard also rejects rapid repeat taps.
-                    delay(70)
-                    onClick()
-                    actionPending = false
-                }
-            } else {
-                // Accessibility and test semantics have no visible pointer press to preserve.
-                onClick()
-                actionPending = false
-            }
+        .let { base ->
+            if (onLongClick == null) base.clickable(
+                enabled = enabled && !actionPending, role = Role.Button, interactionSource = interaction, indication = null, onClick = activate,
+            ) else base.combinedClickable(
+                enabled = enabled && !actionPending, role = Role.Button, interactionSource = interaction, indication = null,
+                onClick = activate, onLongClick = onLongClick,
+            )
         }
+    Box(interactiveModifier
         .semantics(mergeDescendants = true) {
             this.selected = selected
             description?.let { contentDescription = it }

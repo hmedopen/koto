@@ -81,6 +81,20 @@ class QuizFeedbackOverlayTest {
                 action.assertIsEnabled().assertTextContains("CHECK")
             } else action.assertTextContains("CONTINUE")
 
+            if (q is Question.SentenceBuilder && !correct) {
+                val extra = q.tiles.first { it.id !in q.correctOrder }.id
+                val chosen = q.correctOrder.dropLast(1) + extra
+                action.performClick()
+                compose.onNodeWithTag("sentence_feedback").assertIsDisplayed()
+                compose.onNodeWithTag("lesson_feedback").assertDoesNotExist()
+                action.assertIsEnabled().assertTextContains("CHECK")
+                chosen.forEach { compose.onNodeWithTag("assembled_$it").assertIsEnabled() }
+                // Correct the one mistaken tile without rebuilding the rest of the sentence.
+                compose.onNodeWithTag("assembled_$extra").performScrollTo().performClick()
+                q.correctOrder.dropLast(1).forEach { compose.onNodeWithTag("assembled_$it").assertExists() }
+                compose.onNodeWithTag("tile_${q.correctOrder.last()}").performScrollTo().performClick()
+            }
+
             compose.waitForIdle()
             val before = positions(q)
             val scrollBefore = compose.onNodeWithTag("question_scroll").fetchSemanticsNode()
@@ -112,8 +126,9 @@ class QuizFeedbackOverlayTest {
             assertEquals(screen.bottom, overlay.bottom, 0f)
             val button = action.assertIsEnabled().assertTextContains("CONTINUE").fetchSemanticsNode().boundsInRoot
             assertTrue(button.bottom < screen.bottom)
-            compose.onNodeWithText(if (correct) "Correct!" else "Incorrect").assertIsDisplayed()
-            if (!correct) compose.onNodeWithText("Correct answer:").assertIsDisplayed()
+            val accepted = correct || q is Question.SentenceBuilder
+            compose.onNodeWithText(if (accepted) "Correct!" else "Incorrect").assertIsDisplayed()
+            if (!accepted) compose.onNodeWithText("Correct answer:").assertIsDisplayed()
             assertEquals(scrollBefore, compose.onNodeWithTag("question_scroll").fetchSemanticsNode()
                 .config[SemanticsProperties.VerticalScrollAxisRange].value(), 0f)
             compose.onAllNodes(hasAnyAncestor(hasTestTag("question_${q.id}")) and hasClickAction())

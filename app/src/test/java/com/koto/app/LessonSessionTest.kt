@@ -37,7 +37,7 @@ class LessonSessionTest {
         }
     }
 
-    @Test fun manualChoicesAreEditableUntilCheckThenFreezeAndScoreOnce() {
+    @Test fun manualChoicesAndSentenceBuildsStayEditableUntilTheyAreCorrect() {
         val lesson = PrototypeLessons.lesson(3)!!
         val session = LessonSession(lesson, SessionState(index = 2, results = listOf(true, true)))
         val cloze = session.question as Question.Cloze
@@ -59,16 +59,38 @@ class LessonSessionTest {
         session.toggleTile(builder.correctOrder.first())
         session.toggleTile(builder.correctOrder.first())
         assertTrue(session.state.tiles.isEmpty())
-        builder.correctOrder.reversed().forEach(session::toggleTile)
+        builder.correctOrder.reversed().forEach(session::addSentenceTile)
         assertTrue(session.canCheck)
-        session.toggleTile("missing")
+        session.check()
+        assertFalse(session.checked)
+        assertEquals(QuizFeedback.WarningOrder, session.state.feedback)
+        assertEquals(builder.correctOrder.reversed(), session.sentenceGame.sentenceTileIds)
+        // A picked-up tile can be moved before another tile; no deletion/rebuild is required.
+        session.state.tiles.toList().forEach(session::removeSentenceTile)
+        session.addSentenceTile(builder.correctOrder[1])
+        session.addSentenceTile(builder.correctOrder.first())
+        session.startSentenceReorder(builder.correctOrder.first())
+        session.moveSentenceTileBefore(builder.correctOrder[1])
+        assertEquals(builder.correctOrder.take(2), session.sentenceGame.sentenceTileIds.take(2))
+        // Finish correcting the remaining tiles with their original identities intact.
+        builder.correctOrder.drop(2).forEach(session::addSentenceTile)
         session.check()
         assertTrue(session.checked)
-        assertEquals(QuizFeedback.Wrong, session.state.feedback)
-        val checkedBuilder = session.state
-        session.toggleTile(builder.correctOrder.first())
-        session.check()
-        assertEquals(checkedBuilder, session.state)
+        assertEquals(false, session.correct) // Corrected after feedback, so not first-try correct.
+    }
+
+    @Test fun sentenceGameKeepsRepeatedWordTilesIndependentAndReturnsOnlyTheTappedTile() {
+        val builder = PrototypeLessons.lesson(4)!!.questions.filterIsInstance<Question.SentenceBuilder>().single()
+        val session = LessonSession(PrototypeLessons.lesson(4)!!.copy(questions = listOf(builder)))
+        assertEquals(builder.tiles.map { it.id }, session.sentenceGame.availableTileIds)
+        val particles = builder.tiles.filter { (it.text as LessonText.Japanese).value.kana == "を" }
+        assertEquals(2, particles.size)
+        particles.forEach { session.addSentenceTile(it.id) }
+        assertEquals(particles.map { it.id }, session.sentenceGame.sentenceTileIds)
+        session.removeSentenceTile(particles.first().id)
+        assertEquals(listOf(particles.last().id), session.sentenceGame.sentenceTileIds)
+        assertTrue(particles.first().id in session.sentenceGame.availableTileIds)
+        assertFalse(particles.last().id in session.sentenceGame.availableTileIds)
     }
 
     @Test fun wrongAutoChecksFreezeTheSelectionAndContinueResetsFeedback() {

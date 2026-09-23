@@ -1,14 +1,8 @@
 package com.koto.app.feature.lesson.ui
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandIn
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
-import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.*
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,13 +19,13 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.feature.lesson.LessonSession
-import com.koto.app.feature.lesson.QuizFeedback
 import com.koto.app.feature.lesson.model.*
 import com.koto.app.ui.components.*
 import com.koto.app.ui.theme.KotoColors
 
 @Composable
-fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean, speak: (JapaneseText) -> Unit) {
+fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean, speak: (JapaneseText) -> Unit,
+    sentenceScrollState: ScrollState? = null) {
     val q = session.question ?: return
     Column(Modifier.fillMaxWidth().heightIn(min = minHeight).testTag("question_${q.id}"),
         horizontalAlignment = Alignment.CenterHorizontally) {
@@ -47,7 +41,7 @@ fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean
         Spacer(Modifier.height(16.dp))
         when (q) {
             is Question.MeaningChoice -> MeaningChoiceQuestion(q, session, speechReady, speak)
-            is Question.SentenceBuilder -> SentenceBuilderQuestion(q, session, speak)
+            is Question.SentenceBuilder -> SentenceBuilderQuestion(q, session, speak, sentenceScrollState)
             is Question.Cloze -> ClozeQuestion(q, session, speechReady, speak)
             is Question.ConversationResponse -> ConversationQuestion(q, session, speechReady, speak)
             is Question.PairMatch -> PairMatchQuestion(q, session, speak)
@@ -151,54 +145,6 @@ private fun AnswerButton(answer: Answer, session: LessonSession, correctId: Stri
         Box(Modifier.fillMaxWidth().heightIn(min = minHeight - 24.dp), contentAlignment = Alignment.Center) {
             ContentText(answer.text, 20.sp)
         }
-    }
-}
-
-@Composable
-internal fun ColumnScope.SentenceBuilderQuestion(q: Question.SentenceBuilder, session: LessonSession, speak: (JapaneseText) -> Unit) {
-    Text(q.prompt, fontSize = 23.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
-    Spacer(Modifier.height(16.dp))
-    Text("Your sentence · tap a tile to return it", style = MaterialTheme.typography.labelMedium,
-        color = KotoColors.QuietInk, modifier = Modifier.align(Alignment.Start))
-    Spacer(Modifier.height(8.dp))
-    FlowRow(Modifier.fillMaxWidth().heightIn(min = 80.dp).animateContentSize(tween(160)),
-        horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        q.tiles.forEach { tile -> key(tile.id) {
-            val tone = sentenceTone(tile.id, session)
-            AnimatedVisibility(tile.id in session.state.tiles, enter = fadeIn(tween(100)) + expandIn(tween(160)), exit = fadeOut(tween(80)) + shrinkOut(tween(120))) {
-                TileButton(tile, Modifier.widthIn(max = 104.dp), !session.checked, tone, "assembled_${tile.id}") {
-                    speak((tile.text as LessonText.Japanese).value); session.toggleTile(tile.id)
-                }
-            }
-        } }
-    }
-    AnswerGap()
-    FlowRow(Modifier.fillMaxWidth().animateContentSize(tween(160)), horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        q.tiles.forEach { tile -> key(tile.id) {
-            AnimatedVisibility(tile.id !in session.state.tiles, enter = fadeIn(tween(100)) + expandIn(tween(160)), exit = fadeOut(tween(80)) + shrinkOut(tween(120))) {
-                TileButton(tile, Modifier.widthIn(max = 104.dp), !session.checked, TactileTone.Default, "tile_${tile.id}") {
-                    speak((tile.text as LessonText.Japanese).value); session.toggleTile(tile.id)
-                }
-            }
-        } }
-    }
-}
-
-private fun sentenceTone(id: String, session: LessonSession): TactileTone = when (session.state.feedback) {
-    QuizFeedback.WarningExtra -> if (session.state.tiles.count { it == id } > 1 || id !in (session.question as Question.SentenceBuilder).correctOrder) TactileTone.Warning else TactileTone.Selected
-    QuizFeedback.WarningOrder -> if (session.state.tiles.indexOf(id) != (session.question as Question.SentenceBuilder).correctOrder.indexOf(id)) TactileTone.Warning else TactileTone.Selected
-    QuizFeedback.Wrong -> TactileTone.Wrong
-    else -> if (session.checked && session.correct == true) TactileTone.Correct else TactileTone.Selected
-}
-
-@Composable
-private fun TileButton(tile: Answer, modifier: Modifier, enabled: Boolean, tone: TactileTone,
-    tag: String, state: String? = null, onClick: () -> Unit) {
-    TactileButton(onClick, modifier.testTag(tag), enabled = enabled, tone = tone,
-        selected = tone == TactileTone.Selected, stateLabel = state, padding = PaddingValues(horizontal = 4.dp, vertical = 10.dp)) {
-        Box(Modifier.fillMaxWidth().heightIn(min = 54.dp), contentAlignment = Alignment.Center) { ContentText(tile.text, 16.sp) }
     }
 }
 
