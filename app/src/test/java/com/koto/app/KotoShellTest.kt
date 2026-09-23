@@ -118,6 +118,19 @@ class KotoShellTest {
     }
 
     @Test
+    fun sharedThreeDimensionalSettingsControlWorksOnEveryMainTab() {
+        listOf("map", "learn", "cards").forEach { tab ->
+            compose.onNodeWithTag("tab_$tab").performClick()
+            val settings = compose.onNodeWithTag("map_settings").assertIsDisplayed().fetchSemanticsNode()
+            val minPixels = with(compose.density) { androidx.compose.ui.unit.Dp(48f).toPx() }
+            assertTrue(settings.boundsInRoot.width >= minPixels)
+            assertTrue(settings.boundsInRoot.height >= minPixels)
+            compose.onNodeWithTag("map_settings").performClick()
+            compose.onNodeWithTag("settings_done").assertIsDisplayed().performClick()
+        }
+    }
+
+    @Test
     @Config(qualifiers = "w800dp-h360dp-land-xhdpi")
     fun landscapeKeepsTheBarVisibleAndCentered() {
         compose.onNodeWithTag("screen_learn").assertIsDisplayed()

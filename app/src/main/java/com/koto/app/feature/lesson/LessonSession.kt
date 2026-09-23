@@ -25,6 +25,11 @@ data class SessionState(
     val results: List<Boolean> = emptyList(),
     /** Build a Sentence owns its own state; [tiles] is a legacy save/UI mirror. */
     val sentenceGame: SentenceGameState? = null,
+    val mistakes: List<Int> = emptyList(),
+    val reviewing: Boolean = false,
+    val reviewPending: Boolean = false,
+    val attempt: Int = 0,
+    val submittedCorrect: Boolean? = null,
 )
 
 /** One deterministic, saveable session. No question creates a route or owns audio. */
@@ -32,15 +37,15 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
     var state by mutableStateOf(initial)
         private set
     init { ensureSentenceGame() }
-    val finished get() = state.index >= lesson.questions.size
+    val finished get() = state.index >= lesson.questions.size && !state.reviewPending
     val question get() = lesson.questions.getOrNull(state.index)
     val checked get() = state.solved
-    val correct get() = state.results.getOrNull(state.index)
+    val correct get() = state.submittedCorrect ?: state.results.getOrNull(state.index)
     val progress get() = state.results.size.toFloat() / lesson.questions.size
-    val canCheck get() = !checked && when (val q = question) {
-        is Question.Cloze -> state.selected != null
+    val canCheck get() = !checked && !state.reviewPending && when (question) {
+        is Question.PairMatch, null -> false
         is Question.SentenceBuilder -> sentenceGame.sentenceTileIds.isNotEmpty()
-        else -> false
+        else -> state.selected != null
     }
     val sentenceGame: SentenceGameState
         get() = state.sentenceGame ?: (question as? Question.SentenceBuilder)?.let(SentenceGameState::initial)
@@ -48,14 +53,8 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
     fun select(id: String) {
         if (checked || finished) return
         when (val q = question) {
-            is Question.MeaningChoice -> if (q.options.any { it.id == id } && id !in state.failedAnswers) {
-                state = state.copy(selected = id)
-                if (id == q.correctId) evaluate(!state.hadMistake) else rejectAnswer(id)
-            }
-            is Question.ConversationResponse -> if (q.responses.any { it.id == id } && id !in state.failedAnswers) {
-                state = state.copy(selected = id)
-                if (id == q.correctId) evaluate(!state.hadMistake) else rejectAnswer(id)
-            }
+            is Question.MeaningChoice -> if (q.options.any { it.id == id }) state = state.copy(selected = id)
+            is Question.ConversationResponse -> if (q.responses.any { it.id == id }) state = state.copy(selected = id)
             is Question.Cloze -> if (q.options.any { it.id == id }) state = state.copy(selected = id, feedback = QuizFeedback.None)
             else -> Unit
         }
@@ -144,33 +143,29 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
         if (question !is Question.SentenceBuilder) return
         if (id in sentenceGame.sentenceTileIds) removeSentenceTile(id) else addSentenceTile(id)
     }
+    /** Every manual game submits through the same result and review lifecycle. */
     fun check(): JapaneseText? {
         if (!canCheck) return null
-        return when (val q = question) {
-            is Question.Cloze -> {
-                val correct = state.selected == q.correctId
-                if (correct) { evaluate(!state.hadMistake); q.filled(q.correctId) }
-                else { setFeedback(QuizFeedback.Wrong); null }
-            }
+        val q = question ?: return null
+        val correct = when (q) {
+            is Question.MeaningChoice -> state.selected == q.correctId
+            is Question.ConversationResponse -> state.selected == q.correctId
+            is Question.Cloze -> state.selected == q.correctId
             is Question.SentenceBuilder -> {
                 val game = sentenceGame
-                when (val validation = sentenceValidation(game.sentenceTileIds, q)) {
-                    SentenceValidation.Correct -> {
-                        updateSentenceGame(game.copy(validation = validation, movingTileId = null))
-                        evaluate(!state.hadMistake)
-                        q.sentence
-                    }
-                    else -> {
-                        // A wrong build is feedback, not a submission. Keep every tile in place
-                        // so the learner can edit or reorder it immediately.
-                        updateSentenceGame(game.copy(validation = validation, validationEpoch = game.validationEpoch + 1,
-                            movingTileId = null), feedbackFor(validation), hadMistake = true)
-                        null
-                    }
-                }
+                val validation = sentenceValidation(game.sentenceTileIds, q)
+                updateSentenceGame(game.copy(validation = validation,
+                    validationEpoch = game.validationEpoch + 1, movingTileId = null))
+                validation == SentenceValidation.Correct
             }
-            else -> null
+            is Question.PairMatch -> return null
         }
+        evaluate(correct)
+        return if (correct) when (q) {
+            is Question.Cloze -> q.filled(q.correctId)
+            is Question.SentenceBuilder -> q.sentence
+            else -> null
+        } else null
     }
     fun pair(id: String, japanese: Boolean) {
         val q = question as? Question.PairMatch ?: return
@@ -187,19 +182,31 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
         }
     }
     fun clearMismatch() { if (state.mismatch) state = state.copy(left = null, right = null, mismatch = false) }
-    private fun rejectAnswer(id: String) {
-        state = state.copy(selected = id, failedAnswers = state.failedAnswers + id,
-            feedback = QuizFeedback.Wrong, feedbackEpoch = state.feedbackEpoch + 1, hadMistake = true)
-        evaluate(false)
+    private fun evaluate(correct: Boolean) {
+        state = state.copy(solved = true, submittedCorrect = correct,
+            feedback = if (correct) QuizFeedback.None else QuizFeedback.Wrong,
+            feedbackEpoch = state.feedbackEpoch + if (correct) 0 else 1,
+            hadMistake = !correct,
+            results = if (state.reviewing) state.results else state.results + correct,
+            mistakes = if (!state.reviewing && !correct && state.index !in state.mistakes)
+                state.mistakes + state.index else state.mistakes)
     }
-    private fun setFeedback(value: QuizFeedback) {
-        state = state.copy(feedback = value, feedbackEpoch = state.feedbackEpoch + 1, hadMistake = true)
-        evaluate(false)
-    }
-    private fun evaluate(correct: Boolean) { state = state.copy(solved = true, results = state.results + correct) }
     fun next() {
         if (!checked || finished) return
-        state = SessionState(index = state.index + 1, results = state.results)
+        val queue = if (state.reviewing) {
+            state.mistakes.drop(1) + if (correct == false) listOf(state.index) else emptyList()
+        } else state.mistakes
+        val nextIndex = if (state.reviewing) queue.firstOrNull() ?: lesson.questions.size else state.index + 1
+        state = SessionState(index = nextIndex, results = state.results, mistakes = queue,
+            reviewing = state.reviewing,
+            reviewPending = !state.reviewing && nextIndex >= lesson.questions.size && queue.isNotEmpty(),
+            attempt = state.attempt + 1)
+        ensureSentenceGame()
+    }
+    fun startReview() {
+        if (!state.reviewPending) return
+        state = SessionState(index = state.mistakes.first(), results = state.results,
+            mistakes = state.mistakes, reviewing = true, attempt = state.attempt + 1)
         ensureSentenceGame()
     }
     fun replay() { state = SessionState(); ensureSentenceGame() }
@@ -233,6 +240,10 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
                     putBooleanArray("results", results.toBooleanArray())
                     putStringArrayList("failed", ArrayList(failedAnswers)); putString("feedback", feedback.name); putInt("feedbackEpoch", feedbackEpoch)
                     putBoolean("solved", solved); putBoolean("hadMistake", hadMistake)
+                    putIntegerArrayList("mistakes", ArrayList(mistakes))
+                    putBoolean("reviewing", reviewing); putBoolean("reviewPending", reviewPending)
+                    putInt("attempt", attempt)
+                    submittedCorrect?.let { putBoolean("submittedCorrect", it) }
                     sentenceGame?.let { game ->
                         putStringArrayList("sentenceAvailable", ArrayList(game.availableTileIds))
                         putStringArrayList("sentenceSelected", ArrayList(game.sentenceTileIds))
@@ -253,16 +264,14 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
                     b.getString("sentenceValidation")?.let { runCatching { SentenceValidation.valueOf(it) }.getOrDefault(SentenceValidation.Idle) }
                         ?: SentenceValidation.Idle,
                     b.getInt("sentenceValidationEpoch"),
-                ) })) },
+                ) },
+                mistakes = b.getIntegerArrayList("mistakes")?.toList().orEmpty(),
+                reviewing = b.getBoolean("reviewing"), reviewPending = b.getBoolean("reviewPending"),
+                attempt = b.getInt("attempt"),
+                submittedCorrect = if (b.containsKey("submittedCorrect")) b.getBoolean("submittedCorrect") else null,
+            )) },
         )
     }
-}
-
-private fun feedbackFor(validation: SentenceValidation) = when (validation) {
-    SentenceValidation.Missing -> QuizFeedback.WarningMissing
-    SentenceValidation.WrongOrder -> QuizFeedback.WarningOrder
-    SentenceValidation.WrongTiles -> QuizFeedback.WarningExtra
-    SentenceValidation.Idle, SentenceValidation.Correct -> QuizFeedback.None
 }
 
 private fun sentenceValidation(actualIds: List<String>, question: Question.SentenceBuilder): SentenceValidation {
@@ -272,9 +281,16 @@ private fun sentenceValidation(actualIds: List<String>, question: Question.Sente
     val actual = actualIds.map { textById[it] }
     val expected = question.correctOrder.map { textById.getValue(it) }
     if (actual == expected) return SentenceValidation.Correct
-    if (actual.size < expected.size) return SentenceValidation.Missing
     if (actual.groupingBy { it }.eachCount() == expected.groupingBy { it }.eachCount()) {
         return SentenceValidation.WrongOrder
+    }
+    val actualCounts = actual.groupingBy { it }.eachCount()
+    val expectedCounts = expected.groupingBy { it }.eachCount()
+    if (actual.size == expected.size - 1 && actualCounts.all { (word, count) -> count <= expectedCounts.getOrDefault(word, 0) }) {
+        return SentenceValidation.Missing
+    }
+    if (actual.size == expected.size + 1 && expectedCounts.all { (word, count) -> count <= actualCounts.getOrDefault(word, 0) }) {
+        return SentenceValidation.Extra
     }
     return SentenceValidation.WrongTiles
 }

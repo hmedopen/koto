@@ -70,7 +70,7 @@ class QuizFeedbackOverlayTest {
             val action = compose.onNodeWithTag("lesson_action")
             action.assertIsDisplayed().assertIsNotEnabled().performClick()
             compose.onNodeWithTag("lesson_feedback").assertDoesNotExist()
-            val manual = q is Question.Cloze || q is Question.SentenceBuilder
+
             if (q is Question.Cloze) {
                 val answer = if (correct) q.correctId else q.options.first { it.id != q.correctId }.id
                 compose.onNodeWithTag("answer_$answer").performClick()
@@ -79,20 +79,16 @@ class QuizFeedbackOverlayTest {
                 val chosen = if (correct) q.correctOrder else q.correctOrder.dropLast(1) + q.tiles.first { it.id !in q.correctOrder }.id
                 chosen.forEach { compose.onNodeWithTag("tile_$it").performScrollTo().performClick() }
                 action.assertIsEnabled().assertTextContains("CHECK")
-            } else action.assertTextContains("CONTINUE")
-
-            if (q is Question.SentenceBuilder && !correct) {
-                val extra = q.tiles.first { it.id !in q.correctOrder }.id
-                val chosen = q.correctOrder.dropLast(1) + extra
-                action.performClick()
-                compose.onNodeWithTag("sentence_feedback").assertIsDisplayed()
-                compose.onNodeWithTag("lesson_feedback").assertDoesNotExist()
+            } else {
+                val (options, correctId) = when (q) {
+                    is Question.MeaningChoice -> q.options to q.correctId
+                    is Question.ConversationResponse -> q.responses to q.correctId
+                    else -> error("Unexpected quiz")
+                }
+                val answer = if (correct) correctId else options.first { it.id != correctId }.id
+                compose.onNodeWithTag("answer_$answer").performClick()
                 action.assertIsEnabled().assertTextContains("CHECK")
-                chosen.forEach { compose.onNodeWithTag("assembled_$it").assertIsEnabled() }
-                // Correct the one mistaken tile without rebuilding the rest of the sentence.
-                compose.onNodeWithTag("assembled_$extra").performScrollTo().performClick()
-                q.correctOrder.dropLast(1).forEach { compose.onNodeWithTag("assembled_$it").assertExists() }
-                compose.onNodeWithTag("tile_${q.correctOrder.last()}").performScrollTo().performClick()
+                compose.onNodeWithTag("lesson_feedback").assertDoesNotExist()
             }
 
             compose.waitForIdle()
@@ -101,15 +97,7 @@ class QuizFeedbackOverlayTest {
                 .config[SemanticsProperties.VerticalScrollAxisRange].value()
             saveRenderedScreenshot(compose.activity, "feedback-${q.id}-$correct-before")
             compose.mainClock.autoAdvance = false
-            if (manual) action.performClick() else {
-                val (options, correctId) = when (q) {
-                    is Question.MeaningChoice -> q.options to q.correctId
-                    is Question.ConversationResponse -> q.responses to q.correctId
-                    else -> error("Unexpected quiz")
-                }
-                val answer = if (correct) correctId else options.first { it.id != correctId }.id
-                compose.onNodeWithTag("answer_$answer").performClick()
-            }
+            action.performClick()
             compose.mainClock.advanceTimeBy(128)
             compose.waitForIdle()
             assertPositions(q, before)
@@ -126,7 +114,7 @@ class QuizFeedbackOverlayTest {
             assertEquals(screen.bottom, overlay.bottom, 0f)
             val button = action.assertIsEnabled().assertTextContains("CONTINUE").fetchSemanticsNode().boundsInRoot
             assertTrue(button.bottom < screen.bottom)
-            val accepted = correct || q is Question.SentenceBuilder
+            val accepted = correct
             compose.onNodeWithText(if (accepted) "Correct!" else "Incorrect").assertIsDisplayed()
             if (!accepted) compose.onNodeWithText("Correct answer:").assertIsDisplayed()
             assertEquals(scrollBefore, compose.onNodeWithTag("question_scroll").fetchSemanticsNode()
@@ -140,6 +128,25 @@ class QuizFeedbackOverlayTest {
             action.performTouchInput { click(Offset(8f, center.y)) }
             compose.onNodeWithTag("lesson_feedback").assertDoesNotExist()
         }
+        if (!correct) {
+            compose.onNodeWithTag("mistake_review").assertIsDisplayed()
+            compose.onNodeWithTag("lesson_complete").assertDoesNotExist()
+            compose.onNodeWithTag("review_start").performClick()
+            questions.forEach { q ->
+                when (q) {
+                    is Question.MeaningChoice -> compose.onNodeWithTag("answer_${q.correctId}").performClick()
+                    is Question.ConversationResponse -> compose.onNodeWithTag("answer_${q.correctId}").performClick()
+                    is Question.Cloze -> compose.onNodeWithTag("answer_${q.correctId}").performClick()
+                    is Question.SentenceBuilder -> q.correctOrder.forEach {
+                        compose.onNodeWithTag("tile_$it").performScrollTo().performClick()
+                    }
+                    else -> error("Unexpected quiz")
+                }
+                compose.onNodeWithTag("lesson_action").performClick()
+                compose.onNodeWithText("Correct!").assertIsDisplayed()
+                compose.onNodeWithTag("lesson_action").performClick()
+            }
+        }
         compose.onNodeWithTag("lesson_complete").assertIsDisplayed()
         compose.onNodeWithText(if (correct) "4 / 4" else "0 / 4").assertIsDisplayed()
     }
@@ -152,11 +159,13 @@ class QuizFeedbackOverlayTest {
         val q2 = questions[1] as Question.ConversationResponse
         show(questions)
         compose.onNodeWithTag("answer_${q1.correctId}").performClick()
+        compose.onNodeWithTag("lesson_action").performClick()
         val staleContinue = compose.onNodeWithTag("lesson_action").fetchSemanticsNode().config[SemanticsActions.OnClick].action!!
         compose.onNodeWithTag("lesson_action").performTouchInput { doubleClick() }
         compose.onNodeWithTag("question_${q2.id}").assertIsDisplayed()
         compose.onNodeWithTag("lesson_action").assertIsNotEnabled()
         compose.onNodeWithTag("answer_${q2.correctId}").performClick()
+        compose.onNodeWithTag("lesson_action").performClick()
         compose.runOnIdle { staleContinue() }
         compose.onNodeWithTag("question_${q2.id}").assertIsDisplayed()
         compose.onNodeWithTag("lesson_action").assertIsEnabled().performClick()
@@ -186,6 +195,7 @@ class QuizFeedbackOverlayTest {
         val q = questions[1] as Question.ConversationResponse
         show(listOf(q, questions[2]), rtl = true, fontScale = 2f)
         compose.onNodeWithTag("answer_${q.responses.first { it.id != q.correctId }.id}").performScrollTo().performClick()
+        compose.onNodeWithTag("lesson_action").performClick()
         compose.onNodeWithText("Incorrect").assertIsDisplayed()
         compose.onNodeWithText("Correct answer:").assertIsDisplayed()
         val screen = compose.onNodeWithTag("lesson_screen").fetchSemanticsNode().boundsInRoot

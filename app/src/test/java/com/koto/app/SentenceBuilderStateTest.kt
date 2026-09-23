@@ -65,57 +65,61 @@ class SentenceBuilderStateTest {
         assertEquals(before, session.state)
     }
 
-    @Test fun missingFeedbackRetainsSentenceAndCorrectionSucceedsWithoutFirstTryCredit() {
-        val session = LessonSession(lesson)
-        session.addSentenceTile(question.correctOrder.first())
-        val partial = session.state.tiles
-        assertNull(session.check())
-        assertEquals(partial, session.state.tiles)
-        assertFalse(session.checked)
-        assertEquals(SentenceValidation.Missing, session.sentenceGame.validation)
-        assertEquals(QuizFeedback.WarningMissing, session.state.feedback)
-        assertTrue(session.state.results.isEmpty())
-        val epoch = session.sentenceGame.validationEpoch
-        session.check()
-        assertEquals(epoch + 1, session.sentenceGame.validationEpoch)
-        question.correctOrder.drop(1).forEach(session::addSentenceTile)
-        assertEquals(SentenceValidation.Idle, session.sentenceGame.validation)
-        assertEquals(QuizFeedback.None, session.state.feedback)
-        assertEquals(question.sentence, session.check())
-        assertTrue(session.checked)
-        assertEquals(SentenceValidation.Correct, session.sentenceGame.validation)
-        assertEquals(listOf(false), session.state.results)
-        assertPartition(session)
+    @Test fun structuralMistakesSubmitAndAreSolvedDuringReview() {
+        val builds = listOf(question.correctOrder.dropLast(1), question.correctOrder.reversed(),
+            question.correctOrder + question.tiles.first { it.id !in question.correctOrder }.id)
+        builds.forEach { ids ->
+            val session = LessonSession(lesson)
+            ids.forEach(session::addSentenceTile)
+            assertFalse(session.checked)
+            session.check()
+            assertTrue(session.checked)
+            assertEquals(false, session.correct)
+            assertEquals(QuizFeedback.Wrong, session.state.feedback)
+            session.removeSentenceTile(ids.first())
+            assertEquals(ids, session.state.tiles)
+            session.next()
+            assertTrue(session.state.reviewPending)
+            assertFalse(session.finished)
+            session.startReview()
+            question.correctOrder.forEach(session::addSentenceTile)
+            assertEquals(question.sentence, session.check())
+            assertEquals(true, session.correct)
+            assertEquals(listOf(false), session.state.results)
+            session.next()
+            assertTrue(session.finished)
+            assertTrue(session.state.mistakes.isEmpty())
+        }
     }
-
-    @Test fun wrongOrderCanBeCorrectedEntirelyByMovingSelectedTiles() {
-        val session = LessonSession(lesson)
-        question.correctOrder.reversed().forEach(session::addSentenceTile)
-        val wrongOrder = session.state.tiles
-        session.check()
-        assertEquals(wrongOrder, session.state.tiles)
-        assertEquals(SentenceValidation.WrongOrder, session.sentenceGame.validation)
-        question.correctOrder.forEachIndexed { index, id -> session.moveSentenceTile(id, index) }
-        assertEquals(question.correctOrder, session.state.tiles)
-        assertEquals(question.sentence, session.check())
-        assertEquals(SentenceValidation.Correct, session.sentenceGame.validation)
-        assertEquals(listOf(false), session.state.results)
-    }
-
-    @Test fun wrongTileFeedbackAllowsReplacingOneWordWithoutRebuilding() {
+    @Test fun wrongReplacementIsASubmittedFailureAndCannotBeSilentlyCorrected() {
         val session = LessonSession(lesson)
         val distractor = question.tiles.first { it.id !in question.correctOrder }
         question.correctOrder.dropLast(1).forEach(session::addSentenceTile)
         session.addSentenceTile(distractor.id)
-        val wrongBuild = session.state.tiles
-        session.check()
-        assertEquals(wrongBuild, session.state.tiles)
+        val submitted = session.state.tiles
+
+        assertNull(session.check())
+
+        assertTrue(session.checked)
+        assertEquals(false, session.correct)
         assertEquals(SentenceValidation.WrongTiles, session.sentenceGame.validation)
+        assertEquals(QuizFeedback.Wrong, session.state.feedback)
+        assertEquals(listOf(false), session.state.results)
         session.removeSentenceTile(distractor.id)
         session.addSentenceTile(question.correctOrder.last())
+        assertEquals(submitted, session.state.tiles)
+    }
+
+    @Test fun substantiallyWrongShortSentenceIsARealFailureNotAMissingWordWarning() {
+        val session = LessonSession(lesson)
+        question.tiles.filter { it.id !in question.correctOrder }.forEach { session.addSentenceTile(it.id) }
+
         session.check()
-        assertEquals(SentenceValidation.Correct, session.sentenceGame.validation)
-        assertPartition(session)
+
+        assertTrue(session.checked)
+        assertEquals(false, session.correct)
+        assertEquals(SentenceValidation.WrongTiles, session.sentenceGame.validation)
+        assertEquals(QuizFeedback.Wrong, session.state.feedback)
     }
 
     @Test fun identicalAuthoredWordsRemainIndependentButAreInterchangeableWhenChecked() {

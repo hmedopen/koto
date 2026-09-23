@@ -50,6 +50,7 @@ class KotoLessonTest {
                 compose.onNodeWithTag("pair_en_${it.id}").performClick()
             }
         }
+        if (q is Question.MeaningChoice || q is Question.ConversationResponse) compose.onNodeWithTag("lesson_action").performClick()
         if (q !is Question.PairMatch) {
             compose.onNodeWithText("Correct!").assertIsDisplayed()
             compose.onNodeWithTag("lesson_action").performClick()
@@ -88,6 +89,7 @@ class KotoLessonTest {
         val q = PrototypeLessons.lesson(1)!!.questions.first() as Question.MeaningChoice
         val wrong = q.options.first { it.id != q.correctId }
         compose.onNodeWithTag("answer_${wrong.id}").performClick()
+        compose.onNodeWithTag("lesson_action").performClick()
         compose.onNodeWithTag("lesson_settings").performClick()
         compose.onNodeWithTag("settings_sound").performClick()
         compose.onNodeWithTag("settings_done").performClick()
@@ -158,6 +160,7 @@ class KotoLessonTest {
         questions.take(2).forEach { q ->
             val choice = q as Question.MeaningChoice
             compose.onNodeWithTag("answer_${choice.correctId}").performScrollTo().performClick()
+            compose.onNodeWithTag("lesson_action").performClick()
             compose.onNodeWithTag("lesson_action").assertIsDisplayed().performClick()
         }
         val cloze = questions[2] as Question.Cloze

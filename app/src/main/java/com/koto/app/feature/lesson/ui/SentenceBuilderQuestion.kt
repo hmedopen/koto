@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -213,7 +214,9 @@ private fun SentenceBoard(q: Question.SentenceBuilder, session: LessonSession, s
     val correct = session.checked && game.validation == SentenceValidation.Correct
     val boardColor by animateColorAsState(when {
         correct -> KotoColors.CorrectWash
-        game.validation == SentenceValidation.WrongOrder || game.validation == SentenceValidation.WrongTiles -> KotoColors.WarningWash
+        game.validation == SentenceValidation.WrongTiles -> KotoColors.WrongWash
+        game.validation == SentenceValidation.Missing || game.validation == SentenceValidation.Extra ||
+            game.validation == SentenceValidation.WrongOrder -> KotoColors.WarningWash
         else -> KotoColors.SoftGrey
     }, tween(160), label = "Sentence surface")
 
@@ -353,20 +356,26 @@ private fun SentenceWordTile(
     lifted: Boolean, validation: SentenceValidation, onClick: () -> Unit, move: (Int) -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
+    var pointerPressed by remember { mutableStateOf(false) }
+    val semanticPressed by interaction.collectIsPressedAsState()
+    val pressed = pointerPressed || semanticPressed
     val depression by animateFloatAsState(if (pressed && !lifted) 3f else 0f,
         if (pressed) snap() else tween(90), label = "Word press")
     val lift by animateFloatAsState(if (lifted) 1f else 0f, tween(120), label = "Word lift")
     val success = validation == SentenceValidation.Correct
-    val warning = validation == SentenceValidation.WrongOrder || validation == SentenceValidation.WrongTiles
+    val warning = validation == SentenceValidation.Missing || validation == SentenceValidation.Extra ||
+        validation == SentenceValidation.WrongOrder
+    val wrong = validation == SentenceValidation.WrongTiles
     val face by animateColorAsState(when {
         success -> KotoColors.CorrectWash
+        wrong -> KotoColors.WrongWash
         warning -> KotoColors.WarningWash
         selected -> KotoColors.LessonBlue
         else -> Color.White
     }, tween(150), label = "Word face")
     val edge = when {
         success -> KotoColors.Correct
+        wrong -> KotoColors.Wrong
         warning -> KotoColors.Warning
         selected -> KotoColors.Navy
         else -> KotoColors.BlueEdge
@@ -380,6 +389,18 @@ private fun SentenceWordTile(
             this.shape = shape
         }
         .testTag(if (selected) "assembled_${tile.id}" else "tile_${tile.id}")
+        .pointerInput(enabled) {
+            if (!enabled) {
+                pointerPressed = false
+                return@pointerInput
+            }
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    pointerPressed = event.changes.any { it.pressed }
+                }
+            }
+        }
         .clickable(enabled = enabled, role = Role.Button, interactionSource = interaction, indication = null,
             onClickLabel = if (selected) "Return word to bank" else "Add word to sentence", onClick = onClick)
         .semantics(mergeDescendants = true) {
@@ -400,7 +421,7 @@ private fun SentenceWordTile(
             .graphicsLayer { translationY = depression.dp.toPx() }
             .background(face, shape).border(1.dp, edge.copy(alpha = .55f), shape)
             .padding(horizontal = 4.dp, vertical = 7.dp), contentAlignment = Alignment.Center) {
-            CompositionLocalProvider(LocalContentColor provides if (selected && !success && !warning) Color.White else KotoColors.Navy) {
+            CompositionLocalProvider(LocalContentColor provides if (selected && !success && !warning && !wrong) Color.White else KotoColors.Navy) {
                 ContentText(tile.text, 18.sp)
             }
         }
@@ -410,9 +431,10 @@ private fun SentenceWordTile(
 @Composable
 private fun SentenceFeedback(validation: SentenceValidation) {
     val message = when (validation) {
-        SentenceValidation.Missing -> "Keep going. Add the missing words."
-        SentenceValidation.WrongOrder -> "Almost there. Try a different word order."
-        SentenceValidation.WrongTiles -> "Check your words. Return any that don’t belong."
+        SentenceValidation.Missing -> "The sentence is missing words."
+        SentenceValidation.Extra -> "The sentence has an extra word."
+        SentenceValidation.WrongOrder -> "The words are in the wrong order."
+        SentenceValidation.WrongTiles -> "That sentence is not correct."
         SentenceValidation.Correct -> "Nicely done!"
         SentenceValidation.Idle -> ""
     }
@@ -422,7 +444,11 @@ private fun SentenceFeedback(validation: SentenceValidation) {
         Text("Check your words. Return any that don’t belong.", style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp).alpha(0f).clearAndSetSemantics {})
         Text(message, style = MaterialTheme.typography.bodyMedium,
-            color = if (validation == SentenceValidation.Correct) KotoColors.Correct else KotoColors.Warning,
+            color = when (validation) {
+                SentenceValidation.Correct -> KotoColors.Correct
+                SentenceValidation.WrongTiles -> KotoColors.Wrong
+                else -> KotoColors.Warning
+            },
             modifier = Modifier.matchParentSize().testTag("sentence_feedback").semantics { liveRegion = LiveRegionMode.Polite })
     }
 }

@@ -24,4 +24,4 @@ data class SentenceGameState(
 }
 
 /** Correct describes the accepted build; session results still record first-try credit. */
-enum class SentenceValidation { Idle, Missing, WrongOrder, WrongTiles, Correct }
+enum class SentenceValidation { Idle, Missing, Extra, WrongOrder, WrongTiles, Correct }

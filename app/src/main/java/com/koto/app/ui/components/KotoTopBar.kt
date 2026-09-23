@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,13 +38,16 @@ fun KotoTopBar(title: String, onSettings: () -> Unit) {
             style = KotoType.Brand,
             modifier = Modifier.align(Alignment.Center),
         )
-        IconButton(
+        TactileButton(
             onClick = onSettings,
-            modifier = Modifier.align(Alignment.CenterEnd).testTag("map_settings"),
+            modifier = Modifier.align(Alignment.CenterEnd).size(48.dp, 52.dp).testTag("map_settings"),
+            tone = TactileTone.Quiet,
+            description = stringResource(R.string.map_settings),
+            padding = PaddingValues(10.dp),
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_settings),
-                contentDescription = stringResource(R.string.map_settings),
+                contentDescription = null,
                 tint = KotoColors.Navy,
                 modifier = Modifier.size(24.dp),
             )

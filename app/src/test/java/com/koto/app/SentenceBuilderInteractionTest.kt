@@ -56,7 +56,7 @@ class SentenceBuilderInteractionTest {
             ) {
                 KotoTheme {
                     Box(Modifier.fillMaxSize().background(KotoColors.Background).testTag("sentence_test_screen")) {
-                        LessonExercise(session, false, {}, {}, Modifier.fillMaxSize())
+                        LessonExercise(session, false, false, {}, {}, Modifier.fillMaxSize())
                     }
                 }
             }
@@ -256,7 +256,7 @@ class SentenceBuilderInteractionTest {
         compose.runOnIdle { assertEquals(reordered, session.sentenceGame.sentenceTileIds) }
     }
 
-    @Test fun incompleteAndWrongFeedbackKeepTilesEditableAndRetryShowsSuccess() {
+    @Test fun incompleteSubmissionLocksTilesAndShowsContinueWithoutMovingTheAction() {
         val q = question(3)
         val incomplete = q.correctOrder.dropLast(1)
         val session = show(q, incomplete)
@@ -267,43 +267,16 @@ class SentenceBuilderInteractionTest {
         compose.runOnIdle {
             assertEquals(incomplete, session.sentenceGame.sentenceTileIds)
             assertEquals(SentenceValidation.Missing, session.sentenceGame.validation)
-            assertFalse(session.checked)
-        }
-        compose.onNodeWithTag("sentence_feedback").assertIsDisplayed()
-        compose.onNodeWithTag("lesson_feedback").assertDoesNotExist()
-        incomplete.forEach { compose.onNodeWithTag("assembled_$it").assertIsEnabled() }
-        saveRenderedScreenshot(compose.activity, "sentence-incomplete-320")
-
-        val extra = q.tiles.first { it.id !in q.correctOrder }.id
-        compose.onNodeWithTag("tile_$extra").performScrollTo()
-        tap("tile_$extra")
-        tap("lesson_action")
-        compose.waitForIdle()
-        compose.runOnIdle {
-            assertEquals(incomplete + extra, session.sentenceGame.sentenceTileIds)
-            assertEquals(SentenceValidation.WrongTiles, session.sentenceGame.validation)
-            assertFalse(session.checked)
-        }
-        saveRenderedScreenshot(compose.activity, "sentence-wrong-320")
-        compose.onNodeWithTag("assembled_$extra").performScrollTo()
-        tap("assembled_$extra")
-        compose.onNodeWithTag("tile_${q.correctOrder.last()}").performScrollTo()
-        tap("tile_${q.correctOrder.last()}")
-        tap("lesson_action")
-        compose.waitForIdle()
-        compose.runOnIdle {
-            assertEquals(q.correctOrder, session.sentenceGame.sentenceTileIds)
             assertTrue(session.checked)
-            assertEquals(false, session.correct)
+            assertEquals(listOf(0), session.state.mistakes)
         }
-        compose.onNodeWithText("Correct!").assertIsDisplayed()
-        compose.onNodeWithText("Incorrect").assertDoesNotExist()
+        compose.onNodeWithTag("lesson_feedback").assertIsDisplayed()
+        incomplete.forEach { compose.onNodeWithTag("assembled_$it").assertIsNotEnabled() }
+        compose.onNodeWithText("Incorrect").assertIsDisplayed()
         compose.onNodeWithTag("lesson_action").assertTextContains("CONTINUE").assertIsEnabled()
         assertEquals(actionBefore, compose.onNodeWithTag("lesson_action").fetchSemanticsNode().boundsInRoot)
         assertEquals(homes, poolPositions(q))
-        saveRenderedScreenshot(compose.activity, "sentence-corrected-320")
     }
-
     @Test fun visuallyIdenticalParticlesAreAcceptedWithoutMergingTheirIdentities() {
         val q = question(4)
         val particles = q.tiles.filter { (it.text as LessonText.Japanese).value.kana == "を" }
@@ -334,14 +307,17 @@ class SentenceBuilderInteractionTest {
             assertTrue("${tile.id} left edge", bounds.left >= screen.left)
             assertTrue("${tile.id} right edge", bounds.right <= screen.right)
         }
-        val selected = q.tiles.last().id
-        tap("tile_$selected")
-        compose.runOnIdle { assertEquals(listOf(selected), session.sentenceGame.sentenceTileIds) }
+        val selected = q.correctOrder.dropLast(1)
+        selected.forEach { id ->
+            compose.onNodeWithTag("tile_$id").performScrollTo()
+            tap("tile_$id")
+        }
+        compose.runOnIdle { assertEquals(selected, session.sentenceGame.sentenceTileIds) }
         compose.onNodeWithTag("lesson_action").assertIsDisplayed().assertIsEnabled()
         tap("lesson_action")
         compose.waitForIdle()
-        compose.onNodeWithTag("sentence_feedback").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("lesson_action").assertIsDisplayed().assertTextContains("CHECK")
+        compose.onNodeWithTag("lesson_feedback").assertIsDisplayed()
+        compose.onNodeWithTag("lesson_action").assertIsDisplayed().assertTextContains("CONTINUE")
         saveRenderedScreenshot(compose.activity, "sentence-large-text-rtl")
     }
 }

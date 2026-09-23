@@ -24,7 +24,8 @@ import com.koto.app.ui.components.*
 import com.koto.app.ui.theme.KotoColors
 
 @Composable
-fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean, speak: (JapaneseText) -> Unit,
+fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean, isSpeaking: Boolean,
+    speak: (JapaneseText) -> Unit,
     sentenceScrollState: ScrollState? = null) {
     val q = session.question ?: return
     Column(Modifier.fillMaxWidth().heightIn(min = minHeight).testTag("question_${q.id}"),
@@ -40,10 +41,10 @@ fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean
             modifier = Modifier.fillMaxWidth().semantics { heading() }, color = KotoColors.Navy)
         Spacer(Modifier.height(16.dp))
         when (q) {
-            is Question.MeaningChoice -> MeaningChoiceQuestion(q, session, speechReady, speak)
+            is Question.MeaningChoice -> MeaningChoiceQuestion(q, session, speechReady, isSpeaking, speak)
             is Question.SentenceBuilder -> SentenceBuilderQuestion(q, session, speak, sentenceScrollState)
-            is Question.Cloze -> ClozeQuestion(q, session, speechReady, speak)
-            is Question.ConversationResponse -> ConversationQuestion(q, session, speechReady, speak)
+            is Question.Cloze -> ClozeQuestion(q, session, speechReady, isSpeaking, speak)
+            is Question.ConversationResponse -> ConversationQuestion(q, session, speechReady, isSpeaking, speak)
             is Question.PairMatch -> PairMatchQuestion(q, session, speak)
         }
         if (q !is Question.PairMatch) {
@@ -54,14 +55,15 @@ fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean
 }
 
 @Composable
-private fun Prompt(text: LessonText, speechReady: Boolean, speak: (JapaneseText) -> Unit, dialogue: Boolean = false, sentence: Boolean = false) {
+private fun Prompt(text: LessonText, speechReady: Boolean, isSpeaking: Boolean,
+    speak: (JapaneseText) -> Unit, dialogue: Boolean = false, sentence: Boolean = false) {
     Surface(Modifier.fillMaxWidth(), color = KotoColors.Background,
         shape = if (dialogue) RoundedCornerShape(22.dp, 22.dp, 22.dp, 4.dp) else RoundedCornerShape(22.dp),
         border = BorderStroke(1.dp, KotoColors.Hairline)) {
         Column(Modifier.padding(if (sentence) 12.dp else 16.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            ContentText(text, if (dialogue || sentence) 24.sp else 28.sp)
-            if (text is LessonText.Japanese) SpeakerButton(text.value, speechReady, speak)
+            ContentText(text, if (dialogue || sentence) 24.sp else 28.sp, alignReading = false)
+            if (text is LessonText.Japanese) SpeakerButton(text.value, speechReady, isSpeaking, speak)
         }
     }
 }
@@ -71,8 +73,8 @@ private fun ColumnScope.AnswerGap() { Spacer(Modifier.weight(1f).heightIn(min = 
 
 @Composable
 internal fun ColumnScope.MeaningChoiceQuestion(q: Question.MeaningChoice, session: LessonSession,
-    speechReady: Boolean, speak: (JapaneseText) -> Unit) {
-    Prompt(q.prompt, speechReady, speak)
+    speechReady: Boolean, isSpeaking: Boolean, speak: (JapaneseText) -> Unit) {
+    Prompt(q.prompt, speechReady, isSpeaking, speak)
     AnswerGap()
     q.options.chunked(2).forEach { row ->
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -86,8 +88,8 @@ internal fun ColumnScope.MeaningChoiceQuestion(q: Question.MeaningChoice, sessio
 
 @Composable
 internal fun ColumnScope.ConversationQuestion(q: Question.ConversationResponse, session: LessonSession,
-    speechReady: Boolean, speak: (JapaneseText) -> Unit) {
-    Prompt(LessonText.Japanese(q.incoming), speechReady, speak, dialogue = true)
+    speechReady: Boolean, isSpeaking: Boolean, speak: (JapaneseText) -> Unit) {
+    Prompt(LessonText.Japanese(q.incoming), speechReady, isSpeaking, speak, dialogue = true)
     AnswerGap()
     q.responses.forEach { answer -> key(answer.id) {
         AnswerButton(answer, session, q.correctId, speak, Modifier.fillMaxWidth())
@@ -97,8 +99,8 @@ internal fun ColumnScope.ConversationQuestion(q: Question.ConversationResponse, 
 
 @Composable
 internal fun ColumnScope.ClozeQuestion(q: Question.Cloze, session: LessonSession,
-    speechReady: Boolean, speak: (JapaneseText) -> Unit) {
-    ClozePrompt(q, session.state.selected, speechReady, speak)
+    speechReady: Boolean, isSpeaking: Boolean, speak: (JapaneseText) -> Unit) {
+    ClozePrompt(q, session.state.selected, speechReady, isSpeaking, speak)
     AnswerGap()
     q.options.forEach { answer -> key(answer.id) {
         AnswerButton(answer, session, q.correctId, speak, Modifier.fillMaxWidth())
@@ -107,7 +109,8 @@ internal fun ColumnScope.ClozeQuestion(q: Question.Cloze, session: LessonSession
 }
 
 @Composable
-private fun ClozePrompt(q: Question.Cloze, selectedId: String?, speechReady: Boolean, speak: (JapaneseText) -> Unit) {
+private fun ClozePrompt(q: Question.Cloze, selectedId: String?, speechReady: Boolean, isSpeaking: Boolean,
+    speak: (JapaneseText) -> Unit) {
     val selected = (q.options.firstOrNull { it.id == selectedId }?.text as? LessonText.Japanese)?.value
     fun underlined(source: String, replacement: String?) = buildAnnotatedString {
         val pieces = source.split("___")
@@ -121,7 +124,7 @@ private fun ClozePrompt(q: Question.Cloze, selectedId: String?, speechReady: Boo
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(underlined(q.sentence.romaji, selected?.romaji), fontSize = 16.sp, color = KotoColors.QuietInk, textAlign = TextAlign.Center)
             Text(underlined(q.sentence.kana, selected?.kana), fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            SpeakerButton(q.filled(selectedId), speechReady, speak)
+            SpeakerButton(q.filled(selectedId), speechReady, isSpeaking, speak)
         }
     }
 }
@@ -133,14 +136,13 @@ private fun AnswerButton(answer: Answer, session: LessonSession, correctId: Stri
     val tone = when {
         session.checked && answer.id == correctId -> TactileTone.Correct
         session.checked && selected && session.correct == false -> TactileTone.Wrong
-        answer.id in session.state.failedAnswers -> TactileTone.Wrong
         selected -> TactileTone.Selected
         else -> TactileTone.Default
     }
     TactileButton({
         (answer.text as? LessonText.Japanese)?.let { speak(it.value) }
         session.select(answer.id)
-    }, modifier.testTag("answer_${answer.id}"), enabled = !session.checked && answer.id !in session.state.failedAnswers, tone = tone, selected = selected,
+    }, modifier.testTag("answer_${answer.id}"), enabled = !session.checked, tone = tone, selected = selected, deferPointerClick = false,
         stateLabel = when (tone) { TactileTone.Correct -> "Correct answer"; TactileTone.Wrong -> "Incorrect answer"; else -> null }) {
         Box(Modifier.fillMaxWidth().heightIn(min = minHeight - 24.dp), contentAlignment = Alignment.Center) {
             ContentText(answer.text, 20.sp)

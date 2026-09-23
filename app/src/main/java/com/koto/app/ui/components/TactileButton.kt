@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
@@ -63,7 +64,9 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
     val actionScope = rememberCoroutineScope()
     var actionPending by remember { mutableStateOf(false) }
     var pointerTap by remember { mutableStateOf(false) }
-    val pressed by interaction.collectIsPressedAsState()
+    var pointerPressed by remember { mutableStateOf(false) }
+    val semanticPressed by interaction.collectIsPressedAsState()
+    val pressed = pointerPressed || semanticPressed
     // Press state is applied synchronously on down; only the return uses a short transition.
     val displacement by animateFloatAsState(if (pressed) 4f else 0f,
         if (pressed) snap() else tween(90), label = "Tactile depth")
@@ -105,12 +108,28 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
         }
     }
     val interactiveModifier = modifier.padding(bottom = 4.dp)
-        .pointerInput(Unit) {
+        .pointerInput(enabled) {
+            if (!enabled) {
+                pointerPressed = false
+                pointerTap = false
+                return@pointerInput
+            }
             awaitPointerEventScope {
                 while (true) {
-                    val event = awaitPointerEvent()
-                    if (event.changes.any { it.changedToDown() }) pointerTap = true
-                    if (event.changes.any { it.changedToUp() }) pointerTap = false
+                    // Observe without consuming so click, long-click, scroll and drag
+                    // recognizers keep ownership of the gesture. Reading at Initial makes
+                    // the visual depression happen on the first touch-down frame, even in
+                    // a scrollable parent where clickable deliberately delays Press.
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (event.changes.any { it.changedToDown() }) {
+                        pointerTap = true
+                        pointerPressed = true
+                    }
+                    if (event.changes.any { it.changedToUp() }) {
+                        pointerPressed = false
+                        pointerTap = false
+                    }
+                    if (event.changes.none { it.pressed }) pointerPressed = false
                 }
             }
         }

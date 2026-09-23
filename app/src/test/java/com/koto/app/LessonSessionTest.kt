@@ -18,8 +18,8 @@ class LessonSessionTest {
                 session.next() // Cannot skip an unanswered question.
                 assertEquals(index, session.state.index)
                 when (q) {
-                    is Question.MeaningChoice -> session.select(q.correctId)
-                    is Question.ConversationResponse -> session.select(q.correctId)
+                    is Question.MeaningChoice -> { session.select(q.correctId); assertFalse(session.checked); session.check() }
+                    is Question.ConversationResponse -> { session.select(q.correctId); assertFalse(session.checked); session.check() }
                     is Question.Cloze -> { session.select(q.correctId); assertFalse(session.checked); session.check() }
                     is Question.SentenceBuilder -> { q.correctOrder.forEach(session::toggleTile); session.check() }
                     is Question.PairMatch -> q.pairs.forEach { session.pair(it.id, true); session.pair(it.id, false) }
@@ -61,24 +61,13 @@ class LessonSessionTest {
         assertTrue(session.state.tiles.isEmpty())
         builder.correctOrder.reversed().forEach(session::addSentenceTile)
         assertTrue(session.canCheck)
-        session.check()
         assertFalse(session.checked)
-        assertEquals(QuizFeedback.WarningOrder, session.state.feedback)
-        assertEquals(builder.correctOrder.reversed(), session.sentenceGame.sentenceTileIds)
-        // A picked-up tile can be moved before another tile; no deletion/rebuild is required.
-        session.state.tiles.toList().forEach(session::removeSentenceTile)
-        session.addSentenceTile(builder.correctOrder[1])
-        session.addSentenceTile(builder.correctOrder.first())
-        session.startSentenceReorder(builder.correctOrder.first())
-        session.moveSentenceTileBefore(builder.correctOrder[1])
-        assertEquals(builder.correctOrder.take(2), session.sentenceGame.sentenceTileIds.take(2))
-        // Finish correcting the remaining tiles with their original identities intact.
-        builder.correctOrder.drop(2).forEach(session::addSentenceTile)
+        // Rearrange freely before submitting.
+        builder.correctOrder.forEachIndexed { index, id -> session.moveSentenceTile(id, index) }
         session.check()
         assertTrue(session.checked)
-        assertEquals(false, session.correct) // Corrected after feedback, so not first-try correct.
+        assertEquals(true, session.correct)
     }
-
     @Test fun sentenceGameKeepsRepeatedWordTilesIndependentAndReturnsOnlyTheTappedTile() {
         val builder = PrototypeLessons.lesson(4)!!.questions.filterIsInstance<Question.SentenceBuilder>().single()
         val session = LessonSession(PrototypeLessons.lesson(4)!!.copy(questions = listOf(builder)))
@@ -93,15 +82,17 @@ class LessonSessionTest {
         assertFalse(particles.last().id in session.sentenceGame.availableTileIds)
     }
 
-    @Test fun wrongAutoChecksFreezeTheSelectionAndContinueResetsFeedback() {
+    @Test fun manualChecksFreezeTheSelectionAndContinueResetsFeedback() {
         listOf(PrototypeLessons.lesson(1)!!.questions.first(), PrototypeLessons.lesson(9)!!.questions.first()).forEach { q ->
             val (answers, correctId) = when (q) {
                 is Question.MeaningChoice -> q.options to q.correctId
                 is Question.ConversationResponse -> q.responses to q.correctId
-                else -> error("Expected an auto-check question")
+                else -> error("Expected a choice question")
             }
             val session = LessonSession(PrototypeLessons.lesson(1)!!.copy(questions = listOf(q, q)))
             session.select(answers.first { it.id != correctId }.id)
+            assertFalse(session.checked)
+            session.check()
             assertTrue(session.checked)
             assertEquals(false, session.correct)
             val submitted = session.state
@@ -110,8 +101,10 @@ class LessonSessionTest {
             assertEquals(submitted, session.state)
             session.next()
             session.next()
-            assertEquals(SessionState(index = 1, results = listOf(false)), session.state)
+            assertEquals(SessionState(index = 1, results = listOf(false), mistakes = listOf(0), attempt = 1), session.state)
             session.select(correctId)
+            assertFalse(session.checked)
+            session.check()
             assertTrue(session.checked)
             assertEquals(correctId, session.state.selected)
             assertEquals(listOf(false, true), session.state.results)

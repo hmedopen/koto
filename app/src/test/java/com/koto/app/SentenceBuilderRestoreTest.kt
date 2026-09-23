@@ -24,7 +24,7 @@ class SentenceBuilderRestoreTest {
 
     @Test fun saverRetainsFeedbackAndFirstTryHistoryButNeverResumesATransientReorder() {
         val session = LessonSession(lesson)
-        session.addSentenceTile(question.correctOrder.first())
+        question.correctOrder.dropLast(1).forEach(session::addSentenceTile)
         session.check()
         session.startSentenceReorder(question.correctOrder.first())
         val saver = LessonSession.saver(lesson)
@@ -39,7 +39,14 @@ class SentenceBuilderRestoreTest {
         assertEquals(session.sentenceGame.validationEpoch, restored.sentenceGame.validationEpoch)
         assertTrue(restored.state.hadMistake)
         assertNull(restored.sentenceGame.movingTileId)
-        question.correctOrder.drop(1).forEach(restored::addSentenceTile)
+        assertTrue(restored.checked)
+        assertEquals(listOf(0), restored.state.mistakes)
+        restored.next()
+        val pending = saver.restore(with(saver) { scope.save(restored) }!!)!!
+        assertTrue(pending.state.reviewPending)
+        assertFalse(pending.finished)
+        restored.startReview()
+        question.correctOrder.forEach(restored::addSentenceTile)
         assertEquals(question.sentence, restored.check())
         assertEquals(SentenceValidation.Correct, restored.sentenceGame.validation)
         assertEquals(listOf(false), restored.state.results)
