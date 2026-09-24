@@ -1,0 +1,80 @@
+[
+  {
+    "id": "cat_greetings",
+    "title": "Greetings & Basics",
+    "icon": "chatbubble",
+    "cards": [
+      { "id": "card_101", "japanese": "こんにちは", "romaji": "konnichiwa", "english": "Hello" },
+      { "id": "card_102", "japanese": "ありがとう", "romaji": "arigatou", "english": "Thank you" },
+      { "id": "card_103", "japanese": "さようなら", "romaji": "sayounara", "english": "Goodbye" },
+      { "id": "card_104", "japanese": "はい", "romaji": "hai", "english": "Yes" },
+      { "id": "card_105", "japanese": "いいえ", "romaji": "iie", "english": "No" },
+      { "id": "card_106", "japanese": "すみません", "romaji": "sumimasen", "english": "Excuse me / Sorry" }
+    ]
+  },
+  {
+    "id": "cat_numbers",
+    "title": "Numbers & Counting",
+    "icon": "hashtag",
+    "cards": [
+      { "id": "card_201", "japanese": "いち", "romaji": "ichi", "english": "One" },
+      { "id": "card_202", "japanese": "に", "romaji": "ni", "english": "Two" },
+      { "id": "card_203", "japanese": "さん", "romaji": "san", "english": "Three" },
+      { "id": "card_204", "japanese": "みっつ", "romaji": "mittsu", "english": "Three items" },
+      { "id": "card_205", "japanese": "よん", "romaji": "yon", "english": "Four" },
+      { "id": "card_206", "japanese": "ご", "romaji": "go", "english": "Five" }
+    ]
+  },
+  {
+    "id": "cat_home",
+    "title": "Home & Objects",
+    "icon": "home",
+    "cards": [
+      { "id": "card_301", "japanese": "へや", "romaji": "heya", "english": "Room" },
+      { "id": "card_302", "japanese": "つくえ", "romaji": "tsukue", "english": "Desk" },
+      { "id": "card_303", "japanese": "いす", "romaji": "isu", "english": "Chair" },
+      { "id": "card_304", "japanese": "ほん", "romaji": "hon", "english": "Book" },
+      { "id": "card_305", "japanese": "とけい", "romaji": "tokei", "english": "Clock / Watch" },
+      { "id": "card_306", "japanese": "かぎ", "romaji": "kagi", "english": "Key" }
+    ]
+  },
+  {
+    "id": "cat_food",
+    "title": "Food & Drinks",
+    "icon": "utensils",
+    "cards": [
+      { "id": "card_401", "japanese": "みず", "romaji": "mizu", "english": "Water" },
+      { "id": "card_402", "japanese": "おちゃ", "romaji": "ocha", "english": "Tea" },
+      { "id": "card_403", "japanese": "ごはん", "romaji": "gohan", "english": "Rice / Meal" },
+      { "id": "card_404", "japanese": "りんご", "romaji": "ringo", "english": "Apple" },
+      { "id": "card_405", "japanese": "さかな", "romaji": "sakana", "english": "Fish" },
+      { "id": "card_406", "japanese": "にく", "romaji": "niku", "english": "Meat" }
+    ]
+  },
+  {
+    "id": "cat_travel",
+    "title": "Travel & Places",
+    "icon": "train",
+    "cards": [
+      { "id": "card_501", "japanese": "えき", "romaji": "eki", "english": "Station" },
+      { "id": "card_502", "japanese": "ホテル", "romaji": "hoteru", "english": "Hotel" },
+      { "id": "card_503", "japanese": "くうこう", "romaji": "kuukou", "english": "Airport" },
+      { "id": "card_504", "japanese": "でんしゃ", "romaji": "densha", "english": "Train" },
+      { "id": "card_505", "japanese": "みせ", "romaji": "mise", "english": "Shop" },
+      { "id": "card_506", "japanese": "がっこう", "romaji": "gakkou", "english": "School" }
+    ]
+  },
+  {
+    "id": "cat_verbs",
+    "title": "Common Verbs",
+    "icon": "footsteps",
+    "cards": [
+      { "id": "card_601", "japanese": "たべる", "romaji": "taberu", "english": "To eat" },
+      { "id": "card_602", "japanese": "のむ", "romaji": "nomu", "english": "To drink" },
+      { "id": "card_603", "japanese": "いく", "romaji": "iku", "english": "To go" },
+      { "id": "card_604", "japanese": "みる", "romaji": "miru", "english": "To see / watch" },
+      { "id": "card_605", "japanese": "はなす", "romaji": "hanasu", "english": "To speak" },
+      { "id": "card_606", "japanese": "かう", "romaji": "kau", "english": "To buy" }
+    ]
+  }
+]
