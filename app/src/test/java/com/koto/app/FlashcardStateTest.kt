@@ -14,7 +14,10 @@ class FlashcardStateTest {
         state = state.flip().rate("card_0", CardRating.Again, 123L)
         assertEquals(1, state.index)
         assertFalse(state.revealed)
-        assertEquals(state, state.flip().rate("card_0", CardRating.Easy).copy(revealed = false))
+        assertFalse(state.hasBeenRevealed)
+        assertEquals(state, state.rate("card_0", CardRating.Easy))
+        val nextFlipped = state.flip()
+        assertEquals(nextFlipped, nextFlipped.rate("card_0", CardRating.Easy))
         for (index in 1..5) state = state.flip().rate("card_$index", CardRating.Easy, 124L)
         assertTrue(state.complete)
         assertNull(state.currentId)
@@ -44,5 +47,22 @@ class FlashcardStateTest {
         val weak = FlashcardState().start(deck).flip().rate("card_0", CardRating.Hard)
         val mastered = weak.start(deck).flip().rate("card_0", CardRating.Good)
         assertEquals(DeckCounts(5, 0, 1), mastered.counts(deck))
+    }
+
+    @Test fun flipBackRetainsGradingPermissionOnlyForCurrentTurn() {
+        var state = FlashcardState().start(deck)
+        assertFalse(state.hasBeenRevealed)
+        assertEquals(state, state.rate("card_0", CardRating.Good))
+        state = state.flip()
+        assertTrue(state.revealed)
+        assertTrue(state.hasBeenRevealed)
+        state = state.flip()
+        assertFalse(state.revealed)
+        assertTrue(state.hasBeenRevealed)
+        state = state.rate("card_0", CardRating.Good, 10L)
+        assertEquals(1, state.index)
+        assertFalse(state.hasBeenRevealed)
+        assertEquals(state, state.rate("card_1", CardRating.Good))
+        assertFalse(state.start(deck).hasBeenRevealed)
     }
 }

@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.setValue
+import com.koto.app.feature.lesson.data.SrsTracker
 import com.koto.app.feature.lesson.model.*
 
 enum class QuizFeedback { None, WarningMissing, WarningExtra, WarningOrder, Wrong }
@@ -56,6 +57,7 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
             is Question.MeaningChoice -> if (q.options.any { it.id == id }) state = state.copy(selected = id)
             is Question.ConversationResponse -> if (q.responses.any { it.id == id }) state = state.copy(selected = id)
             is Question.Cloze -> if (q.options.any { it.id == id }) state = state.copy(selected = id, feedback = QuizFeedback.None)
+            is Question.Listening -> if (q.options.any { it.id == id }) state = state.copy(selected = id, feedback = QuizFeedback.None)
             else -> Unit
         }
     }
@@ -151,6 +153,7 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
             is Question.MeaningChoice -> state.selected == q.correctId
             is Question.ConversationResponse -> state.selected == q.correctId
             is Question.Cloze -> state.selected == q.correctId
+            is Question.Listening -> state.selected == q.correctId
             is Question.SentenceBuilder -> {
                 val game = sentenceGame
                 val validation = sentenceValidation(game.sentenceTileIds, q)
@@ -164,6 +167,7 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
         return if (correct) when (q) {
             is Question.Cloze -> q.filled(q.correctId)
             is Question.SentenceBuilder -> q.sentence
+            is Question.Listening -> q.target
             else -> null
         } else null
     }
@@ -190,6 +194,11 @@ class LessonSession(val lesson: LessonDefinition, initial: SessionState = Sessio
             results = if (state.reviewing) state.results else state.results + correct,
             mistakes = if (!state.reviewing && !correct && state.index !in state.mistakes)
                 state.mistakes + state.index else state.mistakes)
+        if (!state.reviewing) {
+            question?.let { q ->
+                SrsTracker.defaultInstance?.recordResult(q.id, q.reviewTags, correct)
+            }
+        }
     }
     fun next() {
         if (!checked || finished) return

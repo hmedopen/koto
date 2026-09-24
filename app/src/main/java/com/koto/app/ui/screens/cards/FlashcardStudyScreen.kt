@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,8 +19,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -27,6 +31,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import com.koto.app.R
+import com.koto.app.feature.lesson.audio.JapaneseTtsController
+import com.koto.app.feature.lesson.audio.SpeechStatus
+import com.koto.app.feature.lesson.model.JapaneseText
 
 @Composable
 internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, update: (FlashcardState) -> Unit) {
@@ -46,11 +54,14 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
         return
     }
     val card = deck.cards.firstOrNull { it.id == state.currentId } ?: return
+    val context = LocalContext.current
+    val audio = remember(context) { JapaneseTtsController.get(context) }
+    DisposableEffect(card.id) { onDispose { audio.stop() } }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollWholeScreen = maxHeight < 420.dp || LocalDensity.current.fontScale > 1.5f
         val cardHeight = when {
-            maxHeight < 520.dp -> 190.dp
-            maxHeight < 600.dp -> 250.dp
+            maxHeight < 520.dp -> 170.dp
+            maxHeight < 600.dp -> 230.dp
             else -> 310.dp
         }
         Column(Modifier.fillMaxSize().let { if (scrollWholeScreen) it.verticalScroll(rememberScrollState()) else it }
@@ -66,13 +77,34 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
                 color = CardsColors.Blue, trackColor = CardsColors.IceDepth, drawStopIndicator = {})
             Column(if (scrollWholeScreen) Modifier else Modifier.weight(1f).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(deck.title, color = CardsColors.Muted, fontSize = 13.sp, textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth())
                 key(card.id) { StudyCard(card, state, cardHeight, { update(state.flip()) }) }
+                AudioButton(card, audio)
             }
-            Text(if (state.revealed) "How well did you remember?" else "Reveal the answer, then choose a rating.",
+            Text(if (state.hasBeenRevealed) "How well did you remember?" else "Reveal the answer, then choose a rating.",
                 color = CardsColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-            ResponseBar(state.revealed) { rating -> update(state.rate(card.id, rating)) }
+            ResponseBar(state.hasBeenRevealed) { rating -> update(state.rate(card.id, rating)) }
+        }
+    }
+}
+
+@Composable
+private fun AudioButton(card: Flashcard, audio: JapaneseTtsController) {
+    val ready = audio.enabled && audio.status == SpeechStatus.Ready
+    CardsPressable({ audio.speak(JapaneseText(card.japanese, card.romaji)) },
+        Modifier.fillMaxWidth().testTag("play_audio").semantics {
+            contentDescription = "Play Japanese pronunciation: ${card.japanese}"
+            stateDescription = when {
+                !ready -> "Japanese voice unavailable"
+                audio.isSpeaking -> "Playing"
+                else -> "Ready"
+            }
+        }, face = CardsColors.Ice, depth = CardsColors.IceDepth, enabled = ready,
+        padding = PaddingValues(horizontal = 16.dp, vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(painterResource(R.drawable.ic_speaker), contentDescription = null,
+                modifier = Modifier.size(21.dp), tint = CardsColors.Blue)
+            Text("Play Audio", color = if (ready) CardsColors.Ink else CardsColors.Muted,
+                fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -97,7 +129,7 @@ private fun StudyCard(card: Flashcard, state: FlashcardState, minHeight: Dp, fli
                 Text(if (japaneseVisible) "日本語" else "ENGLISH", color = CardsColors.Blue, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 Text(if (backVisible) "ANSWER" else "PROMPT", color = CardsColors.Muted, fontSize = 10.sp, letterSpacing = 1.sp)
             }
-            Column(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally,
+            Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(if (japaneseVisible) card.japanese else card.english, color = CardsColors.Ink,
                     fontSize = if (japaneseVisible) 36.sp else 30.sp, lineHeight = 48.sp,
@@ -105,7 +137,7 @@ private fun StudyCard(card: Flashcard, state: FlashcardState, minHeight: Dp, fli
                 if (japaneseVisible && state.showRomaji) Text(card.romaji, color = CardsColors.Muted, fontSize = 16.sp,
                     textAlign = TextAlign.Center, modifier = Modifier.testTag("card_romaji"))
             }
-            Text(if (backVisible) "↻  Tap to see the front" else "↻  Tap to reveal answer", color = CardsColors.Blue,
+            Text(if (backVisible) "↻  Tap to see the front" else if (state.hasBeenRevealed) "↻  Tap to see the answer again" else "↻  Tap to reveal answer", color = CardsColors.Blue,
                 fontSize = 12.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
         }
     }

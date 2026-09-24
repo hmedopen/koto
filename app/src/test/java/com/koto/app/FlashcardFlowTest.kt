@@ -2,6 +2,7 @@ package com.koto.app
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.unit.dp
 import com.koto.app.ui.screens.cards.loadFlashcardDecks
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -75,13 +76,55 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("tab_learn").assertIsSelected()
     }
 
-    @Test fun pinDoesNotOpenDeckAndSurvivesRecreation() {
+    @Test fun deckHeartDoesNotOpenDeckAndSurvivesRecreation() {
         compose.onNodeWithTag("tab_cards").performClick()
-        compose.onNodeWithTag("pin_cat_numbers").performClick()
+        val greetings = compose.onNodeWithTag("deck_cat_greetings").fetchSemanticsNode().boundsInRoot
+        val numbers = compose.onNodeWithTag("deck_cat_numbers").fetchSemanticsNode().boundsInRoot
+        assertTrue("Decks should share a grid row", kotlin.math.abs(greetings.top - numbers.top) < 2f)
+        assertTrue("Decks should occupy separate columns", greetings.right <= numbers.left)
+        screenshot("flashcards-grid-square")
+        assertTrue("Deck tiles should be close to square: ${greetings.width} × ${greetings.height}",
+            greetings.height / greetings.width in 0.9f..1.18f)
+        compose.onAllNodesWithText("Tap to practice").assertCountEquals(0)
+        compose.onNodeWithTag("favorite_deck_cat_numbers").performClick()
         compose.onNodeWithTag("cards_grid").assertIsDisplayed()
         compose.activityRule.scenario.recreate()
-        compose.onNodeWithTag("pin_cat_numbers").assertIsSelected()
+        compose.onNodeWithTag("favorite_deck_cat_numbers").assertIsSelected()
         screenshot("flashcards-grid")
+    }
+
+    @Test @Config(qualifiers = "w320dp-h640dp-xhdpi")
+    fun twoColumnGridKeepsProgressLabelsReadableAtDoubleFontScale() {
+        org.robolectric.RuntimeEnvironment.setFontScale(2f)
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.onNodeWithTag("cards_grid").performScrollToNode(hasTestTag("deck_cat_greetings"))
+        compose.onNodeWithTag("deck_cat_greetings").assertIsDisplayed()
+        val heart = compose.onNodeWithTag("favorite_deck_cat_greetings").fetchSemanticsNode().boundsInRoot
+        val minTarget = with(compose.density) { 48.dp.toPx() }
+        assertTrue("Heart touch target should remain full-size", heart.width >= minTarget && heart.height >= minTarget)
+        screenshot("flashcards-grid-large-text")
+        val mastered = compose.onAllNodesWithText("Mastered", useUnmergedTree = true).onFirst()
+        mastered.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { getLayout ->
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            assertTrue(getLayout(layouts))
+            assertTrue(layouts.none { it.hasVisualOverflow })
+        }
+    }
+
+    @Test fun gradingStaysAvailableAfterFlipBackAndResetsOnNextCard() {
+        openDeck()
+        detailNode("start_flashcards").performClick()
+        compose.onNodeWithTag("play_audio").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("rate_good").assertIsNotEnabled()
+        compose.onNodeWithTag("study_card").performClick()
+        compose.onNodeWithTag("rate_good").assertIsEnabled()
+        compose.onNodeWithTag("study_card").performClick()
+        compose.onNodeWithText("こんにちは").assertIsDisplayed()
+        compose.onNodeWithTag("rate_good").assertIsEnabled()
+        compose.activityRule.scenario.recreate()
+        compose.onNodeWithTag("rate_good").assertIsEnabled().performClick()
+        compose.onNodeWithText("2 / 6").assertIsDisplayed()
+        compose.onNodeWithTag("rate_good").assertIsNotEnabled()
     }
 
     @Test fun startButtonCompressesAndCancelledPressDoesNotStartSession() {

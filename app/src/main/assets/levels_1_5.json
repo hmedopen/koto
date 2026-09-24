@@ -1,0 +1,443 @@
+[
+  {
+    "question_id": "L01_Q01",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_01",
+    "quiz_type": "meaning_choice",
+    "skill_tags": ["greetings", "vocabulary"],
+    "difficulty": 1,
+    "new_concept": true,
+    "japanese": "おはよう",
+    "romaji": "ohayou",
+    "english": "Good morning",
+    "choices": [
+      { "id": "A", "text": "Good morning", "correct": true },
+      { "id": "B", "text": "Good evening", "correct": false },
+      { "id": "C", "text": "Goodbye", "correct": false },
+      { "id": "D", "text": "Thank you", "correct": false }
+    ],
+    "explanation": "ohayou (おはよう) is an informal way to say good morning.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["greetings", "level01"]
+  },
+  {
+    "question_id": "L01_Q02",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_01",
+    "quiz_type": "meaning_choice",
+    "skill_tags": ["greetings", "vocabulary"],
+    "difficulty": 1,
+    "new_concept": true,
+    "japanese": "こんにちは",
+    "romaji": "konnichiwa",
+    "english": "Hello / Good afternoon",
+    "choices": [
+      { "id": "A", "text": "Good night", "correct": false },
+      { "id": "B", "text": "Hello / Good afternoon", "correct": true },
+      { "id": "C", "text": "Excuse me", "correct": false },
+      { "id": "D", "text": "Nice to meet you", "correct": false }
+    ],
+    "explanation": "konnichiwa (こんにちは) is used as a general daytime greeting.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["greetings", "level01"]
+  },
+  {
+    "question_id": "L01_Q03",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_01",
+    "quiz_type": "match_pairs",
+    "skill_tags": ["greetings", "vocabulary"],
+    "difficulty": 1,
+    "new_concept": true,
+    "japanese": "こんばんは / ありがとう",
+    "romaji": "konbanwa / arigatou",
+    "english": "Good evening / Thank you",
+    "choices": [
+      { "id": "A", "text": "こんばんは - Good evening", "correct": true },
+      { "id": "B", "text": "ありがとう - Thank you", "correct": true },
+      { "id": "C", "text": "おはよう - Good morning", "correct": true },
+      { "id": "D", "text": "こんにちは - Hello", "correct": true }
+    ],
+    "explanation": "Match the Japanese greetings with their English translations.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["greetings", "level01"]
+  },
+  {
+    "question_id": "L01_Q04",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_01",
+    "quiz_type": "listening",
+    "skill_tags": ["greetings", "listening"],
+    "difficulty": 1,
+    "new_concept": false,
+    "japanese": "ありがとう",
+    "romaji": "arigatou",
+    "english": "Thank you",
+    "choices": [
+      { "id": "A", "text": "ありがとう (arigatou)", "correct": true },
+      { "id": "B", "text": "おはよう (ohayou)", "correct": false },
+      { "id": "C", "text": "こんばんは (konbanwa)", "correct": false },
+      { "id": "D", "text": "こんにちは (konnichiwa)", "correct": false }
+    ],
+    "explanation": "Listen for arigatou, which means thank you.",
+    "audio": { "enabled": true, "file": "arigatou.mp3" },
+    "review_tags": ["greetings", "level01"]
+  },
+  {
+    "question_id": "L02_Q01",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_02",
+    "quiz_type": "meaning_choice",
+    "skill_tags": ["nouns", "vocabulary"],
+    "difficulty": 1,
+    "new_concept": true,
+    "japanese": "みず",
+    "romaji": "mizu",
+    "english": "Water",
+    "choices": [
+      { "id": "A", "text": "Water", "correct": true },
+      { "id": "B", "text": "Bread", "correct": false },
+      { "id": "C", "text": "Cat", "correct": false },
+      { "id": "D", "text": "Book", "correct": false }
+    ],
+    "explanation": "mizu (みず) means water.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["nouns", "level02"]
+  },
+  {
+    "question_id": "L02_Q02",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_02",
+    "quiz_type": "match_pairs",
+    "skill_tags": ["nouns", "vocabulary"],
+    "difficulty": 1,
+    "new_concept": true,
+    "japanese": "ねこ / いぬ / ほん / パン",
+    "romaji": "neko / inu / hon / pan",
+    "english": "Cat / Dog / Book / Bread",
+    "choices": [
+      { "id": "A", "text": "ねこ - Cat", "correct": true },
+      { "id": "B", "text": "いぬ - Dog", "correct": true },
+      { "id": "C", "text": "ほん - Book", "correct": true },
+      { "id": "D", "text": "パン - Bread", "correct": true }
+    ],
+    "explanation": "Match each standard noun with its English equivalent.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["nouns", "level02"]
+  },
+  {
+    "question_id": "L02_Q03",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_02",
+    "quiz_type": "sentence_builder",
+    "skill_tags": ["grammar", "sentence_building"],
+    "difficulty": 1,
+    "new_concept": true,
+    "japanese": "これ は ほん です",
+    "romaji": "kore wa hon desu",
+    "english": "This is a book.",
+    "choices": [
+      { "id": "A", "text": "これ は ほん です", "correct": true },
+      { "id": "B", "text": "ほん は これ です", "correct": false },
+      { "id": "C", "text": "これ です ほん は", "correct": false },
+      { "id": "D", "text": "これ は みず です", "correct": false }
+    ],
+    "explanation": "kore (this) + wa (topic marker) + hon (book) + desu (is).",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["demonstratives", "copula", "level02"]
+  },
+  {
+    "question_id": "L02_Q04",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_02",
+    "quiz_type": "fill_blank",
+    "skill_tags": ["grammar", "sentence_building"],
+    "difficulty": 1,
+    "new_concept": false,
+    "japanese": "これ は ___ です",
+    "romaji": "kore wa ___ desu",
+    "english": "This is water.",
+    "choices": [
+      { "id": "A", "text": "みず", "correct": true },
+      { "id": "B", "text": "おはよう", "correct": false },
+      { "id": "C", "text": "ありがとう", "correct": false },
+      { "id": "D", "text": "わたし", "correct": false }
+    ],
+    "explanation": "mizu (みず) fits the blank to form 'This is water.'",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["nouns", "level02"]
+  },
+  {
+    "question_id": "L03_Q01",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_03",
+    "quiz_type": "meaning_choice",
+    "skill_tags": ["identity", "vocabulary"],
+    "difficulty": 1,
+    "new_concept": true,
+    "japanese": "がくせい",
+    "romaji": "gakusei",
+    "english": "Student",
+    "choices": [
+      { "id": "A", "text": "Teacher", "correct": false },
+      { "id": "B", "text": "Student", "correct": true },
+      { "id": "C", "text": "Friend", "correct": false },
+      { "id": "D", "text": "I / Myself", "correct": false }
+    ],
+    "explanation": "gakusei (がくせい) means student.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["identity", "level03"]
+  },
+  {
+    "question_id": "L03_Q02",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_03",
+    "quiz_type": "sentence_builder",
+    "skill_tags": ["grammar", "sentence_building"],
+    "difficulty": 2,
+    "new_concept": true,
+    "japanese": "わたし は がくせい です",
+    "romaji": "watashi wa gakusei desu",
+    "english": "I am a student.",
+    "choices": [
+      { "id": "A", "text": "わたし は がくせい です", "correct": true },
+      { "id": "B", "text": "がくせい は わたし です", "correct": false },
+      { "id": "C", "text": "わたし です がくせい は", "correct": false },
+      { "id": "D", "text": "わたし は せんせい です", "correct": false }
+    ],
+    "explanation": "watashi (I) + wa (topic marker) + gakusei (student) + desu (am/is).",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["identity", "copula", "level03"]
+  },
+  {
+    "question_id": "L03_Q03",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_03",
+    "quiz_type": "conversation_response",
+    "skill_tags": ["conversation", "identity"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "A: わたし は ユーキ です。",
+    "romaji": "A: watashi wa Yuuki desu.",
+    "english": "A: I am Yuki. (Select the appropriate response)",
+    "choices": [
+      { "id": "A", "text": "わたし は ケン です", "correct": true },
+      { "id": "B", "text": "これ は いぬ です", "correct": false },
+      { "id": "C", "text": "ありがとう", "correct": false },
+      { "id": "D", "text": "パン です", "correct": false }
+    ],
+    "explanation": "Respond by sharing your own name using the same structure: watashi wa [Name] desu.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["conversation", "level03"]
+  },
+  {
+    "question_id": "L03_Q04",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_03",
+    "quiz_type": "fill_blank",
+    "skill_tags": ["identity", "vocabulary"],
+    "difficulty": 1,
+    "new_concept": false,
+    "japanese": "わたし は ___ です",
+    "romaji": "watashi wa ___ desu",
+    "english": "I am a teacher.",
+    "choices": [
+      { "id": "A", "text": "せんせい", "correct": true },
+      { "id": "B", "text": "ねこ", "correct": false },
+      { "id": "C", "text": "ほん", "correct": false },
+      { "id": "D", "text": "みず", "correct": false }
+    ],
+    "explanation": "sensei (せんせい) translates to teacher.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["identity", "level03"]
+  },
+  {
+    "question_id": "L04_Q01",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_04",
+    "quiz_type": "fill_blank",
+    "skill_tags": ["grammar", "particles"],
+    "difficulty": 2,
+    "new_concept": true,
+    "japanese": "わたし ___ ともだち です",
+    "romaji": "watashi ___ tomodachi desu",
+    "english": "I am a friend.",
+    "choices": [
+      { "id": "A", "text": "は", "correct": true },
+      { "id": "B", "text": "を", "correct": false },
+      { "id": "C", "text": "で", "correct": false },
+      { "id": "D", "text": "に", "correct": false }
+    ],
+    "explanation": "wa (は) is the topic particle following watashi.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["particle_wa", "level04"]
+  },
+  {
+    "question_id": "L04_Q02",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_04",
+    "quiz_type": "grammar_choice",
+    "skill_tags": ["grammar", "copula"],
+    "difficulty": 2,
+    "new_concept": true,
+    "japanese": "これ は いぬ ___",
+    "romaji": "kore wa inu ___",
+    "english": "This is a dog.",
+    "choices": [
+      { "id": "A", "text": "です", "correct": true },
+      { "id": "B", "text": "ます", "correct": false },
+      { "id": "C", "text": "は", "correct": false },
+      { "id": "D", "text": "か", "correct": false }
+    ],
+    "explanation": "desu (です) finishes state-of-being identity statements.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["copula_desu", "level04"]
+  },
+  {
+    "question_id": "L04_Q03",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_04",
+    "quiz_type": "sentence_builder",
+    "skill_tags": ["grammar", "sentence_building"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "これ は パン です",
+    "romaji": "kore wa pan desu",
+    "english": "This is bread.",
+    "choices": [
+      { "id": "A", "text": "これ は パン です", "correct": true },
+      { "id": "B", "text": "パン は これ です", "correct": false },
+      { "id": "C", "text": "これ パン は です", "correct": false },
+      { "id": "D", "text": "わたし は パン です", "correct": false }
+    ],
+    "explanation": "Follows standard topic-comment layout: kore + wa + pan + desu.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["sentence_building", "level04"]
+  },
+  {
+    "question_id": "L04_Q04",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_04",
+    "quiz_type": "meaning_choice",
+    "skill_tags": ["grammar", "vocabulary"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "ともだち",
+    "romaji": "tomodachi",
+    "english": "Friend",
+    "choices": [
+      { "id": "A", "text": "Student", "correct": false },
+      { "id": "B", "text": "Teacher", "correct": false },
+      { "id": "C", "text": "Friend", "correct": true },
+      { "id": "D", "text": "Dog", "correct": false }
+    ],
+    "explanation": "tomodachi (ともだち) translates to friend.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["identity", "level04"]
+  },
+  {
+    "question_id": "L05_Q01",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_05",
+    "quiz_type": "meaning_choice",
+    "skill_tags": ["review", "greetings"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "こんばんは",
+    "romaji": "konbanwa",
+    "english": "Good evening",
+    "choices": [
+      { "id": "A", "text": "Good morning", "correct": false },
+      { "id": "B", "text": "Good evening", "correct": true },
+      { "id": "C", "text": "Hello", "correct": false },
+      { "id": "D", "text": "Goodbye", "correct": false }
+    ],
+    "explanation": "Review: konbanwa is used when greeting someone in the evening.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["greetings", "stage1_review"]
+  },
+  {
+    "question_id": "L05_Q02",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_05",
+    "quiz_type": "sentence_builder",
+    "skill_tags": ["review", "sentence_building"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "わたし は せんせい です",
+    "romaji": "watashi wa sensei desu",
+    "english": "I am a teacher.",
+    "choices": [
+      { "id": "A", "text": "わたし は せんせい です", "correct": true },
+      { "id": "B", "text": "せんせい は わたし です", "correct": false },
+      { "id": "C", "text": "わたし です せんせい は", "correct": false },
+      { "id": "D", "text": "これ は せんせい です", "correct": false }
+    ],
+    "explanation": "Review: combine subject watashi + wa with role sensei + desu.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["identity", "stage1_review"]
+  },
+  {
+    "question_id": "L05_Q03",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_05",
+    "quiz_type": "fill_blank",
+    "skill_tags": ["review", "particles"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "これ ___ ねこ です",
+    "romaji": "kore ___ neko desu",
+    "english": "This is a cat.",
+    "choices": [
+      { "id": "A", "text": "は", "correct": true },
+      { "id": "B", "text": "を", "correct": false },
+      { "id": "C", "text": "の", "correct": false },
+      { "id": "D", "text": "で", "correct": false }
+    ],
+    "explanation": "Review: topic particle wa (は) connects demonstrative kore to noun neko.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["particle_wa", "stage1_review"]
+  },
+  {
+    "question_id": "L05_Q04",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_05",
+    "quiz_type": "conversation_response",
+    "skill_tags": ["review", "conversation"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "A: こんにちは！",
+    "romaji": "A: konnichiwa!",
+    "english": "A: Hello! (Select the natural response)",
+    "choices": [
+      { "id": "A", "text": "こんにちは！", "correct": true },
+      { "id": "B", "text": "みず です", "correct": false },
+      { "id": "C", "text": "わたし は がくせい です", "correct": false },
+      { "id": "D", "text": "これ は ほん です", "correct": false }
+    ],
+    "explanation": "Review: Return standard greetings directly with the equivalent greeting.",
+    "audio": { "enabled": false, "file": "" },
+    "review_tags": ["greetings", "stage1_review"]
+  },
+  {
+    "question_id": "L05_Q05",
+    "stage_id": "STAGE_01",
+    "level_id": "LEVEL_05",
+    "quiz_type": "listening",
+    "skill_tags": ["review", "listening"],
+    "difficulty": 2,
+    "new_concept": false,
+    "japanese": "わたし は がくせい です",
+    "romaji": "watashi wa gakusei desu",
+    "english": "I am a student.",
+    "choices": [
+      { "id": "A", "text": "わたし は がくせい です", "correct": true },
+      { "id": "B", "text": "わたし は せんせい です", "correct": false },
+      { "id": "C", "text": "これ は がくせい です", "correct": false },
+      { "id": "D", "text": "わたし は ともだち です", "correct": false }
+    ],
+    "explanation": "Review: Listen closely to verify 'gakusei' vs 'sensei' or 'tomodachi'.",
+    "audio": { "enabled": true, "file": "watashi_wa_gakusei_desu.mp3" },
+    "review_tags": ["listening", "stage1_review"]
+  }
+]

@@ -20,21 +20,25 @@ data class FlashcardState(
     val favorites: Set<String> = emptySet(),
     val pinned: Set<String> = emptySet(),
     val practiced: Map<String, Long> = emptyMap(),
+    val hasBeenRevealed: Boolean = false,
 ) {
     val complete get() = studying && index >= order.size
     val currentId get() = order.getOrNull(index)
-    fun open(deck: FlashcardDeck) = copy(deckId = deck.id, studying = false, order = emptyList(), index = 0, revealed = false)
-    fun back() = if (studying) copy(studying = false, revealed = false) else copy(deckId = null)
+    fun open(deck: FlashcardDeck) = copy(deckId = deck.id, studying = false, order = emptyList(), index = 0,
+        revealed = false, hasBeenRevealed = false)
+    fun back() = if (studying) copy(studying = false, revealed = false, hasBeenRevealed = false) else copy(deckId = null)
     fun start(deck: FlashcardDeck, random: Random = Random.Default): FlashcardState {
         val ids = deck.cards.map { it.id }
         return copy(deckId = deck.id, studying = true, order = if (shuffle) ids.shuffled(random) else ids,
-            index = 0, revealed = false)
+            index = 0, revealed = false, hasBeenRevealed = false)
     }
-    fun flip() = if (studying && !complete) copy(revealed = !revealed) else this
+    fun flip() = if (studying && !complete) copy(revealed = !revealed,
+        hasBeenRevealed = hasBeenRevealed || !revealed) else this
     // The expected ID also guards callbacks from a card that has already advanced.
     fun rate(expectedId: String, rating: CardRating, now: Long = System.currentTimeMillis()): FlashcardState {
-        if (!studying || !revealed || currentId != expectedId || deckId == null) return this
-        return copy(ratings = ratings + (expectedId to rating), index = index + 1, revealed = false,
+        if (!studying || !hasBeenRevealed || currentId != expectedId || deckId == null) return this
+        return copy(ratings = ratings + (expectedId to rating), index = index + 1,
+            revealed = false, hasBeenRevealed = false,
             practiced = practiced + (deckId to now))
     }
     fun favorite(id: String) = copy(favorites = favorites.toggle(id))
@@ -51,13 +55,15 @@ data class FlashcardState(
                 it.order.joinToString(","), it.index, it.revealed,
                 it.ratings.entries.joinToString(",") { entry -> "${entry.key}:${entry.value.name}" },
                 it.favorites.joinToString(","), it.pinned.joinToString(","),
-                it.practiced.entries.joinToString(",") { entry -> "${entry.key}:${entry.value}" })
+                it.practiced.entries.joinToString(",") { entry -> "${entry.key}:${entry.value}" },
+                it.hasBeenRevealed)
         }, restore = {
             FlashcardState((it[0] as String).ifEmpty { null }, it[1] as Boolean, it[2] as Boolean,
                 it[3] as Boolean, it[4] as Boolean, split(it[5]), it[6] as Int, it[7] as Boolean,
                 split(it[8]).associate { entry -> entry.substringBefore(':') to CardRating.valueOf(entry.substringAfter(':')) },
                 split(it[9]).toSet(), split(it[10]).toSet(),
-                split(it[11]).associate { entry -> entry.substringBefore(':') to entry.substringAfter(':').toLong() })
+                split(it[11]).associate { entry -> entry.substringBefore(':') to entry.substringAfter(':').toLong() },
+                (it.getOrNull(12) as? Boolean) ?: (it[7] as Boolean))
         })
         private fun split(value: Any) = (value as String).split(',').filter { it.isNotEmpty() }
     }

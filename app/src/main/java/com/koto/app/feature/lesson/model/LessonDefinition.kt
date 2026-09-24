@@ -11,12 +11,37 @@ data class LessonDefinition(val id: Int, val title: String, val section: String,
 
 sealed interface Question {
     val id: String
-    data class MeaningChoice(override val id: String, val prompt: LessonText,
-        val options: List<Answer>, val correctId: String) : Question
-    data class SentenceBuilder(override val id: String, val prompt: String,
-        val tiles: List<Answer>, val correctOrder: List<String>, val sentence: JapaneseText) : Question
-    data class Cloze(override val id: String, val sentence: JapaneseText,
-        val options: List<Answer>, val correctId: String) : Question {
+    val reviewTags: List<String> get() = emptyList()
+    val explanation: String get() = ""
+    val skillTags: List<String> get() = emptyList()
+
+    data class MeaningChoice(
+        override val id: String,
+        val prompt: LessonText,
+        val options: List<Answer>,
+        val correctId: String,
+        override val reviewTags: List<String> = emptyList(),
+        override val explanation: String = ""
+    ) : Question
+
+    data class SentenceBuilder(
+        override val id: String,
+        val prompt: String,
+        val tiles: List<Answer>,
+        val correctOrder: List<String>,
+        val sentence: JapaneseText,
+        override val reviewTags: List<String> = emptyList(),
+        override val explanation: String = ""
+    ) : Question
+
+    data class Cloze(
+        override val id: String,
+        val sentence: JapaneseText,
+        val options: List<Answer>,
+        val correctId: String,
+        override val reviewTags: List<String> = emptyList(),
+        override val explanation: String = ""
+    ) : Question {
         fun filled(answerId: String?): JapaneseText {
             val word = (options.firstOrNull { it.id == answerId }?.text as? LessonText.Japanese)?.value
                 ?: return sentence
@@ -24,9 +49,32 @@ sealed interface Question {
                 sentence.romaji.replace("___", word.romaji))
         }
     }
-    data class ConversationResponse(override val id: String, val incoming: JapaneseText,
-        val responses: List<Answer>, val correctId: String) : Question
-    data class PairMatch(override val id: String, val pairs: List<MatchPair>) : Question
+
+    data class ConversationResponse(
+        override val id: String,
+        val incoming: JapaneseText,
+        val responses: List<Answer>,
+        val correctId: String,
+        override val reviewTags: List<String> = emptyList(),
+        override val explanation: String = ""
+    ) : Question
+
+    data class PairMatch(
+        override val id: String,
+        val pairs: List<MatchPair>,
+        override val reviewTags: List<String> = emptyList(),
+        override val explanation: String = ""
+    ) : Question
+
+    data class Listening(
+        override val id: String,
+        val target: JapaneseText,
+        val options: List<Answer>,
+        val correctId: String,
+        val audioFile: String = "",
+        override val reviewTags: List<String> = emptyList(),
+        override val explanation: String = ""
+    ) : Question
 }
 
 /** Fail early on authored content, independently of the renderer and speech engine. */
@@ -70,6 +118,9 @@ fun LessonDefinition.validate() {
             is Question.PairMatch -> {
                 require(q.pairs.isNotEmpty() && q.pairs.map { it.id }.distinct().size == q.pairs.size)
                 q.pairs.forEach { require(it.id.isNotBlank()); japanese(it.japanese); noHan(it.english) }
+            }
+            is Question.Listening -> {
+                japanese(q.target); answers(q.options, q.correctId)
             }
         }
     }

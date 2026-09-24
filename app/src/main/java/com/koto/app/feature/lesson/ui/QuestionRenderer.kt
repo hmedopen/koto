@@ -36,6 +36,7 @@ fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean
             is Question.Cloze -> "Fill in the blank"
             is Question.ConversationResponse -> "Pick the best response"
             is Question.PairMatch -> "Match the pairs"
+            is Question.Listening -> "Listen and choose"
         }
         Text(title, fontSize = 24.sp, lineHeight = 31.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.fillMaxWidth().semantics { heading() }, color = KotoColors.Navy)
@@ -46,6 +47,7 @@ fun QuestionRenderer(session: LessonSession, minHeight: Dp, speechReady: Boolean
             is Question.Cloze -> ClozeQuestion(q, session, speechReady, isSpeaking, speak)
             is Question.ConversationResponse -> ConversationQuestion(q, session, speechReady, isSpeaking, speak)
             is Question.PairMatch -> PairMatchQuestion(q, session, speak)
+            is Question.Listening -> ListeningQuestion(q, session, speechReady, isSpeaking, speak)
         }
         if (q !is Question.PairMatch) {
             // Reserve breathing room from the outset, independent of feedback visibility.
@@ -182,5 +184,54 @@ internal fun ColumnScope.PairMatchQuestion(q: Question.PairMatch, session: Lesso
             } }
         }
         Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+internal fun ColumnScope.ListeningQuestion(
+    q: Question.Listening,
+    session: LessonSession,
+    speechReady: Boolean,
+    isSpeaking: Boolean,
+    speak: (JapaneseText) -> Unit
+) {
+    ListeningPrompt(q.target, speechReady, isSpeaking, speak)
+    AnswerGap()
+    q.options.chunked(2).forEach { row ->
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            row.forEach { answer -> key(answer.id) {
+                AnswerButton(answer, session, q.correctId, speak, Modifier.weight(1f).fillMaxHeight(), minHeight = 80.dp)
+            } }
+        }
+        Spacer(Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun ListeningPrompt(
+    text: JapaneseText,
+    speechReady: Boolean,
+    isSpeaking: Boolean,
+    speak: (JapaneseText) -> Unit
+) {
+    Surface(
+        Modifier.fillMaxWidth(),
+        color = KotoColors.Background,
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, KotoColors.Hairline)
+    ) {
+        Column(
+            Modifier.padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            SpeakerButton(text, speechReady, isSpeaking, speak)
+            Text(
+                "Tap to listen",
+                fontSize = 16.sp,
+                color = KotoColors.QuietInk,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }

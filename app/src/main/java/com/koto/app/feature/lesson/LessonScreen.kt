@@ -194,6 +194,7 @@ private fun FeedbackOverlay(session: LessonSession, actionSpace: Dp, modifier: M
                     is Question.ConversationResponse -> q.responses.first { it.id == q.correctId }.text
                     is Question.Cloze -> LessonText.Japanese(q.filled(q.correctId))
                     is Question.SentenceBuilder -> LessonText.Japanese(q.sentence)
+                    is Question.Listening -> LessonText.Japanese(q.target)
                     else -> null
                 }
                 answer?.let { ContentText(it, 16.sp, alignReading = false) }

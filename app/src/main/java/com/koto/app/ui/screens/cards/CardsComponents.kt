@@ -129,7 +129,7 @@ internal fun MarkButton(kind: String, active: Boolean, label: String, tag: Strin
         contentDescription = label; selected = active; role = Role.Checkbox
         toggleableState = if (active) ToggleableState.On else ToggleableState.Off
     }, face = if (active) CardsColors.Ice else CardsColors.Surface, padding = PaddingValues(12.dp)) {
-        LineIcon(kind, if (active) CardsColors.Yellow else CardsColors.Muted, Modifier.size(22.dp), active)
+        LineIcon(kind, if (active) CardsColors.Coral else CardsColors.Muted, Modifier.size(22.dp), active)
     }
 }
 
@@ -147,6 +147,14 @@ internal fun LineIcon(kind: String, color: Color, modifier: Modifier, filled: Bo
             fun line(x: Float, y: Float, x2: Float, y2: Float) = drawLine(color, Offset(x, y), Offset(x2, y2), 1.8f, StrokeCap.Round)
             val p = Path()
             when (kind) {
+                "heart" -> {
+                    p.moveTo(12f, 21f)
+                    p.cubicTo(9f, 18f, 3f, 14f, 3f, 9f)
+                    p.cubicTo(3f, 3f, 9f, 2f, 12f, 7f)
+                    p.cubicTo(15f, 2f, 21f, 3f, 21f, 9f)
+                    p.cubicTo(21f, 14f, 15f, 18f, 12f, 21f)
+                    p.close()
+                }
                 "bookmark" -> { p.moveTo(6f, 3f); p.lineTo(18f, 3f); p.lineTo(18f, 21f); p.lineTo(12f, 17f); p.lineTo(6f, 21f); p.close() }
                 "star" -> {
                     repeat(10) { i ->

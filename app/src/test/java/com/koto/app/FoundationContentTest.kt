@@ -32,16 +32,36 @@ class FoundationContentTest {
 
     @Test fun sourceAnswerKeysArePreservedAfterChoiceArrangement() {
         val answers = mapOf(
-            "P01Q1" to "hello", "P01Q4" to "arigatou", "P01Q5" to "ohayou", "F01Q2" to "thank you",
-            "P02Q1" to "water", "P02Q3" to "neko", "P02Q4" to "kore wa neko desu", "F02Q2" to "cat",
-            "P03Q1" to "watashi wa gakusei desu", "P03Q2" to "watashi wa Yuki desu", "P03Q3" to "friend", "F03Q1" to "I",
-            "P04Q1" to "desu", "P04Q2" to "kore wa hon desu", "F04Q1" to "desu",
+            "L01_Q01" to "Good morning",
+            "L01_Q02" to "Hello / Good afternoon",
+            "L01_Q03" to "konbanwa=Good evening|arigatou=Thank you|ohayou=Good morning|konnichiwa=Hello",
+            "L01_Q04" to "arigatou",
+            "L02_Q01" to "Water",
+            "L02_Q02" to "neko=Cat|inu=Dog|hon=Book|pan=Bread",
+            "L02_Q03" to "kore wa hon desu",
+            "L02_Q04" to "mizu",
+            "L03_Q01" to "Student",
+            "L03_Q02" to "watashi wa gakusei desu",
+            "L03_Q03" to "watashi wa Ken desu",
+            "L03_Q04" to "sensei",
+            "L04_Q01" to "wa",
+            "L04_Q02" to "desu",
+            "L04_Q03" to "kore wa pan desu",
+            "L04_Q04" to "Friend",
+            "L05_Q01" to "Good evening",
+            "L05_Q02" to "watashi wa sensei desu",
+            "L05_Q03" to "wa",
+            "L05_Q04" to "konnichiwa!",
+            "L05_Q05" to "watashi wa gakusei desu",
             "P06Q1" to "eat", "P06Q2" to "watashi wa mizu o nomimasu", "P06Q3" to "mimasu",
             "P07Q1" to "watashi wa sushi o tabemasu", "P07Q2" to "ocha", "P08Q1" to "ongaku o kikimasu",
             "F08Q2" to "mimasu", "F09Q1" to "sleep", "F10Q1" to "What do you do?",
             "P02Q2" to "kore wa mizu desu", "F02Q3" to "kore wa hon desu",
-            "P01Q2" to "ohayou=good morning|konnichiwa=hello|arigatou=thank you",
-            "P02Q5" to "inu=dog|hon=book|pan=bread",
+            "P01Q1" to "hello", "P01Q2" to "ohayou=good morning|konnichiwa=hello|arigatou=thank you",
+            "P02Q5" to "inu=dog|hon=book|pan=bread", "P01Q4" to "arigatou", "P01Q5" to "ohayou",
+            "F01Q2" to "thank you", "P02Q1" to "water", "P02Q3" to "neko", "P02Q4" to "kore wa neko desu",
+            "F02Q2" to "cat", "P03Q1" to "watashi wa gakusei desu", "P03Q2" to "watashi wa Yuki desu",
+            "P03Q3" to "friend", "F03Q1" to "I", "P04Q1" to "desu", "P04Q2" to "kore wa hon desu", "F04Q1" to "desu"
         )
         fun text(value: LessonText) = when (value) {
             is LessonText.Japanese -> value.value.romaji
@@ -56,6 +76,7 @@ class FoundationContentTest {
                     is Question.Cloze -> text(q.options.single { it.id == q.correctId }.text)
                     is Question.SentenceBuilder -> q.sentence.romaji
                     is Question.PairMatch -> q.pairs.joinToString("|") { "${it.japanese.romaji}=${it.english}" }
+                    is Question.Listening -> text(q.options.single { it.id == q.correctId }.text)
                 }
                 assertEquals(q.id, answers.getValue(FoundationLessons.sources[level.id - 1][index]), actual)
             }
@@ -127,6 +148,7 @@ class FoundationContentTest {
             is Question.Cloze -> session.select(q.correctId)
             is Question.SentenceBuilder -> q.correctOrder.forEach(session::addSentenceTile)
             is Question.PairMatch -> q.pairs.forEach { session.pair(it.id, true); session.pair(it.id, false) }
+            is Question.Listening -> session.select(q.correctId)
         }
         session.check()
     }

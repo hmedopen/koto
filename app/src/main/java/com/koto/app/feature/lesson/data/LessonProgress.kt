@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 class LessonProgress(context: Context) {
     // Placeholder completion belongs to different lessons; retain its file for rollback.
     private val preferences = context.applicationContext.getSharedPreferences("koto_foundation_v1", Context.MODE_PRIVATE)
+    val srsTracker = SrsTracker(context).also { SrsTracker.defaultInstance = it }
     var completed by mutableStateOf(preferences.getStringSet("completed", emptySet()).orEmpty().mapNotNull { it.toIntOrNull() }.toSet())
         private set
     fun complete(id: Int) {

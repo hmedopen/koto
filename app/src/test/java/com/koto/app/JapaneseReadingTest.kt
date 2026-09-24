@@ -45,6 +45,7 @@ class JapaneseReadingTest {
                     is Question.Cloze -> question.options.flatMap { japanese(it.text) } + question.filled(question.correctId)
                     is Question.ConversationResponse -> listOf(question.incoming) + question.responses.flatMap { japanese(it.text) }
                     is Question.PairMatch -> question.pairs.map { it.japanese }
+                    is Question.Listening -> listOf(question.target) + question.options.flatMap { japanese(it.text) }
                 }
             }
         }.distinct()
