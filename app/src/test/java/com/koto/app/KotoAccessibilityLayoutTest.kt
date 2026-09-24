@@ -47,7 +47,7 @@ class KotoAccessibilityLayoutTest {
         compose.onNodeWithTag("tab_map").performClick()
         compose.onNodeWithTag("level_2").assertIsDisplayed().performClick()
         compose.runOnIdle { saveOverlayScreenshot("map-v2-popup-large-text") }
-        compose.onNodeWithText("Everyday nouns · 6 questions")
+        compose.onNodeWithText("First Words · 7 questions")
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getLayout ->
                 val results = mutableListOf<TextLayoutResult>()
                 assertTrue(getLayout(results))

@@ -3,7 +3,7 @@ package com.koto.app
 import com.koto.app.feature.lesson.model.JapaneseText
 import com.koto.app.feature.lesson.model.LessonText
 import com.koto.app.feature.lesson.model.Question
-import com.koto.app.feature.lesson.data.PrototypeLessons
+import com.koto.app.feature.lesson.data.FoundationLessons
 import com.koto.app.feature.lesson.ui.kanaReadingUnits
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -36,7 +36,7 @@ class JapaneseReadingTest {
     }
 
     @Test fun everyAuthoredJapaneseDisplayKeepsItsFullKanaAndRomajiReading() {
-        val readings = PrototypeLessons.lessons.flatMap { lesson ->
+        val readings = FoundationLessons.levels.map { FoundationLessons.lesson(it.id)!! }.flatMap { lesson ->
             lesson.questions.flatMap { question ->
                 fun japanese(text: LessonText) = (text as? LessonText.Japanese)?.value?.let(::listOf).orEmpty()
                 when (question) {

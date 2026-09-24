@@ -27,7 +27,7 @@ class KotoMapTest {
     @Test fun progressionIsCenteredLazyAndShowsAllStates() {
         openMap()
         val center = compose.onNodeWithTag("map_list").fetchSemanticsNode().boundsInRoot.center.x
-        listOf(1 to "Current level", 2 to "Available", 3 to "Available", 11 to "Locked").forEach { (number, state) ->
+        listOf(1 to "Current level", 2 to "Available", 3 to "Available", 11 to "Available").forEach { (number, state) ->
             compose.onNodeWithTag("map_list").performScrollToNode(hasTestTag("level_$number"))
             val node = compose.onNodeWithTag("level_$number").assertIsDisplayed()
                 .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, state))
@@ -46,17 +46,17 @@ class KotoMapTest {
     @Test fun playableLevelOpensFocusedLesson() {
         openMap()
         compose.onNodeWithTag("level_1").performClick()
-        compose.onNodeWithText("Greetings · 6 questions").assertIsDisplayed()
+        compose.onNodeWithText("Japanese First Steps · 7 questions").assertIsDisplayed()
         compose.onNodeWithTag("level_action").performClick()
         compose.onNodeWithTag("lesson_screen").assertIsDisplayed()
         compose.onNodeWithTag("bottom_bar").assertDoesNotExist()
     }
-    @Test fun lockedLevelCanBeInspectedButCannotPlay() {
+    @Test fun newStageTwoLevelCanBeInspectedAndPlayedInDebug() {
         openMap()
         compose.onNodeWithTag("map_list").performScrollToNode(hasTestTag("level_11"))
         compose.onNodeWithTag("level_11").performClick()
         compose.onNodeWithText("Level 11").assertIsDisplayed()
-        compose.onNodeWithTag("level_action").assertIsNotEnabled()
+        compose.onNodeWithTag("level_action").assertIsEnabled()
         compose.onNodeWithTag("kana_preview").assertDoesNotExist()
         compose.onNodeWithContentDescription("Close level preview").performClick()
         compose.onNodeWithTag("level_popup").assertDoesNotExist()

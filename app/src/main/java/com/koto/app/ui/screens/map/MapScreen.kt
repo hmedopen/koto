@@ -40,10 +40,12 @@ fun MapScreen(completed: Set<Int> = emptySet(), onPlay: (Int) -> Unit = {}) {
             }
         }
     }
-    MapFixtures.level(selectedNumber, completed)?.let { level ->
+    val selectedLevel = remember(rows, selectedNumber) {
+        rows.filterIsInstance<MapRow.Level>().firstOrNull { it.level.number == selectedNumber }?.level
+    }
+    selectedLevel?.let { level ->
         LevelPopup(level, onDismiss = { selectedNumber = null }, onPlay = {
             onPlay(level.number)
         })
     }
 }
-

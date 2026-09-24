@@ -61,7 +61,7 @@ internal fun LevelPopup(level: MapLevel, onDismiss: () -> Unit, onPlay: () -> Un
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text(level.lessonTitle?.let { "$it · 6 questions" } ?: "More lessons are coming later.", color = KotoColors.QuietInk,
+                    Text(level.lessonTitle?.let { "$it · ${level.questionCount} questions" } ?: "More lessons are coming later.", color = KotoColors.QuietInk,
                         style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                     level.preview?.let { preview ->
                         Spacer(Modifier.height(24.dp))

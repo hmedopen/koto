@@ -6,11 +6,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 class LessonProgress(context: Context) {
-    private val preferences = context.applicationContext.getSharedPreferences("koto_lessons", Context.MODE_PRIVATE)
+    // Placeholder completion belongs to different lessons; retain its file for rollback.
+    private val preferences = context.applicationContext.getSharedPreferences("koto_foundation_v1", Context.MODE_PRIVATE)
     var completed by mutableStateOf(preferences.getStringSet("completed", emptySet()).orEmpty().mapNotNull { it.toIntOrNull() }.toSet())
         private set
     fun complete(id: Int) {
-        if (id in completed) return
+        if (id in completed || FoundationLessons.levels.none { it.id == id }) return
         completed = completed + id
         preferences.edit().putStringSet("completed", completed.map { it.toString() }.toSet()).apply()
     }

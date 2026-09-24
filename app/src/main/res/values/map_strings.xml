@@ -12,8 +12,7 @@
     <string name="map_special">Special activity</string>
     <string name="map_adjacent_description">%1$s, attached to level %2$s</string>
     <string name="map_stage_kana">FIRST CONTACT</string>
-    <string name="map_stage_words">BUILD &amp; USE</string>
-    <string name="map_stage_sentences">CONVERSATION TEST</string>
+    <string name="map_stage_words">BUILDING SENTENCES</string>
     <string name="map_expect_sounds">Learn the first Japanese sounds.</string>
     <string name="map_expect_kana">Meet the next small group of kana.</string>
     <string name="map_expect_practice">Practice recognizing familiar kana.</string>

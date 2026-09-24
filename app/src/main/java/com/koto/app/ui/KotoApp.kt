@@ -11,13 +11,14 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.platform.LocalContext
 import com.koto.app.feature.lesson.LessonScreen
 import com.koto.app.feature.lesson.audio.JapaneseTtsController
 import com.koto.app.feature.lesson.data.LessonProgress
-import com.koto.app.feature.lesson.data.PrototypeLessons
+import com.koto.app.feature.lesson.data.FoundationLessons
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -49,9 +50,12 @@ fun KotoApp() {
         selected = KotoDestination.Learn
     }
 
-    val lesson = lessonId?.let(PrototypeLessons::lesson)
+    val lesson = remember(lessonId) { lessonId?.let(FoundationLessons::lesson) }
     if (lesson != null) {
-        LessonScreen(lesson, audio, progress::complete, onExit = { lessonId = null; selected = KotoDestination.Map })
+        // Old placeholder attempts must not restore selections/results into new questions.
+        key("foundation_v1", lesson.id) {
+            LessonScreen(lesson, audio, progress::complete, onExit = { lessonId = null; selected = KotoDestination.Map })
+        }
     } else {
         shellState.SaveableStateProvider("main_shell") {
             Column(Modifier.fillMaxSize().background(KotoColors.Background)) {

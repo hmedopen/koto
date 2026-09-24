@@ -154,12 +154,14 @@ class LessonSessionTest {
         assertTrue(isLessonUnlocked(2, setOf(1), unlockAll = false))
         assertFalse(isLessonUnlocked(3, setOf(1), unlockAll = false))
         assertTrue(isLessonUnlocked(10, emptySet(), unlockAll = true))
-        assertFalse(isLessonUnlocked(11, (1..10).toSet(), unlockAll = true))
-        // An eleventh definition needs no new renderer or route.
+        assertTrue(isLessonUnlocked(12, (1..11).toSet(), unlockAll = false))
+        assertFalse(isLessonUnlocked(13, (1..12).toSet(), unlockAll = true))
+        // A future summary needs no question loading to check progression.
         val repository = object : LessonRepository {
-            override val lessons = PrototypeLessons.lessons + PrototypeLessons.lessons.last().copy(id = 11)
+            override val levels = FoundationLessons.levels + LevelSummary(13, "Test extension", 3, 6)
+            override fun lesson(id: Int) = error("Progress checks must not load questions")
         }
-        assertTrue(isLessonUnlocked(11, setOf(10), repository, unlockAll = false))
+        assertTrue(isLessonUnlocked(13, setOf(12), repository, unlockAll = false))
     }
 
     @Test fun validatorsRejectKanjiMissingRomajiAndInvalidAnswerIds() {

@@ -2,8 +2,9 @@ package com.koto.app.feature.lesson.data
 
 import com.koto.app.feature.lesson.model.*
 
-/** All 60 questions from Koto Minigame Prototype v1. The helpers author data only. */
-object PrototypeLessons : LessonRepository {
+/** Historical synthetic fixtures for mechanics regressions only; never bundled in the app. */
+object PrototypeLessons {
+    fun lesson(id: Int) = lessons.firstOrNull { it.id == id }
     private fun jp(value: String): JapaneseText = value.split("~").let { JapaneseText(it[0], it[1]) }
     private fun ja(value: String): LessonText = LessonText.Japanese(jp(value))
     private fun en(value: String): LessonText = LessonText.English(value)
@@ -32,7 +33,7 @@ object PrototypeLessons : LessonRepository {
     private fun level(id: Int, title: String, vararg questions: Question) = LessonDefinition(id, title,
         when (id) { in 1..4 -> "FIRST CONTACT"; in 5..8 -> "BUILD & USE"; else -> "CONVERSATION TEST" }, questions.toList())
 
-    override val lessons = listOf(
+    val lessons = listOf(
         level(1, "Greetings",
             forward("1-1", "こんにちは~konnichiwa", "Hello", "Goodbye", "Thank you", "Yes"),
             reverse("1-2", "Thank you", "ありがとう~arigatou", "こんにちは~konnichiwa", "さようなら~sayounara", "はい~hai"),
