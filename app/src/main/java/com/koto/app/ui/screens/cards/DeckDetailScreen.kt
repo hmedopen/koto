@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,10 +27,6 @@ internal fun DeckDetailScreen(deck: FlashcardDeck, state: FlashcardState, update
     Column(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.weight(1f).testTag("deck_detail"), contentPadding = PaddingValues(20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            item {
-                CardsButton("‹  All decks", { update(state.back()) }, Modifier.testTag("cards_back"),
-                    background = CardsColors.Ice, ink = CardsColors.Ink, depth = CardsColors.IceDepth)
-            }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -65,8 +59,12 @@ internal fun DeckDetailScreen(deck: FlashcardDeck, state: FlashcardState, update
                             Mode(true, Modifier.weight(1f)); Mode(false, Modifier.weight(1f))
                         }
                     }
-                    OptionSwitch("Show Romaji", "Reading hints", "romaji_toggle", state.showRomaji) { update(state.copy(showRomaji = it)) }
-                    OptionSwitch("Shuffle", "Mix up the order", "shuffle_toggle", state.shuffle) { update(state.copy(shuffle = it)) }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OptionButton("Show Romaji", "romaji_toggle", state.showRomaji,
+                            Modifier.weight(1f)) { update(state.copy(showRomaji = it)) }
+                        OptionButton("Shuffle", "shuffle_toggle", state.shuffle,
+                            Modifier.weight(1f)) { update(state.copy(shuffle = it)) }
+                    }
                 }
             }
             item {
@@ -113,21 +111,15 @@ internal fun DeckStats(counts: DeckCounts) {
 }
 
 @Composable
-private fun OptionSwitch(label: String, subtitle: String, tag: String, checked: Boolean, change: (Boolean) -> Unit) {
-    CardsPressable({ change(!checked) }, Modifier.fillMaxWidth().testTag(tag).semantics {
-        role = Role.Switch; toggleableState = if (checked) ToggleableState.On else ToggleableState.Off
-    }, padding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(label, color = CardsColors.Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                Text(subtitle, color = CardsColors.Muted, fontSize = 12.sp)
-            }
-            Switch(checked = checked, onCheckedChange = null, colors = SwitchDefaults.colors(
-                checkedTrackColor = CardsColors.Blue, checkedThumbColor = Color.White,
-                checkedBorderColor = CardsColors.Blue, uncheckedTrackColor = CardsColors.Ice,
-                uncheckedThumbColor = CardsColors.Muted, uncheckedBorderColor = CardsColors.IceDepth))
-        }
-    }
+private fun OptionButton(label: String, tag: String, checked: Boolean, modifier: Modifier,
+    change: (Boolean) -> Unit) {
+    CardsButton("$label: ${if (checked) "On" else "Off"}", { change(!checked) },
+        modifier.testTag(tag).semantics {
+            role = Role.Switch
+            toggleableState = if (checked) ToggleableState.On else ToggleableState.Off
+        }, background = if (checked) CardsColors.Blue else CardsColors.Surface,
+        ink = if (checked) Color.White else CardsColors.Ink,
+        depth = if (checked) CardsColors.BlueDepth else CardsColors.Edge)
 }
 
 private fun practiceLabel(timestamp: Long?): String = if (timestamp == null) "Not studied yet" else

@@ -1,80 +1,3943 @@
 [
   {
-    "id": "cat_greetings",
-    "title": "Greetings & Basics",
+    "id": "deck_01",
+    "title": "Greetings & Courtesy",
     "icon": "chatbubble",
     "cards": [
-      { "id": "card_101", "japanese": "こんにちは", "romaji": "konnichiwa", "english": "Hello" },
-      { "id": "card_102", "japanese": "ありがとう", "romaji": "arigatou", "english": "Thank you" },
-      { "id": "card_103", "japanese": "さようなら", "romaji": "sayounara", "english": "Goodbye" },
-      { "id": "card_104", "japanese": "はい", "romaji": "hai", "english": "Yes" },
-      { "id": "card_105", "japanese": "いいえ", "romaji": "iie", "english": "No" },
-      { "id": "card_106", "japanese": "すみません", "romaji": "sumimasen", "english": "Excuse me / Sorry" }
+      {
+        "id": "card_01_001",
+        "japanese": "おはようございます",
+        "romaji": "ohayou gozaimasu",
+        "english": "Good morning (formal)"
+      },
+      {
+        "id": "card_01_002",
+        "japanese": "おはよう",
+        "romaji": "ohayou",
+        "english": "Good morning (casual)"
+      },
+      {
+        "id": "card_01_003",
+        "japanese": "こんにちは",
+        "romaji": "konnichiwa",
+        "english": "Hello / Good afternoon"
+      },
+      {
+        "id": "card_01_004",
+        "japanese": "こんばんは",
+        "romaji": "konbanwa",
+        "english": "Good evening"
+      },
+      {
+        "id": "card_01_005",
+        "japanese": "おやすみなさい",
+        "romaji": "oyasuminasai",
+        "english": "Good night (formal)"
+      },
+      {
+        "id": "card_01_006",
+        "japanese": "おやすみ",
+        "romaji": "oyasumi",
+        "english": "Good night (casual)"
+      },
+      {
+        "id": "card_01_007",
+        "japanese": "さようなら",
+        "romaji": "sayounara",
+        "english": "Goodbye / Farewell"
+      },
+      {
+        "id": "card_01_008",
+        "japanese": "じゃあ、また",
+        "romaji": "jaa, mata",
+        "english": "See you later"
+      },
+      {
+        "id": "card_01_009",
+        "japanese": "ありがとう",
+        "romaji": "arigatou",
+        "english": "Thank you"
+      },
+      {
+        "id": "card_01_010",
+        "japanese": "ありがとうございます",
+        "romaji": "arigatou gozaimasu",
+        "english": "Thank you very much"
+      },
+      {
+        "id": "card_01_011",
+        "japanese": "どういたしまして",
+        "romaji": "dou itashimashite",
+        "english": "You're welcome"
+      },
+      {
+        "id": "card_01_012",
+        "japanese": "すみません",
+        "romaji": "sumimasen",
+        "english": "Excuse me / I'm sorry"
+      },
+      {
+        "id": "card_01_013",
+        "japanese": "ごめんなさい",
+        "romaji": "gomen nasai",
+        "english": "I'm sorry"
+      },
+      {
+        "id": "card_01_014",
+        "japanese": "おねがいします",
+        "romaji": "onegai shimasu",
+        "english": "Please (asking for a favor)"
+      },
+      {
+        "id": "card_01_015",
+        "japanese": "どうぞ",
+        "romaji": "douzo",
+        "english": "Please (offering something)"
+      },
+      {
+        "id": "card_01_016",
+        "japanese": "いただきます",
+        "romaji": "itadakimasu",
+        "english": "Expression before eating"
+      },
+      {
+        "id": "card_01_017",
+        "japanese": "ごちそうさまでした",
+        "romaji": "gochisousama deshita",
+        "english": "Expression after eating"
+      },
+      {
+        "id": "card_01_018",
+        "japanese": "いってきます",
+        "romaji": "ittekimasu",
+        "english": "I'm leaving (home)"
+      },
+      {
+        "id": "card_01_019",
+        "japanese": "いってらっしゃい",
+        "romaji": "itterasshai",
+        "english": "Have a good day / Take care"
+      },
+      {
+        "id": "card_01_020",
+        "japanese": "ただいま",
+        "romaji": "tadaima",
+        "english": "I'm home"
+      },
+      {
+        "id": "card_01_021",
+        "japanese": "おかえりなさい",
+        "romaji": "okaerinasai",
+        "english": "Welcome back"
+      },
+      {
+        "id": "card_01_022",
+        "japanese": "はじめまして",
+        "romaji": "hajimemashite",
+        "english": "Nice to meet you"
+      },
+      {
+        "id": "card_01_023",
+        "japanese": "よろしくおねがいします",
+        "romaji": "yoroshiku onegai shimasu",
+        "english": "Pleased to work with you / Nice to meet you"
+      },
+      {
+        "id": "card_01_024",
+        "japanese": "おげんきですか",
+        "romaji": "o-genki desu ka",
+        "english": "How are you?"
+      },
+      {
+        "id": "card_01_025",
+        "japanese": "はい",
+        "romaji": "hai",
+        "english": "Yes"
+      },
+      {
+        "id": "card_01_026",
+        "japanese": "いいえ",
+        "romaji": "iie",
+        "english": "No"
+      }
     ]
   },
   {
-    "id": "cat_numbers",
-    "title": "Numbers & Counting",
+    "id": "deck_02",
+    "title": "Personal Pronouns & Titles",
+    "icon": "chatbubble",
+    "cards": [
+      {
+        "id": "card_02_001",
+        "japanese": "わたし",
+        "romaji": "watashi",
+        "english": "I / me (general)"
+      },
+      {
+        "id": "card_02_002",
+        "japanese": "ぼく",
+        "romaji": "boku",
+        "english": "I / me (male, casual)"
+      },
+      {
+        "id": "card_02_003",
+        "japanese": "おれ",
+        "romaji": "ore",
+        "english": "I / me (informal/masculine)"
+      },
+      {
+        "id": "card_02_004",
+        "japanese": "わたしたち",
+        "romaji": "watashitachi",
+        "english": "We / us"
+      },
+      {
+        "id": "card_02_005",
+        "japanese": "あなた",
+        "romaji": "anata",
+        "english": "You (singular; often omitted in direct address)"
+      },
+      {
+        "id": "card_02_006",
+        "japanese": "あなたたち",
+        "romaji": "anatatachi",
+        "english": "You (plural)"
+      },
+      {
+        "id": "card_02_007",
+        "japanese": "かれ",
+        "romaji": "kare",
+        "english": "He / boyfriend"
+      },
+      {
+        "id": "card_02_008",
+        "japanese": "かのじょ",
+        "romaji": "kanojo",
+        "english": "She / girlfriend"
+      },
+      {
+        "id": "card_02_009",
+        "japanese": "かれら",
+        "romaji": "karera",
+        "english": "They"
+      },
+      {
+        "id": "card_02_010",
+        "japanese": "このひと",
+        "romaji": "kono hito",
+        "english": "This person"
+      },
+      {
+        "id": "card_02_011",
+        "japanese": "そのひと",
+        "romaji": "sono hito",
+        "english": "That person"
+      },
+      {
+        "id": "card_02_012",
+        "japanese": "あのひと",
+        "romaji": "ano hito",
+        "english": "That person over there"
+      },
+      {
+        "id": "card_02_013",
+        "japanese": "あのかた",
+        "romaji": "ano kata",
+        "english": "That person (polite)"
+      },
+      {
+        "id": "card_02_014",
+        "japanese": "だれ",
+        "romaji": "dare",
+        "english": "Who"
+      },
+      {
+        "id": "card_02_015",
+        "japanese": "どなた",
+        "romaji": "donata",
+        "english": "Who (polite)"
+      },
+      {
+        "id": "card_02_016",
+        "japanese": "～さん",
+        "romaji": "-san",
+        "english": "Mr./Ms. (polite honorific)"
+      },
+      {
+        "id": "card_02_017",
+        "japanese": "～くん",
+        "romaji": "-kun",
+        "english": "Honorific for peers/young boys"
+      },
+      {
+        "id": "card_02_018",
+        "japanese": "～ちゃん",
+        "romaji": "-chan",
+        "english": "Diminutive honorific (kids/pets)"
+      },
+      {
+        "id": "card_02_019",
+        "japanese": "～さま",
+        "romaji": "-sama",
+        "english": "Highly respectful honorific"
+      },
+      {
+        "id": "card_02_020",
+        "japanese": "みなさん",
+        "romaji": "minasan",
+        "english": "Everyone (polite)"
+      },
+      {
+        "id": "card_02_021",
+        "japanese": "じぶん",
+        "romaji": "jibun",
+        "english": "Oneself"
+      }
+    ]
+  },
+  {
+    "id": "deck_03",
+    "title": "Numbers 1–100 & Counting Basics",
     "icon": "hashtag",
     "cards": [
-      { "id": "card_201", "japanese": "いち", "romaji": "ichi", "english": "One" },
-      { "id": "card_202", "japanese": "に", "romaji": "ni", "english": "Two" },
-      { "id": "card_203", "japanese": "さん", "romaji": "san", "english": "Three" },
-      { "id": "card_204", "japanese": "みっつ", "romaji": "mittsu", "english": "Three items" },
-      { "id": "card_205", "japanese": "よん", "romaji": "yon", "english": "Four" },
-      { "id": "card_206", "japanese": "ご", "romaji": "go", "english": "Five" }
+      {
+        "id": "card_03_001",
+        "japanese": "ぜろ / れい",
+        "romaji": "zero / rei",
+        "english": "Zero"
+      },
+      {
+        "id": "card_03_002",
+        "japanese": "いち",
+        "romaji": "ichi",
+        "english": "One"
+      },
+      {
+        "id": "card_03_003",
+        "japanese": "に",
+        "romaji": "ni",
+        "english": "Two"
+      },
+      {
+        "id": "card_03_004",
+        "japanese": "さん",
+        "romaji": "san",
+        "english": "Three"
+      },
+      {
+        "id": "card_03_005",
+        "japanese": "よん / し",
+        "romaji": "yon / shi",
+        "english": "Four"
+      },
+      {
+        "id": "card_03_006",
+        "japanese": "ご",
+        "romaji": "go",
+        "english": "Five"
+      },
+      {
+        "id": "card_03_007",
+        "japanese": "ろく",
+        "romaji": "roku",
+        "english": "Six"
+      },
+      {
+        "id": "card_03_008",
+        "japanese": "なな / しち",
+        "romaji": "nana / shichi",
+        "english": "Seven"
+      },
+      {
+        "id": "card_03_009",
+        "japanese": "はち",
+        "romaji": "hachi",
+        "english": "Eight"
+      },
+      {
+        "id": "card_03_010",
+        "japanese": "きゅう / く",
+        "romaji": "kyuu / ku",
+        "english": "Nine"
+      },
+      {
+        "id": "card_03_011",
+        "japanese": "じゅう",
+        "romaji": "juu",
+        "english": "Ten"
+      },
+      {
+        "id": "card_03_012",
+        "japanese": "ひゃく",
+        "romaji": "hyaku",
+        "english": "Hundred"
+      },
+      {
+        "id": "card_03_013",
+        "japanese": "せん",
+        "romaji": "sen",
+        "english": "Thousand"
+      },
+      {
+        "id": "card_03_014",
+        "japanese": "まん",
+        "romaji": "man",
+        "english": "Ten thousand"
+      },
+      {
+        "id": "card_03_015",
+        "japanese": "ひとつ",
+        "romaji": "hitotsu",
+        "english": "One (general object)"
+      },
+      {
+        "id": "card_03_016",
+        "japanese": "ふたつ",
+        "romaji": "futatsu",
+        "english": "Two (general object)"
+      },
+      {
+        "id": "card_03_017",
+        "japanese": "みっつ",
+        "romaji": "mittsu",
+        "english": "Three (general object)"
+      },
+      {
+        "id": "card_03_018",
+        "japanese": "よっつ",
+        "romaji": "yottsu",
+        "english": "Four (general object)"
+      },
+      {
+        "id": "card_03_019",
+        "japanese": "いつつ",
+        "romaji": "itsutsu",
+        "english": "Five (general object)"
+      },
+      {
+        "id": "card_03_020",
+        "japanese": "むっつ",
+        "romaji": "muttsu",
+        "english": "Six (general object)"
+      },
+      {
+        "id": "card_03_021",
+        "japanese": "ななつ",
+        "romaji": "nanatsu",
+        "english": "Seven (general object)"
+      },
+      {
+        "id": "card_03_022",
+        "japanese": "やっつ",
+        "romaji": "yattsu",
+        "english": "Eight (general object)"
+      },
+      {
+        "id": "card_03_023",
+        "japanese": "ここのつ",
+        "romaji": "kokonotsu",
+        "english": "Nine (general object)"
+      },
+      {
+        "id": "card_03_024",
+        "japanese": "とお",
+        "romaji": "too",
+        "english": "Ten (general object)"
+      }
     ]
   },
   {
-    "id": "cat_home",
-    "title": "Home & Objects",
+    "id": "deck_04",
+    "title": "Counter Suffixes",
+    "icon": "hashtag",
+    "cards": [
+      {
+        "id": "card_04_001",
+        "japanese": "～にん",
+        "romaji": "-nin",
+        "english": "Counter for people"
+      },
+      {
+        "id": "card_04_002",
+        "japanese": "ひとり",
+        "romaji": "hitori",
+        "english": "One person"
+      },
+      {
+        "id": "card_04_003",
+        "japanese": "ふたり",
+        "romaji": "futari",
+        "english": "Two people"
+      },
+      {
+        "id": "card_04_004",
+        "japanese": "～ほん",
+        "romaji": "-hon / -bon / -pon",
+        "english": "Counter for long cylindrical objects"
+      },
+      {
+        "id": "card_04_005",
+        "japanese": "～まい",
+        "romaji": "-mai",
+        "english": "Counter for flat objects (paper, shirts)"
+      },
+      {
+        "id": "card_04_006",
+        "japanese": "～さつ",
+        "romaji": "-satsu",
+        "english": "Counter for books/bound items"
+      },
+      {
+        "id": "card_04_007",
+        "japanese": "～だい",
+        "romaji": "-dai",
+        "english": "Counter for vehicles/machines"
+      },
+      {
+        "id": "card_04_008",
+        "japanese": "～こ",
+        "romaji": "-ko",
+        "english": "Counter for small round objects"
+      },
+      {
+        "id": "card_04_009",
+        "japanese": "～ひき",
+        "romaji": "-hiki / -biki / -piki",
+        "english": "Counter for small animals"
+      },
+      {
+        "id": "card_04_010",
+        "japanese": "～とう",
+        "romaji": "-tou",
+        "english": "Counter for large animals"
+      },
+      {
+        "id": "card_04_011",
+        "japanese": "～わ",
+        "romaji": "-wa",
+        "english": "Counter for birds and rabbits"
+      },
+      {
+        "id": "card_04_012",
+        "japanese": "～ちゃく",
+        "romaji": "-chaku",
+        "english": "Counter for suits/clothing"
+      },
+      {
+        "id": "card_04_013",
+        "japanese": "～はい",
+        "romaji": "-hai / -bai / -pai",
+        "english": "Counter for cups/glasses/bowls"
+      },
+      {
+        "id": "card_04_014",
+        "japanese": "～かい",
+        "romaji": "-kai / -gai",
+        "english": "Counter for building floors"
+      },
+      {
+        "id": "card_04_015",
+        "japanese": "～かい",
+        "romaji": "-kai",
+        "english": "Counter for times/occurrences"
+      },
+      {
+        "id": "card_04_016",
+        "japanese": "～さい",
+        "romaji": "-sai",
+        "english": "Counter for age"
+      },
+      {
+        "id": "card_04_017",
+        "japanese": "なんにん",
+        "romaji": "nan-nin",
+        "english": "How many people?"
+      },
+      {
+        "id": "card_04_018",
+        "japanese": "なんまい",
+        "romaji": "nan-mai",
+        "english": "How many flat items?"
+      },
+      {
+        "id": "card_04_019",
+        "japanese": "なんぼん",
+        "romaji": "nan-bon",
+        "english": "How many long items?"
+      }
+    ]
+  },
+  {
+    "id": "deck_05",
+    "title": "Time: Hours, Minutes & Time of Day",
+    "icon": "hashtag",
+    "cards": [
+      {
+        "id": "card_05_001",
+        "japanese": "いま",
+        "romaji": "ima",
+        "english": "Now"
+      },
+      {
+        "id": "card_05_002",
+        "japanese": "じかん",
+        "romaji": "jikan",
+        "english": "Time / Hours (duration)"
+      },
+      {
+        "id": "card_05_003",
+        "japanese": "～じ",
+        "romaji": "-ji",
+        "english": "o'clock"
+      },
+      {
+        "id": "card_05_004",
+        "japanese": "～ふん / ～ぷん",
+        "romaji": "-fun / -pun",
+        "english": "Minute(s)"
+      },
+      {
+        "id": "card_05_005",
+        "japanese": "はん",
+        "romaji": "han",
+        "english": "Half (e.g., half past)"
+      },
+      {
+        "id": "card_05_006",
+        "japanese": "ごぜん",
+        "romaji": "gozen",
+        "english": "AM / Morning"
+      },
+      {
+        "id": "card_05_007",
+        "japanese": "ごご",
+        "romaji": "gogo",
+        "english": "PM / Afternoon"
+      },
+      {
+        "id": "card_05_008",
+        "japanese": "あさ",
+        "romaji": "asa",
+        "english": "Morning"
+      },
+      {
+        "id": "card_05_009",
+        "japanese": "ひる",
+        "romaji": "hiru",
+        "english": "Noon / Daytime"
+      },
+      {
+        "id": "card_05_010",
+        "japanese": "よる",
+        "romaji": "yoru",
+        "english": "Night"
+      },
+      {
+        "id": "card_05_011",
+        "japanese": "ばん",
+        "romaji": "ban",
+        "english": "Evening"
+      },
+      {
+        "id": "card_05_012",
+        "japanese": "けさ",
+        "romaji": "kesa",
+        "english": "This morning"
+      },
+      {
+        "id": "card_05_013",
+        "japanese": "こんばん",
+        "romaji": "konban",
+        "english": "Tonight / This evening"
+      },
+      {
+        "id": "card_05_014",
+        "japanese": "ゆうべ",
+        "romaji": "yuube",
+        "english": "Last night"
+      },
+      {
+        "id": "card_05_015",
+        "japanese": "しょうご",
+        "romaji": "shougo",
+        "english": "Noon / Midday"
+      },
+      {
+        "id": "card_05_016",
+        "japanese": "なんじ",
+        "romaji": "nan-ji",
+        "english": "What time?"
+      },
+      {
+        "id": "card_05_017",
+        "japanese": "なんぷん",
+        "romaji": "nan-pun",
+        "english": "How many minutes?"
+      }
+    ]
+  },
+  {
+    "id": "deck_06",
+    "title": "Days of the Week",
+    "icon": "hashtag",
+    "cards": [
+      {
+        "id": "card_06_001",
+        "japanese": "げつようび",
+        "romaji": "getsuyoubi",
+        "english": "Monday"
+      },
+      {
+        "id": "card_06_002",
+        "japanese": "かようび",
+        "romaji": "kayoubi",
+        "english": "Tuesday"
+      },
+      {
+        "id": "card_06_003",
+        "japanese": "すいようび",
+        "romaji": "suiyoubi",
+        "english": "Wednesday"
+      },
+      {
+        "id": "card_06_004",
+        "japanese": "もくようび",
+        "romaji": "mokuyoubi",
+        "english": "Thursday"
+      },
+      {
+        "id": "card_06_005",
+        "japanese": "きんようび",
+        "romaji": "kinyoubi",
+        "english": "Friday"
+      },
+      {
+        "id": "card_06_006",
+        "japanese": "どようび",
+        "romaji": "doyoubi",
+        "english": "Saturday"
+      },
+      {
+        "id": "card_06_007",
+        "japanese": "にちようび",
+        "romaji": "nichiyoubi",
+        "english": "Sunday"
+      },
+      {
+        "id": "card_06_008",
+        "japanese": "なんようび",
+        "romaji": "nan'youbi",
+        "english": "What day of the week?"
+      },
+      {
+        "id": "card_06_009",
+        "japanese": "へいじつ",
+        "romaji": "heijitsu",
+        "english": "Weekday"
+      },
+      {
+        "id": "card_06_010",
+        "japanese": "しゅうまつ",
+        "romaji": "shuumatsu",
+        "english": "Weekend"
+      }
+    ]
+  },
+  {
+    "id": "deck_07",
+    "title": "Months, Dates & Years",
+    "icon": "hashtag",
+    "cards": [
+      {
+        "id": "card_07_001",
+        "japanese": "いちがつ",
+        "romaji": "ichigatsu",
+        "english": "January"
+      },
+      {
+        "id": "card_07_002",
+        "japanese": "にがつ",
+        "romaji": "nigatsu",
+        "english": "February"
+      },
+      {
+        "id": "card_07_003",
+        "japanese": "さんがつ",
+        "romaji": "sangatsu",
+        "english": "March"
+      },
+      {
+        "id": "card_07_004",
+        "japanese": "しがつ",
+        "romaji": "shigatsu",
+        "english": "April"
+      },
+      {
+        "id": "card_07_005",
+        "japanese": "ごがつ",
+        "romaji": "gogatsu",
+        "english": "May"
+      },
+      {
+        "id": "card_07_006",
+        "japanese": "ろくがつ",
+        "romaji": "rokugatsu",
+        "english": "June"
+      },
+      {
+        "id": "card_07_007",
+        "japanese": "しちがつ",
+        "romaji": "shichigatsu",
+        "english": "July"
+      },
+      {
+        "id": "card_07_008",
+        "japanese": "はちがつ",
+        "romaji": "hachigatsu",
+        "english": "August"
+      },
+      {
+        "id": "card_07_009",
+        "japanese": "くがつ",
+        "romaji": "kugatsu",
+        "english": "September"
+      },
+      {
+        "id": "card_07_010",
+        "japanese": "じゅうがつ",
+        "romaji": "juugatsu",
+        "english": "October"
+      },
+      {
+        "id": "card_07_011",
+        "japanese": "じゅういちがつ",
+        "romaji": "juuichigatsu",
+        "english": "November"
+      },
+      {
+        "id": "card_07_012",
+        "japanese": "じゅうにがつ",
+        "romaji": "juunigatsu",
+        "english": "December"
+      },
+      {
+        "id": "card_07_013",
+        "japanese": "ついたち",
+        "romaji": "tsuitachi",
+        "english": "1st day of the month"
+      },
+      {
+        "id": "card_07_014",
+        "japanese": "ふつか",
+        "romaji": "futsuka",
+        "english": "2nd day of the month"
+      },
+      {
+        "id": "card_07_015",
+        "japanese": "みっか",
+        "romaji": "mikka",
+        "english": "3rd day of the month"
+      },
+      {
+        "id": "card_07_016",
+        "japanese": "よっか",
+        "romaji": "yokka",
+        "english": "4th day of the month"
+      },
+      {
+        "id": "card_07_017",
+        "japanese": "いつか",
+        "romaji": "itsuka",
+        "english": "5th day of the month"
+      },
+      {
+        "id": "card_07_018",
+        "japanese": "むいか",
+        "romaji": "muika",
+        "english": "6th day of the month"
+      },
+      {
+        "id": "card_07_019",
+        "japanese": "なのか",
+        "romaji": "nanoka",
+        "english": "7th day of the month"
+      },
+      {
+        "id": "card_07_020",
+        "japanese": "ようか",
+        "romaji": "youka",
+        "english": "8th day of the month"
+      },
+      {
+        "id": "card_07_021",
+        "japanese": "ここのか",
+        "romaji": "kokonoka",
+        "english": "9th day of the month"
+      },
+      {
+        "id": "card_07_022",
+        "japanese": "とおか",
+        "romaji": "tooka",
+        "english": "10th day of the month"
+      },
+      {
+        "id": "card_07_023",
+        "japanese": "じゅうよっか",
+        "romaji": "juuyokka",
+        "english": "14th day"
+      },
+      {
+        "id": "card_07_024",
+        "japanese": "はつか",
+        "romaji": "hatsuka",
+        "english": "20th day"
+      },
+      {
+        "id": "card_07_025",
+        "japanese": "にじゅうよっか",
+        "romaji": "nijuuyokka",
+        "english": "24th day"
+      },
+      {
+        "id": "card_07_026",
+        "japanese": "なんにち",
+        "romaji": "nan-nichi",
+        "english": "What date? / How many days?"
+      },
+      {
+        "id": "card_07_027",
+        "japanese": "ことし",
+        "romaji": "kotoshi",
+        "english": "This year"
+      },
+      {
+        "id": "card_07_028",
+        "japanese": "きょねん",
+        "romaji": "kyonen",
+        "english": "Last year"
+      },
+      {
+        "id": "card_07_029",
+        "japanese": "らいねん",
+        "romaji": "rainen",
+        "english": "Next year"
+      }
+    ]
+  },
+  {
+    "id": "deck_08",
+    "title": "Frequency & Time Expressions",
+    "icon": "hashtag",
+    "cards": [
+      {
+        "id": "card_08_001",
+        "japanese": "きょう",
+        "romaji": "kyou",
+        "english": "Today"
+      },
+      {
+        "id": "card_08_002",
+        "japanese": "きのう",
+        "romaji": "kinou",
+        "english": "Yesterday"
+      },
+      {
+        "id": "card_08_003",
+        "japanese": "あした",
+        "romaji": "ashita",
+        "english": "Tomorrow"
+      },
+      {
+        "id": "card_08_004",
+        "japanese": "あさって",
+        "romaji": "asatte",
+        "english": "Day after tomorrow"
+      },
+      {
+        "id": "card_08_005",
+        "japanese": "おとtoi",
+        "romaji": "ototoi",
+        "english": "Day before yesterday"
+      },
+      {
+        "id": "card_08_006",
+        "japanese": "こんしゅう",
+        "romaji": "konshuu",
+        "english": "This week"
+      },
+      {
+        "id": "card_08_007",
+        "japanese": "せんしゅう",
+        "romaji": "senshuu",
+        "english": "Last week"
+      },
+      {
+        "id": "card_08_008",
+        "japanese": "らいしゅう",
+        "romaji": "raishuu",
+        "english": "Next week"
+      },
+      {
+        "id": "card_08_009",
+        "japanese": "こんげつ",
+        "romaji": "kongetsu",
+        "english": "This month"
+      },
+      {
+        "id": "card_08_010",
+        "japanese": "せんげつ",
+        "romaji": "sengetsu",
+        "english": "Last month"
+      },
+      {
+        "id": "card_08_011",
+        "japanese": "らいげつ",
+        "romaji": "raigetsu",
+        "english": "Next month"
+      },
+      {
+        "id": "card_08_012",
+        "japanese": "まいにち",
+        "romaji": "mainichi",
+        "english": "Every day"
+      },
+      {
+        "id": "card_08_013",
+        "japanese": "まいあさ",
+        "romaji": "maiasa",
+        "english": "Every morning"
+      },
+      {
+        "id": "card_08_014",
+        "japanese": "まいばん",
+        "romaji": "maiban",
+        "english": "Every night"
+      },
+      {
+        "id": "card_08_015",
+        "japanese": "まいしゅう",
+        "romaji": "maishuu",
+        "english": "Every week"
+      },
+      {
+        "id": "card_08_016",
+        "japanese": "まいつき",
+        "romaji": "maitsuki",
+        "english": "Every month"
+      },
+      {
+        "id": "card_08_017",
+        "japanese": "まいとし / まいねん",
+        "romaji": "maitoshi / mainen",
+        "english": "Every year"
+      },
+      {
+        "id": "card_08_018",
+        "japanese": "いつも",
+        "romaji": "itsumo",
+        "english": "Always"
+      },
+      {
+        "id": "card_08_019",
+        "japanese": "よく",
+        "romaji": "yoku",
+        "english": "Often / Well"
+      },
+      {
+        "id": "card_08_020",
+        "japanese": "たいてい",
+        "romaji": "taitei",
+        "english": "Usually"
+      },
+      {
+        "id": "card_08_021",
+        "japanese": "ときどき",
+        "romaji": "tokidoki",
+        "english": "Sometimes"
+      },
+      {
+        "id": "card_08_022",
+        "japanese": "あまり (+ negative)",
+        "romaji": "amari",
+        "english": "Not very / Not much"
+      },
+      {
+        "id": "card_08_023",
+        "japanese": "ぜんぜん (+ negative)",
+        "romaji": "zenzen",
+        "english": "Not at all"
+      },
+      {
+        "id": "card_08_024",
+        "japanese": "すぐ",
+        "romaji": "sugu",
+        "english": "Immediately / Soon"
+      },
+      {
+        "id": "card_08_025",
+        "japanese": "もう",
+        "romaji": "mou",
+        "english": "Already / More"
+      },
+      {
+        "id": "card_08_026",
+        "japanese": "まだ",
+        "romaji": "mada",
+        "english": "Still / Not yet"
+      }
+    ]
+  },
+  {
+    "id": "deck_09",
+    "title": "Family & Relationships",
     "icon": "home",
     "cards": [
-      { "id": "card_301", "japanese": "へや", "romaji": "heya", "english": "Room" },
-      { "id": "card_302", "japanese": "つくえ", "romaji": "tsukue", "english": "Desk" },
-      { "id": "card_303", "japanese": "いす", "romaji": "isu", "english": "Chair" },
-      { "id": "card_304", "japanese": "ほん", "romaji": "hon", "english": "Book" },
-      { "id": "card_305", "japanese": "とけい", "romaji": "tokei", "english": "Clock / Watch" },
-      { "id": "card_306", "japanese": "かぎ", "romaji": "kagi", "english": "Key" }
+      {
+        "id": "card_09_001",
+        "japanese": "かぞく",
+        "romaji": "kazoku",
+        "english": "Family"
+      },
+      {
+        "id": "card_09_002",
+        "japanese": "りょうしん",
+        "romaji": "ryoushin",
+        "english": "Parents"
+      },
+      {
+        "id": "card_09_003",
+        "japanese": "ちち",
+        "romaji": "chichi",
+        "english": "Father (my)"
+      },
+      {
+        "id": "card_09_004",
+        "japanese": "おとうさん",
+        "romaji": "otousan",
+        "english": "Father (someone else's / address)"
+      },
+      {
+        "id": "card_09_005",
+        "japanese": "はは",
+        "romaji": "haha",
+        "english": "Mother (my)"
+      },
+      {
+        "id": "card_09_006",
+        "japanese": "おかあさん",
+        "romaji": "okaasan",
+        "english": "Mother (someone else's / address)"
+      },
+      {
+        "id": "card_09_007",
+        "japanese": "あに",
+        "romaji": "ani",
+        "english": "Older brother (my)"
+      },
+      {
+        "id": "card_09_008",
+        "japanese": "おにいさん",
+        "romaji": "oniisan",
+        "english": "Older brother (someone else's)"
+      },
+      {
+        "id": "card_09_009",
+        "japanese": "あね",
+        "romaji": "ane",
+        "english": "Older sister (my)"
+      },
+      {
+        "id": "card_09_010",
+        "japanese": "おねえさん",
+        "romaji": "oneesan",
+        "english": "Older sister (someone else's)"
+      },
+      {
+        "id": "card_09_011",
+        "japanese": "おとうと",
+        "romaji": "otouto",
+        "english": "Younger brother"
+      },
+      {
+        "id": "card_09_012",
+        "japanese": "いもうと",
+        "romaji": "imouto",
+        "english": "Younger sister"
+      },
+      {
+        "id": "card_09_013",
+        "japanese": "きょうだい",
+        "romaji": "kyoudai",
+        "english": "Siblings / Brothers"
+      },
+      {
+        "id": "card_09_014",
+        "japanese": "おっと",
+        "romaji": "otto",
+        "english": "Husband (my)"
+      },
+      {
+        "id": "card_09_015",
+        "japanese": "しゅじん",
+        "romaji": "shujin",
+        "english": "Husband (my)"
+      },
+      {
+        "id": "card_09_016",
+        "japanese": "ごしゅじん",
+        "romaji": "goshujin",
+        "english": "Husband (someone else's)"
+      },
+      {
+        "id": "card_09_017",
+        "japanese": "つま",
+        "romaji": "tsuma",
+        "english": "Wife (my)"
+      },
+      {
+        "id": "card_09_018",
+        "japanese": "かない",
+        "romaji": "kanai",
+        "english": "Wife (my)"
+      },
+      {
+        "id": "card_09_019",
+        "japanese": "おくさん",
+        "romaji": "okusan",
+        "english": "Wife (someone else's)"
+      },
+      {
+        "id": "card_09_020",
+        "japanese": "こども",
+        "romaji": "kodomo",
+        "english": "Child / Children"
+      },
+      {
+        "id": "card_09_021",
+        "japanese": "むすこ",
+        "romaji": "musuko",
+        "english": "Son"
+      },
+      {
+        "id": "card_09_022",
+        "japanese": "むすめ",
+        "romaji": "musume",
+        "english": "Daughter"
+      },
+      {
+        "id": "card_09_023",
+        "japanese": "ともだち",
+        "romaji": "tomodachi",
+        "english": "Friend"
+      },
+      {
+        "id": "card_09_024",
+        "japanese": "かれし",
+        "romaji": "kareshi",
+        "english": "Boyfriend"
+      }
     ]
   },
   {
-    "id": "cat_food",
-    "title": "Food & Drinks",
-    "icon": "utensils",
-    "cards": [
-      { "id": "card_401", "japanese": "みず", "romaji": "mizu", "english": "Water" },
-      { "id": "card_402", "japanese": "おちゃ", "romaji": "ocha", "english": "Tea" },
-      { "id": "card_403", "japanese": "ごはん", "romaji": "gohan", "english": "Rice / Meal" },
-      { "id": "card_404", "japanese": "りんご", "romaji": "ringo", "english": "Apple" },
-      { "id": "card_405", "japanese": "さかな", "romaji": "sakana", "english": "Fish" },
-      { "id": "card_406", "japanese": "にく", "romaji": "niku", "english": "Meat" }
-    ]
-  },
-  {
-    "id": "cat_travel",
-    "title": "Travel & Places",
-    "icon": "train",
-    "cards": [
-      { "id": "card_501", "japanese": "えき", "romaji": "eki", "english": "Station" },
-      { "id": "card_502", "japanese": "ホテル", "romaji": "hoteru", "english": "Hotel" },
-      { "id": "card_503", "japanese": "くうこう", "romaji": "kuukou", "english": "Airport" },
-      { "id": "card_504", "japanese": "でんしゃ", "romaji": "densha", "english": "Train" },
-      { "id": "card_505", "japanese": "みせ", "romaji": "mise", "english": "Shop" },
-      { "id": "card_506", "japanese": "がっこう", "romaji": "gakkou", "english": "School" }
-    ]
-  },
-  {
-    "id": "cat_verbs",
-    "title": "Common Verbs",
+    "id": "deck_10",
+    "title": "People & Professions",
     "icon": "footsteps",
     "cards": [
-      { "id": "card_601", "japanese": "たべる", "romaji": "taberu", "english": "To eat" },
-      { "id": "card_602", "japanese": "のむ", "romaji": "nomu", "english": "To drink" },
-      { "id": "card_603", "japanese": "いく", "romaji": "iku", "english": "To go" },
-      { "id": "card_604", "japanese": "みる", "romaji": "miru", "english": "To see / watch" },
-      { "id": "card_605", "japanese": "はなす", "romaji": "hanasu", "english": "To speak" },
-      { "id": "card_606", "japanese": "かう", "romaji": "kau", "english": "To buy" }
+      {
+        "id": "card_10_001",
+        "japanese": "ひと",
+        "romaji": "hito",
+        "english": "Person"
+      },
+      {
+        "id": "card_10_002",
+        "japanese": "おとこのひと",
+        "romaji": "otoko no hito",
+        "english": "Man"
+      },
+      {
+        "id": "card_10_003",
+        "japanese": "おんなのひと",
+        "romaji": "onna no hito",
+        "english": "Woman"
+      },
+      {
+        "id": "card_10_004",
+        "japanese": "おとこのこ",
+        "romaji": "otoko no ko",
+        "english": "Boy"
+      },
+      {
+        "id": "card_10_005",
+        "japanese": "おんなのこ",
+        "romaji": "onna no ko",
+        "english": "Girl"
+      },
+      {
+        "id": "card_10_006",
+        "japanese": "おとな",
+        "romaji": "otona",
+        "english": "Adult"
+      },
+      {
+        "id": "card_10_007",
+        "japanese": "がくせい",
+        "romaji": "gakusei",
+        "english": "Student"
+      },
+      {
+        "id": "card_10_008",
+        "japanese": "りゅうがくせい",
+        "romaji": "ryuugakusei",
+        "english": "International student"
+      },
+      {
+        "id": "card_10_009",
+        "japanese": "せんせい",
+        "romaji": "sensei",
+        "english": "Teacher / Instructor (title or form of address)"
+      },
+      {
+        "id": "card_10_010",
+        "japanese": "きょうし",
+        "romaji": "kyoushi",
+        "english": "Teacher (occupation)"
+      },
+      {
+        "id": "card_10_011",
+        "japanese": "かいしゃいん",
+        "romaji": "kaishain",
+        "english": "Company employee"
+      },
+      {
+        "id": "card_10_012",
+        "japanese": "ぎんこういん",
+        "romaji": "ginkouin",
+        "english": "Bank employee"
+      },
+      {
+        "id": "card_10_013",
+        "japanese": "いしゃ",
+        "romaji": "isha",
+        "english": "Doctor"
+      },
+      {
+        "id": "card_10_014",
+        "japanese": "かんごし",
+        "romaji": "kangoshi",
+        "english": "Nurse"
+      },
+      {
+        "id": "card_10_015",
+        "japanese": "けいさつかん",
+        "romaji": "keisatsukan",
+        "english": "Police officer"
+      },
+      {
+        "id": "card_10_016",
+        "japanese": "てんいん",
+        "romaji": "ten'in",
+        "english": "Store clerk"
+      },
+      {
+        "id": "card_10_017",
+        "japanese": "かしゅ",
+        "romaji": "kashu",
+        "english": "Singer"
+      },
+      {
+        "id": "card_10_018",
+        "japanese": "せんしゅ",
+        "romaji": "senshu",
+        "english": "Athlete / Player"
+      }
+    ]
+  },
+  {
+    "id": "deck_11",
+    "title": "Essential Verbs: Daily Actions",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_11_001",
+        "japanese": "おきる",
+        "romaji": "okiru",
+        "english": "To wake up / get up"
+      },
+      {
+        "id": "card_11_002",
+        "japanese": "ねる",
+        "romaji": "neru",
+        "english": "To sleep / go to bed"
+      },
+      {
+        "id": "card_11_003",
+        "japanese": "たべる",
+        "romaji": "taberu",
+        "english": "To eat"
+      },
+      {
+        "id": "card_11_004",
+        "japanese": "のむ",
+        "romaji": "nomu",
+        "english": "To drink"
+      },
+      {
+        "id": "card_11_005",
+        "japanese": "みる",
+        "romaji": "miru",
+        "english": "To see / watch"
+      },
+      {
+        "id": "card_11_006",
+        "japanese": "きく",
+        "romaji": "kiku",
+        "english": "To hear / listen / ask"
+      },
+      {
+        "id": "card_11_007",
+        "japanese": "よむ",
+        "romaji": "yomu",
+        "english": "To read"
+      },
+      {
+        "id": "card_11_008",
+        "japanese": "かく",
+        "romaji": "kaku",
+        "english": "To write"
+      },
+      {
+        "id": "card_11_009",
+        "japanese": "はなす",
+        "romaji": "hanasu",
+        "english": "To speak / talk"
+      },
+      {
+        "id": "card_11_010",
+        "japanese": "かう",
+        "romaji": "kau",
+        "english": "To buy"
+      },
+      {
+        "id": "card_11_011",
+        "japanese": "うる",
+        "romaji": "uru",
+        "english": "To sell"
+      },
+      {
+        "id": "card_11_012",
+        "japanese": "つくる",
+        "romaji": "tsukuru",
+        "english": "To make / create"
+      },
+      {
+        "id": "card_11_013",
+        "japanese": "つかう",
+        "romaji": "tsukau",
+        "english": "To use"
+      },
+      {
+        "id": "card_11_014",
+        "japanese": "あらう",
+        "romaji": "arau",
+        "english": "To wash"
+      },
+      {
+        "id": "card_11_015",
+        "japanese": "みがく",
+        "romaji": "migaku",
+        "english": "To brush / polish"
+      },
+      {
+        "id": "card_11_016",
+        "japanese": "あびる",
+        "romaji": "abiru",
+        "english": "To take (a shower)"
+      }
+    ]
+  },
+  {
+    "id": "deck_12",
+    "title": "Essential Verbs: Motion & Direction",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_12_001",
+        "japanese": "いく",
+        "romaji": "iku",
+        "english": "To go"
+      },
+      {
+        "id": "card_12_002",
+        "japanese": "くる",
+        "romaji": "kuru",
+        "english": "To come"
+      },
+      {
+        "id": "card_12_003",
+        "japanese": "かえる",
+        "romaji": "kaeru",
+        "english": "To return / go home"
+      },
+      {
+        "id": "card_12_004",
+        "japanese": "はいる",
+        "romaji": "hairu",
+        "english": "To enter"
+      },
+      {
+        "id": "card_12_005",
+        "japanese": "でる",
+        "romaji": "deru",
+        "english": "To exit / leave"
+      },
+      {
+        "id": "card_12_006",
+        "japanese": "のる",
+        "romaji": "noru",
+        "english": "To ride / get on"
+      },
+      {
+        "id": "card_12_007",
+        "japanese": "おりる",
+        "romaji": "oriru",
+        "english": "To get off (a vehicle)"
+      },
+      {
+        "id": "card_12_008",
+        "japanese": "あるく",
+        "romaji": "aruku",
+        "english": "To walk"
+      },
+      {
+        "id": "card_12_009",
+        "japanese": "はしる",
+        "romaji": "hashiru",
+        "english": "To run"
+      },
+      {
+        "id": "card_12_010",
+        "japanese": "およぐ",
+        "romaji": "oyogu",
+        "english": "To swim"
+      },
+      {
+        "id": "card_12_011",
+        "japanese": "とぶ",
+        "romaji": "tobu",
+        "english": "To fly"
+      },
+      {
+        "id": "card_12_012",
+        "japanese": "まがる",
+        "romaji": "magaru",
+        "english": "To turn (a corner)"
+      },
+      {
+        "id": "card_12_013",
+        "japanese": "とまる",
+        "romaji": "tomaru",
+        "english": "To stop"
+      },
+      {
+        "id": "card_12_014",
+        "japanese": "わたる",
+        "romaji": "wataru",
+        "english": "To cross (street/bridge)"
+      },
+      {
+        "id": "card_12_015",
+        "japanese": "のぼる",
+        "romaji": "noboru",
+        "english": "To climb / ascend"
+      }
+    ]
+  },
+  {
+    "id": "deck_13",
+    "title": "Essential Verbs: Perception & Thought",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_13_001",
+        "japanese": "おもう",
+        "romaji": "omou",
+        "english": "To think / feel"
+      },
+      {
+        "id": "card_13_002",
+        "japanese": "かんがえる",
+        "romaji": "kangaeru",
+        "english": "To consider / ponder"
+      },
+      {
+        "id": "card_13_003",
+        "japanese": "しる",
+        "romaji": "shiru",
+        "english": "To come to know (Note: \"I know\" = しっている)"
+      },
+      {
+        "id": "card_13_004",
+        "japanese": "わかる",
+        "romaji": "wakaru",
+        "english": "To understand"
+      },
+      {
+        "id": "card_13_005",
+        "japanese": "おぼえる",
+        "romaji": "oboeru",
+        "english": "To memorize / remember"
+      },
+      {
+        "id": "card_13_006",
+        "japanese": "わすれる",
+        "romaji": "wasureru",
+        "english": "To forget"
+      },
+      {
+        "id": "card_13_007",
+        "japanese": "かんじる",
+        "romaji": "kanjiru",
+        "english": "To feel / sense"
+      },
+      {
+        "id": "card_13_008",
+        "japanese": "さがす",
+        "romaji": "sagasu",
+        "english": "To search for"
+      },
+      {
+        "id": "card_13_009",
+        "japanese": "みつける",
+        "romaji": "mitsukeru",
+        "english": "To find"
+      },
+      {
+        "id": "card_13_010",
+        "japanese": "おもいだす",
+        "romaji": "omoidasu",
+        "english": "To recall / remember"
+      }
+    ]
+  },
+  {
+    "id": "deck_14",
+    "title": "Essential Verbs: Interactions & Transactions",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_14_001",
+        "japanese": "あげる",
+        "romaji": "ageru",
+        "english": "To give (giver → another person)"
+      },
+      {
+        "id": "card_14_002",
+        "japanese": "もらう",
+        "romaji": "morau",
+        "english": "To receive (receiver ← giver)"
+      },
+      {
+        "id": "card_14_003",
+        "japanese": "くれる",
+        "romaji": "kureru",
+        "english": "To give (another person → me/my group)"
+      },
+      {
+        "id": "card_14_004",
+        "japanese": "おしえる",
+        "romaji": "oshieru",
+        "english": "To teach / inform"
+      },
+      {
+        "id": "card_14_005",
+        "japanese": "ならう",
+        "romaji": "narau",
+        "english": "To learn (from a teacher)"
+      },
+      {
+        "id": "card_14_006",
+        "japanese": "かす",
+        "romaji": "kasu",
+        "english": "To lend"
+      },
+      {
+        "id": "card_14_007",
+        "japanese": "かりる",
+        "romaji": "kariru",
+        "english": "To borrow"
+      },
+      {
+        "id": "card_14_008",
+        "japanese": "おくる",
+        "romaji": "okuru",
+        "english": "To send"
+      },
+      {
+        "id": "card_14_009",
+        "japanese": "わたす",
+        "romaji": "watasu",
+        "english": "To hand over"
+      },
+      {
+        "id": "card_14_010",
+        "japanese": "よぶ",
+        "romaji": "yobu",
+        "english": "To call / invite"
+      },
+      {
+        "id": "card_14_011",
+        "japanese": "たすける",
+        "romaji": "tasukeru",
+        "english": "To help / save"
+      },
+      {
+        "id": "card_14_012",
+        "japanese": "はらう",
+        "romaji": "harau",
+        "english": "To pay"
+      }
+    ]
+  },
+  {
+    "id": "deck_15",
+    "title": "Essential i-Adjectives: Describing Things",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_15_001",
+        "japanese": "おおきい",
+        "romaji": "ookii",
+        "english": "Big / Large"
+      },
+      {
+        "id": "card_15_002",
+        "japanese": "ちいさい",
+        "romaji": "chiisai",
+        "english": "Small / Little"
+      },
+      {
+        "id": "card_15_003",
+        "japanese": "たかい",
+        "romaji": "takai",
+        "english": "High / Expensive"
+      },
+      {
+        "id": "card_15_004",
+        "japanese": "やすい",
+        "romaji": "yasui",
+        "english": "Cheap / Inexpensive"
+      },
+      {
+        "id": "card_15_005",
+        "japanese": "ひくい",
+        "romaji": "hikui",
+        "english": "Low"
+      },
+      {
+        "id": "card_15_006",
+        "japanese": "あたらしい",
+        "romaji": "atarashii",
+        "english": "New"
+      },
+      {
+        "id": "card_15_007",
+        "japanese": "ふるい",
+        "romaji": "furui",
+        "english": "Old (not for people)"
+      },
+      {
+        "id": "card_15_008",
+        "japanese": "いい / よい",
+        "romaji": "ii / yoi",
+        "english": "Good"
+      },
+      {
+        "id": "card_15_009",
+        "japanese": "わるい",
+        "romaji": "warui",
+        "english": "Bad"
+      },
+      {
+        "id": "card_15_010",
+        "japanese": "ながい",
+        "romaji": "nagai",
+        "english": "Long"
+      },
+      {
+        "id": "card_15_011",
+        "japanese": "みじかい",
+        "romaji": "mijikai",
+        "english": "Short (length)"
+      },
+      {
+        "id": "card_15_012",
+        "japanese": "おもい",
+        "romaji": "omoi",
+        "english": "Heavy"
+      },
+      {
+        "id": "card_15_013",
+        "japanese": "かるい",
+        "romaji": "karui",
+        "english": "Light (weight)"
+      },
+      {
+        "id": "card_15_014",
+        "japanese": "ひろい",
+        "romaji": "hiroi",
+        "english": "Wide / Spacious"
+      },
+      {
+        "id": "card_15_015",
+        "japanese": "せまい",
+        "romaji": "semai",
+        "english": "Narrow / Small (room)"
+      }
+    ]
+  },
+  {
+    "id": "deck_16",
+    "title": "Essential i-Adjectives: Emotions & States",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_16_001",
+        "japanese": "あつい (てんき)",
+        "romaji": "atsui",
+        "english": "Hot (weather)"
+      },
+      {
+        "id": "card_16_002",
+        "japanese": "あつい (もの)",
+        "romaji": "atsui",
+        "english": "Hot (thing / liquid)"
+      },
+      {
+        "id": "card_16_003",
+        "japanese": "さむい",
+        "romaji": "samui",
+        "english": "Cold (weather)"
+      },
+      {
+        "id": "card_16_004",
+        "japanese": "つめたい",
+        "romaji": "tsumetai",
+        "english": "Cold (thing / touch)"
+      },
+      {
+        "id": "card_16_005",
+        "japanese": "あたたかい (てんき)",
+        "romaji": "atatakai",
+        "english": "Warm (weather)"
+      },
+      {
+        "id": "card_16_006",
+        "japanese": "あたたかい (もの)",
+        "romaji": "atatakai",
+        "english": "Warm (thing / food)"
+      },
+      {
+        "id": "card_16_007",
+        "japanese": "すずしい",
+        "romaji": "suzushii",
+        "english": "Cool (weather)"
+      },
+      {
+        "id": "card_16_008",
+        "japanese": "たのしい",
+        "romaji": "tanoshii",
+        "english": "Fun / Enjoyable"
+      },
+      {
+        "id": "card_16_009",
+        "japanese": "おもしろい",
+        "romaji": "omoshiroi",
+        "english": "Interesting / Funny"
+      },
+      {
+        "id": "card_16_010",
+        "japanese": "つまらない",
+        "romaji": "tsumaranai",
+        "english": "Boring"
+      },
+      {
+        "id": "card_16_011",
+        "japanese": "いそがしい",
+        "romaji": "isogashii",
+        "english": "Busy"
+      },
+      {
+        "id": "card_16_012",
+        "japanese": "うれしい",
+        "romaji": "ureshii",
+        "english": "Happy / Glad"
+      },
+      {
+        "id": "card_16_013",
+        "japanese": "かなしい",
+        "romaji": "kanashii",
+        "english": "Sad"
+      },
+      {
+        "id": "card_16_014",
+        "japanese": "いたい",
+        "romaji": "itai",
+        "english": "Painful / Hurts"
+      },
+      {
+        "id": "card_16_015",
+        "japanese": "ほしい",
+        "romaji": "hoshii",
+        "english": "Want / Want something"
+      }
+    ]
+  },
+  {
+    "id": "deck_17",
+    "title": "Essential na-Adjectives: Quality & State",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_17_001",
+        "japanese": "すき",
+        "romaji": "suki",
+        "english": "Like / Fond of / Favorite"
+      },
+      {
+        "id": "card_17_002",
+        "japanese": "きらい",
+        "romaji": "kirai",
+        "english": "Dislike / Hated"
+      },
+      {
+        "id": "card_17_003",
+        "japanese": "だいすき",
+        "romaji": "daisuki",
+        "english": "Love / Really like"
+      },
+      {
+        "id": "card_17_004",
+        "japanese": "しずか",
+        "romaji": "shizuka",
+        "english": "Quiet"
+      },
+      {
+        "id": "card_17_005",
+        "japanese": "にぎやか",
+        "romaji": "nigiyaka",
+        "english": "Lively / Bustling"
+      },
+      {
+        "id": "card_17_006",
+        "japanese": "ゆうめい",
+        "romaji": "yuumei",
+        "english": "Famous"
+      },
+      {
+        "id": "card_17_007",
+        "japanese": "しんせつ",
+        "romaji": "shinsetsu",
+        "english": "Kind / Helpful"
+      },
+      {
+        "id": "card_17_008",
+        "japanese": "げんき",
+        "romaji": "genki",
+        "english": "Healthy / Energetic"
+      },
+      {
+        "id": "card_17_009",
+        "japanese": "ひま",
+        "romaji": "hima",
+        "english": "Free (time) / Not busy"
+      },
+      {
+        "id": "card_17_010",
+        "japanese": "べんり",
+        "romaji": "benri",
+        "english": "Convenient"
+      },
+      {
+        "id": "card_17_011",
+        "japanese": "ふべん",
+        "romaji": "fuben",
+        "english": "Inconvenient"
+      },
+      {
+        "id": "card_17_012",
+        "japanese": "きれい",
+        "romaji": "kirei",
+        "english": "Pretty / Clean / Beautiful"
+      },
+      {
+        "id": "card_17_013",
+        "japanese": "かんたん",
+        "romaji": "kantan",
+        "english": "Simple / Easy"
+      },
+      {
+        "id": "card_17_014",
+        "japanese": "たいへん",
+        "romaji": "taihen",
+        "english": "Tough / Difficult"
+      },
+      {
+        "id": "card_17_015",
+        "japanese": "たいせつ",
+        "romaji": "taisetsu",
+        "english": "Important / Precious"
+      }
+    ]
+  },
+  {
+    "id": "deck_18",
+    "title": "Common Nouns: House & Home",
+    "icon": "home",
+    "cards": [
+      {
+        "id": "card_18_001",
+        "japanese": "いえ",
+        "romaji": "ie",
+        "english": "House / Building"
+      },
+      {
+        "id": "card_18_002",
+        "japanese": "うち",
+        "romaji": "uchi",
+        "english": "Home / Household"
+      },
+      {
+        "id": "card_18_003",
+        "japanese": "へや",
+        "romaji": "heya",
+        "english": "Room"
+      },
+      {
+        "id": "card_18_004",
+        "japanese": "げんかん",
+        "romaji": "genkan",
+        "english": "Entrance / Foyer"
+      },
+      {
+        "id": "card_18_005",
+        "japanese": "だいどころ",
+        "romaji": "daidokoro",
+        "english": "Kitchen"
+      },
+      {
+        "id": "card_18_006",
+        "japanese": "トイレ",
+        "romaji": "toire",
+        "english": "Toilet / Restroom"
+      },
+      {
+        "id": "card_18_007",
+        "japanese": "おふろ",
+        "romaji": "ofuro",
+        "english": "Bath / Bathroom"
+      },
+      {
+        "id": "card_18_008",
+        "japanese": "にわ",
+        "romaji": "niwa",
+        "english": "Garden / Yard"
+      },
+      {
+        "id": "card_18_009",
+        "japanese": "まど",
+        "romaji": "mado",
+        "english": "Window"
+      },
+      {
+        "id": "card_18_010",
+        "japanese": "ドア",
+        "romaji": "doa",
+        "english": "Door"
+      },
+      {
+        "id": "card_18_011",
+        "japanese": "テーブル",
+        "romaji": "teeburu",
+        "english": "Table"
+      },
+      {
+        "id": "card_18_012",
+        "japanese": "つくえ",
+        "romaji": "tsukue",
+        "english": "Desk"
+      },
+      {
+        "id": "card_18_013",
+        "japanese": "いす",
+        "romaji": "isu",
+        "english": "Chair"
+      },
+      {
+        "id": "card_18_014",
+        "japanese": "ベッド",
+        "romaji": "beddo",
+        "english": "Bed"
+      },
+      {
+        "id": "card_18_015",
+        "japanese": "テレビ",
+        "romaji": "terebi",
+        "english": "Television"
+      },
+      {
+        "id": "card_18_016",
+        "japanese": "れいぞうこ",
+        "romaji": "reizouko",
+        "english": "Refrigerator"
+      },
+      {
+        "id": "card_18_017",
+        "japanese": "せんたくき",
+        "romaji": "sentakuki",
+        "english": "Washing machine"
+      },
+      {
+        "id": "card_18_018",
+        "japanese": "エアコン",
+        "romaji": "eakon",
+        "english": "Air conditioner"
+      },
+      {
+        "id": "card_18_019",
+        "japanese": "でんき",
+        "romaji": "denki",
+        "english": "Electricity / Light"
+      }
+    ]
+  },
+  {
+    "id": "deck_19",
+    "title": "Common Nouns: Everyday Objects",
+    "icon": "home",
+    "cards": [
+      {
+        "id": "card_19_001",
+        "japanese": "ほん",
+        "romaji": "hon",
+        "english": "Book"
+      },
+      {
+        "id": "card_19_002",
+        "japanese": "ノート",
+        "romaji": "nooto",
+        "english": "Notebook"
+      },
+      {
+        "id": "card_19_003",
+        "japanese": "じしょ",
+        "romaji": "jisho",
+        "english": "Dictionary"
+      },
+      {
+        "id": "card_19_004",
+        "japanese": "えんぴつ",
+        "romaji": "enpitsu",
+        "english": "Pencil"
+      },
+      {
+        "id": "card_19_005",
+        "japanese": "ペン",
+        "romaji": "pen",
+        "english": "Pen"
+      },
+      {
+        "id": "card_19_006",
+        "japanese": "けしごむ",
+        "romaji": "keshigomu",
+        "english": "Eraser"
+      },
+      {
+        "id": "card_19_007",
+        "japanese": "かさ",
+        "romaji": "kasa",
+        "english": "Umbrella"
+      },
+      {
+        "id": "card_19_008",
+        "japanese": "かばん",
+        "romaji": "kaban",
+        "english": "Bag"
+      },
+      {
+        "id": "card_19_009",
+        "japanese": "とけい",
+        "romaji": "tokei",
+        "english": "Clock / Watch"
+      },
+      {
+        "id": "card_19_010",
+        "japanese": "かぎ",
+        "romaji": "kagi",
+        "english": "Key"
+      },
+      {
+        "id": "card_19_011",
+        "japanese": "さいふ",
+        "romaji": "saifu",
+        "english": "Wallet"
+      },
+      {
+        "id": "card_19_012",
+        "japanese": "てがみ",
+        "romaji": "tegami",
+        "english": "Letter"
+      },
+      {
+        "id": "card_19_013",
+        "japanese": "きって",
+        "romaji": "kitte",
+        "english": "Postage stamp"
+      },
+      {
+        "id": "card_19_014",
+        "japanese": "しゃしん",
+        "romaji": "shashin",
+        "english": "Photograph"
+      },
+      {
+        "id": "card_19_015",
+        "japanese": "にもつ",
+        "romaji": "nimotsu",
+        "english": "Luggage / Baggage"
+      },
+      {
+        "id": "card_19_016",
+        "japanese": "はこ",
+        "romaji": "hako",
+        "english": "Box"
+      },
+      {
+        "id": "card_19_017",
+        "japanese": "かみ (ペーパー)",
+        "romaji": "kami",
+        "english": "Paper"
+      }
+    ]
+  },
+  {
+    "id": "deck_20",
+    "title": "Food & Cooking Ingredients",
+    "icon": "utensils",
+    "cards": [
+      {
+        "id": "card_20_001",
+        "japanese": "たべもの",
+        "romaji": "tabemono",
+        "english": "Food"
+      },
+      {
+        "id": "card_20_002",
+        "japanese": "ごはん",
+        "romaji": "gohan",
+        "english": "Cooked rice / Meal"
+      },
+      {
+        "id": "card_20_003",
+        "japanese": "パン",
+        "romaji": "pan",
+        "english": "Bread"
+      },
+      {
+        "id": "card_20_004",
+        "japanese": "にく",
+        "romaji": "niku",
+        "english": "Meat"
+      },
+      {
+        "id": "card_20_005",
+        "japanese": "ぎゅうにく",
+        "romaji": "gyuuniku",
+        "english": "Beef"
+      },
+      {
+        "id": "card_20_006",
+        "japanese": "ぶたにく",
+        "romaji": "butaniku",
+        "english": "Pork"
+      },
+      {
+        "id": "card_20_007",
+        "japanese": "とりにく",
+        "romaji": "toriniku",
+        "english": "Chicken meat"
+      },
+      {
+        "id": "card_20_008",
+        "japanese": "さかな (しょくひん)",
+        "romaji": "sakana",
+        "english": "Fish (food)"
+      },
+      {
+        "id": "card_20_009",
+        "japanese": "やさい",
+        "romaji": "yasai",
+        "english": "Vegetable"
+      },
+      {
+        "id": "card_20_010",
+        "japanese": "くだもの",
+        "romaji": "kudamono",
+        "english": "Fruit"
+      },
+      {
+        "id": "card_20_011",
+        "japanese": "たまご",
+        "romaji": "tamago",
+        "english": "Egg"
+      },
+      {
+        "id": "card_20_012",
+        "japanese": "さとう",
+        "romaji": "satou",
+        "english": "Sugar"
+      },
+      {
+        "id": "card_20_013",
+        "japanese": "しお",
+        "romaji": "shio",
+        "english": "Salt"
+      },
+      {
+        "id": "card_20_014",
+        "japanese": "しょうゆ",
+        "romaji": "shouyu",
+        "english": "Soy sauce"
+      },
+      {
+        "id": "card_20_015",
+        "japanese": "ラーメン",
+        "romaji": "raamen",
+        "english": "Ramen"
+      },
+      {
+        "id": "card_20_016",
+        "japanese": "べんとう",
+        "romaji": "bentou",
+        "english": "Bento / Boxed lunch"
+      }
+    ]
+  },
+  {
+    "id": "deck_21",
+    "title": "Beverages & Dining",
+    "icon": "utensils",
+    "cards": [
+      {
+        "id": "card_21_001",
+        "japanese": "のみもの",
+        "romaji": "nomimono",
+        "english": "Drink / Beverage"
+      },
+      {
+        "id": "card_21_002",
+        "japanese": "みず",
+        "romaji": "mizu",
+        "english": "Water"
+      },
+      {
+        "id": "card_21_003",
+        "japanese": "おちゃ",
+        "romaji": "ocha",
+        "english": "Green tea"
+      },
+      {
+        "id": "card_21_004",
+        "japanese": "こうちゃ",
+        "romaji": "koucha",
+        "english": "Black tea"
+      },
+      {
+        "id": "card_21_005",
+        "japanese": "コーヒー",
+        "romaji": "koohii",
+        "english": "Coffee"
+      },
+      {
+        "id": "card_21_006",
+        "japanese": "ぎゅうにゅう",
+        "romaji": "gyuunyuu",
+        "english": "Milk"
+      },
+      {
+        "id": "card_21_007",
+        "japanese": "ジュース",
+        "romaji": "juusu",
+        "english": "Juice"
+      },
+      {
+        "id": "card_21_008",
+        "japanese": "おさけ",
+        "romaji": "osake",
+        "english": "Alcohol / Sake"
+      },
+      {
+        "id": "card_21_009",
+        "japanese": "ビール",
+        "romaji": "biiru",
+        "english": "Beer"
+      },
+      {
+        "id": "card_21_010",
+        "japanese": "あさごはん",
+        "romaji": "asa-gohan",
+        "english": "Breakfast"
+      },
+      {
+        "id": "card_21_011",
+        "japanese": "ひるごはん",
+        "romaji": "hiru-gohan",
+        "english": "Lunch"
+      },
+      {
+        "id": "card_21_012",
+        "japanese": "ばんごはん",
+        "romaji": "ban-gohan",
+        "english": "Dinner"
+      },
+      {
+        "id": "card_21_013",
+        "japanese": "メニュー",
+        "romaji": "menyuu",
+        "english": "Menu"
+      },
+      {
+        "id": "card_21_014",
+        "japanese": "レストラン",
+        "romaji": "resutoran",
+        "english": "Restaurant"
+      },
+      {
+        "id": "card_21_015",
+        "japanese": "きっさてん",
+        "romaji": "kissaten",
+        "english": "Coffee shop / Cafe"
+      }
+    ]
+  },
+  {
+    "id": "deck_22",
+    "title": "Body Parts & Physical Health",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_22_001",
+        "japanese": "からだ",
+        "romaji": "karada",
+        "english": "Body"
+      },
+      {
+        "id": "card_22_002",
+        "japanese": "あたま",
+        "romaji": "atama",
+        "english": "Head"
+      },
+      {
+        "id": "card_22_003",
+        "japanese": "かみ (へあ)",
+        "romaji": "kami",
+        "english": "Hair"
+      },
+      {
+        "id": "card_22_004",
+        "japanese": "かお",
+        "romaji": "kao",
+        "english": "Face"
+      },
+      {
+        "id": "card_22_005",
+        "japanese": "め",
+        "romaji": "me",
+        "english": "Eye"
+      },
+      {
+        "id": "card_22_006",
+        "japanese": "みみ",
+        "romaji": "mimi",
+        "english": "Ear"
+      },
+      {
+        "id": "card_22_007",
+        "japanese": "くち",
+        "romaji": "kuchi",
+        "english": "Mouth"
+      },
+      {
+        "id": "card_22_008",
+        "japanese": "は",
+        "romaji": "ha",
+        "english": "Tooth / Teeth"
+      },
+      {
+        "id": "card_22_009",
+        "japanese": "て",
+        "romaji": "te",
+        "english": "Hand"
+      },
+      {
+        "id": "card_22_010",
+        "japanese": "あし",
+        "romaji": "ashi",
+        "english": "Foot / Leg"
+      },
+      {
+        "id": "card_22_011",
+        "japanese": "おなか",
+        "romaji": "onaka",
+        "english": "Stomach / Belly"
+      },
+      {
+        "id": "card_22_012",
+        "japanese": "こころ",
+        "romaji": "kokoro",
+        "english": "Heart / Mind (emotional)"
+      },
+      {
+        "id": "card_22_013",
+        "japanese": "びょうき",
+        "romaji": "byouki",
+        "english": "Sickness / Illness"
+      },
+      {
+        "id": "card_22_014",
+        "japanese": "かぜ (びょうき)",
+        "romaji": "kaze",
+        "english": "Cold (illness)"
+      },
+      {
+        "id": "card_22_015",
+        "japanese": "ねつ",
+        "romaji": "netsu",
+        "english": "Fever / Heat"
+      },
+      {
+        "id": "card_22_016",
+        "japanese": "くすり",
+        "romaji": "kusuri",
+        "english": "Medicine"
+      }
+    ]
+  },
+  {
+    "id": "deck_23",
+    "title": "Clothing & Accessories",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_23_001",
+        "japanese": "ふく",
+        "romaji": "fuku",
+        "english": "Clothes"
+      },
+      {
+        "id": "card_23_002",
+        "japanese": "シャツ",
+        "romaji": "shatsu",
+        "english": "Shirt"
+      },
+      {
+        "id": "card_23_003",
+        "japanese": "Tシャツ",
+        "romaji": "tiishatsu",
+        "english": "T-shirt"
+      },
+      {
+        "id": "card_23_004",
+        "japanese": "うわぎ",
+        "romaji": "uwagi",
+        "english": "Jacket / Outerwear"
+      },
+      {
+        "id": "card_23_005",
+        "japanese": "ズボン",
+        "romaji": "zubon",
+        "english": "Trousers / Pants"
+      },
+      {
+        "id": "card_23_006",
+        "japanese": "スカート",
+        "romaji": "sukaato",
+        "english": "Skirt"
+      },
+      {
+        "id": "card_23_007",
+        "japanese": "くつ",
+        "romaji": "kutsu",
+        "english": "Shoes"
+      },
+      {
+        "id": "card_23_008",
+        "japanese": "くつした",
+        "romaji": "kutsushita",
+        "english": "Socks"
+      },
+      {
+        "id": "card_23_009",
+        "japanese": "ぼうし",
+        "romaji": "boushi",
+        "english": "Hat / Cap"
+      },
+      {
+        "id": "card_23_010",
+        "japanese": "めがね",
+        "romaji": "megane",
+        "english": "Glasses"
+      },
+      {
+        "id": "card_23_011",
+        "japanese": "きる",
+        "romaji": "kiru",
+        "english": "To wear (upper body)"
+      },
+      {
+        "id": "card_23_012",
+        "japanese": "はく",
+        "romaji": "haku",
+        "english": "To wear (lower body/shoes)"
+      },
+      {
+        "id": "card_23_013",
+        "japanese": "かぶる",
+        "romaji": "kaburu",
+        "english": "To wear (headgear)"
+      },
+      {
+        "id": "card_23_014",
+        "japanese": "めがねをかける",
+        "romaji": "megane o kakeru",
+        "english": "To put on / wear glasses"
+      }
+    ]
+  },
+  {
+    "id": "deck_24",
+    "title": "Colors & Shapes",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_24_001",
+        "japanese": "いろ",
+        "romaji": "iro",
+        "english": "Color"
+      },
+      {
+        "id": "card_24_002",
+        "japanese": "あか",
+        "romaji": "aka",
+        "english": "Red (noun)"
+      },
+      {
+        "id": "card_24_003",
+        "japanese": "あお",
+        "romaji": "ao",
+        "english": "Blue (noun)"
+      },
+      {
+        "id": "card_24_004",
+        "japanese": "くろ",
+        "romaji": "kuro",
+        "english": "Black (noun)"
+      },
+      {
+        "id": "card_24_005",
+        "japanese": "しろ",
+        "romaji": "shiro",
+        "english": "White (noun)"
+      },
+      {
+        "id": "card_24_006",
+        "japanese": "きいろ",
+        "romaji": "kiiro",
+        "english": "Yellow (noun)"
+      },
+      {
+        "id": "card_24_007",
+        "japanese": "みどり",
+        "romaji": "midori",
+        "english": "Green"
+      },
+      {
+        "id": "card_24_008",
+        "japanese": "ちゃいろ",
+        "romaji": "chairo",
+        "english": "Brown (noun)"
+      },
+      {
+        "id": "card_24_009",
+        "japanese": "あかい",
+        "romaji": "akai",
+        "english": "Red (adjective)"
+      },
+      {
+        "id": "card_24_010",
+        "japanese": "あおい",
+        "romaji": "aoi",
+        "english": "Blue (adjective)"
+      },
+      {
+        "id": "card_24_011",
+        "japanese": "くろい",
+        "romaji": "kuroi",
+        "english": "Black (adjective)"
+      },
+      {
+        "id": "card_24_012",
+        "japanese": "しろい",
+        "romaji": "shiroi",
+        "english": "White (adjective)"
+      },
+      {
+        "id": "card_24_013",
+        "japanese": "きいろい",
+        "romaji": "kiiroi",
+        "english": "Yellow (adjective)"
+      },
+      {
+        "id": "card_24_014",
+        "japanese": "ちゃいろい",
+        "romaji": "chairoi",
+        "english": "Brown (adjective)"
+      },
+      {
+        "id": "card_24_015",
+        "japanese": "かたち",
+        "romaji": "katachi",
+        "english": "Shape"
+      },
+      {
+        "id": "card_24_016",
+        "japanese": "まる",
+        "romaji": "maru",
+        "english": "Circle / Round mark"
+      },
+      {
+        "id": "card_24_017",
+        "japanese": "まるい",
+        "romaji": "marui",
+        "english": "Round (adjective)"
+      },
+      {
+        "id": "card_24_018",
+        "japanese": "しかく",
+        "romaji": "shikaku",
+        "english": "Square / Rectangle"
+      },
+      {
+        "id": "card_24_019",
+        "japanese": "さんかく",
+        "romaji": "sankaku",
+        "english": "Triangle"
+      }
+    ]
+  },
+  {
+    "id": "deck_25",
+    "title": "Weather & Seasons",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_25_001",
+        "japanese": "てんき",
+        "romaji": "tenki",
+        "english": "Weather"
+      },
+      {
+        "id": "card_25_002",
+        "japanese": "はれ",
+        "romaji": "hare",
+        "english": "Sunny / Clear weather"
+      },
+      {
+        "id": "card_25_003",
+        "japanese": "くもり",
+        "romaji": "kumori",
+        "english": "Cloudy weather"
+      },
+      {
+        "id": "card_25_004",
+        "japanese": "あめ",
+        "romaji": "ame",
+        "english": "Rain"
+      },
+      {
+        "id": "card_25_005",
+        "japanese": "ゆき",
+        "romaji": "yuki",
+        "english": "Snow"
+      },
+      {
+        "id": "card_25_006",
+        "japanese": "かぜ (ウインド)",
+        "romaji": "kaze",
+        "english": "Wind"
+      },
+      {
+        "id": "card_25_007",
+        "japanese": "たいよう",
+        "romaji": "taiyou",
+        "english": "Sun"
+      },
+      {
+        "id": "card_25_008",
+        "japanese": "そら",
+        "romaji": "sora",
+        "english": "Sky"
+      },
+      {
+        "id": "card_25_009",
+        "japanese": "きせつ",
+        "romaji": "kisetsu",
+        "english": "Season"
+      },
+      {
+        "id": "card_25_010",
+        "japanese": "はる",
+        "romaji": "haru",
+        "english": "Spring"
+      },
+      {
+        "id": "card_25_011",
+        "japanese": "なつ",
+        "romaji": "natsu",
+        "english": "Summer"
+      },
+      {
+        "id": "card_25_012",
+        "japanese": "あき",
+        "romaji": "aki",
+        "english": "Autumn / Fall"
+      },
+      {
+        "id": "card_25_013",
+        "japanese": "ふゆ",
+        "romaji": "fuyu",
+        "english": "Winter"
+      }
+    ]
+  },
+  {
+    "id": "deck_26",
+    "title": "Nature & Environment",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_26_001",
+        "japanese": "しぜん",
+        "romaji": "shizen",
+        "english": "Nature"
+      },
+      {
+        "id": "card_26_002",
+        "japanese": "やま",
+        "romaji": "yama",
+        "english": "Mountain"
+      },
+      {
+        "id": "card_26_003",
+        "japanese": "かわ",
+        "romaji": "kawa",
+        "english": "River"
+      },
+      {
+        "id": "card_26_004",
+        "japanese": "うみ",
+        "romaji": "umi",
+        "english": "Sea / Ocean"
+      },
+      {
+        "id": "card_26_005",
+        "japanese": "き",
+        "romaji": "ki",
+        "english": "Tree / Wood"
+      },
+      {
+        "id": "card_26_006",
+        "japanese": "はな",
+        "romaji": "hana",
+        "english": "Flower"
+      },
+      {
+        "id": "card_26_007",
+        "japanese": "もり",
+        "romaji": "mori",
+        "english": "Forest"
+      },
+      {
+        "id": "card_26_008",
+        "japanese": "はやし",
+        "romaji": "hayashi",
+        "english": "Woods / Grove"
+      },
+      {
+        "id": "card_26_009",
+        "japanese": "しま",
+        "romaji": "shima",
+        "english": "Island"
+      },
+      {
+        "id": "card_26_010",
+        "japanese": "いけ",
+        "romaji": "ike",
+        "english": "Pond"
+      },
+      {
+        "id": "card_26_011",
+        "japanese": "ちきゅう",
+        "romaji": "chikyuu",
+        "english": "Earth / Globe"
+      }
+    ]
+  },
+  {
+    "id": "deck_27",
+    "title": "Animals & Pets",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_27_001",
+        "japanese": "どうぶつ",
+        "romaji": "doubutsu",
+        "english": "Animal"
+      },
+      {
+        "id": "card_27_002",
+        "japanese": "いぬ",
+        "romaji": "inu",
+        "english": "Dog"
+      },
+      {
+        "id": "card_27_003",
+        "japanese": "ねこ",
+        "romaji": "neko",
+        "english": "Cat"
+      },
+      {
+        "id": "card_27_004",
+        "japanese": "とり",
+        "romaji": "tori",
+        "english": "Bird"
+      },
+      {
+        "id": "card_27_005",
+        "japanese": "さかな (どうぶつ)",
+        "romaji": "sakana",
+        "english": "Fish (living animal)"
+      },
+      {
+        "id": "card_27_006",
+        "japanese": "うま",
+        "romaji": "uma",
+        "english": "Horse"
+      },
+      {
+        "id": "card_27_007",
+        "japanese": "うし",
+        "romaji": "ushi",
+        "english": "Cow"
+      },
+      {
+        "id": "card_27_008",
+        "japanese": "ぶた",
+        "romaji": "buta",
+        "english": "Pig"
+      },
+      {
+        "id": "card_27_009",
+        "japanese": "ひつじ",
+        "romaji": "hitsuji",
+        "english": "Sheep"
+      },
+      {
+        "id": "card_27_010",
+        "japanese": "ぞう",
+        "romaji": "zou",
+        "english": "Elephant"
+      },
+      {
+        "id": "card_27_011",
+        "japanese": "さる",
+        "romaji": "saru",
+        "english": "Monkey"
+      },
+      {
+        "id": "card_27_012",
+        "japanese": "むし",
+        "romaji": "mushi",
+        "english": "Insect / Bug"
+      }
+    ]
+  },
+  {
+    "id": "deck_28",
+    "title": "Places & Buildings in Town",
+    "icon": "train",
+    "cards": [
+      {
+        "id": "card_28_001",
+        "japanese": "まち",
+        "romaji": "machi",
+        "english": "Town / City / Neighborhood"
+      },
+      {
+        "id": "card_28_002",
+        "japanese": "くに",
+        "romaji": "kuni",
+        "english": "Country"
+      },
+      {
+        "id": "card_28_003",
+        "japanese": "がいこく",
+        "romaji": "gaikoku",
+        "english": "Foreign country"
+      },
+      {
+        "id": "card_28_004",
+        "japanese": "たてもの",
+        "romaji": "tatemono",
+        "english": "Building"
+      },
+      {
+        "id": "card_28_005",
+        "japanese": "えき",
+        "romaji": "eki",
+        "english": "Train station"
+      },
+      {
+        "id": "card_28_006",
+        "japanese": "ぎんこう",
+        "romaji": "ginkou",
+        "english": "Bank"
+      },
+      {
+        "id": "card_28_007",
+        "japanese": "びょういん",
+        "romaji": "byouin",
+        "english": "Hospital"
+      },
+      {
+        "id": "card_28_008",
+        "japanese": "ゆうびんきょく",
+        "romaji": "yuubinkyoku",
+        "english": "Post office"
+      },
+      {
+        "id": "card_28_009",
+        "japanese": "としょかん",
+        "romaji": "toshokan",
+        "english": "Library"
+      },
+      {
+        "id": "card_28_010",
+        "japanese": "こうえん",
+        "romaji": "kouen",
+        "english": "Park"
+      },
+      {
+        "id": "card_28_011",
+        "japanese": "スーパー",
+        "romaji": "suupaa",
+        "english": "Supermarket"
+      },
+      {
+        "id": "card_28_012",
+        "japanese": "コンビニ",
+        "romaji": "konbini",
+        "english": "Convenience store"
+      },
+      {
+        "id": "card_28_013",
+        "japanese": "ホテル",
+        "romaji": "hoteru",
+        "english": "Hotel"
+      },
+      {
+        "id": "card_28_014",
+        "japanese": "こうばん",
+        "romaji": "kouban",
+        "english": "Police box"
+      }
+    ]
+  },
+  {
+    "id": "deck_29",
+    "title": "Directions & Spatial Positions",
+    "icon": "train",
+    "cards": [
+      {
+        "id": "card_29_001",
+        "japanese": "うえ",
+        "romaji": "ue",
+        "english": "Above / On / Up"
+      },
+      {
+        "id": "card_29_002",
+        "japanese": "した",
+        "romaji": "shita",
+        "english": "Below / Under / Down"
+      },
+      {
+        "id": "card_29_003",
+        "japanese": "まえ",
+        "romaji": "mae",
+        "english": "In front of / Before"
+      },
+      {
+        "id": "card_29_004",
+        "japanese": "うしろ",
+        "romaji": "ushiro",
+        "english": "Behind / Back"
+      },
+      {
+        "id": "card_29_005",
+        "japanese": "なか",
+        "romaji": "naka",
+        "english": "Inside / In"
+      },
+      {
+        "id": "card_29_006",
+        "japanese": "そと",
+        "romaji": "soto",
+        "english": "Outside"
+      },
+      {
+        "id": "card_29_007",
+        "japanese": "みぎ",
+        "romaji": "migi",
+        "english": "Right"
+      },
+      {
+        "id": "card_29_008",
+        "japanese": "ひだり",
+        "romaji": "hidari",
+        "english": "Left"
+      },
+      {
+        "id": "card_29_009",
+        "japanese": "となり",
+        "romaji": "tonari",
+        "english": "Next to / Neighboring"
+      },
+      {
+        "id": "card_29_010",
+        "japanese": "ちかく",
+        "romaji": "chikaku",
+        "english": "Near / Nearby"
+      },
+      {
+        "id": "card_29_011",
+        "japanese": "とおく",
+        "romaji": "tooku",
+        "english": "Far away"
+      },
+      {
+        "id": "card_29_012",
+        "japanese": "きた",
+        "romaji": "kita",
+        "english": "North"
+      },
+      {
+        "id": "card_29_013",
+        "japanese": "みなみ",
+        "romaji": "minami",
+        "english": "South"
+      },
+      {
+        "id": "card_29_014",
+        "japanese": "ひがし",
+        "romaji": "higashi",
+        "english": "East"
+      },
+      {
+        "id": "card_29_015",
+        "japanese": "にし",
+        "romaji": "nishi",
+        "english": "West"
+      }
+    ]
+  },
+  {
+    "id": "deck_30",
+    "title": "Transportation & Travel",
+    "icon": "train",
+    "cards": [
+      {
+        "id": "card_30_001",
+        "japanese": "でんしゃ",
+        "romaji": "densha",
+        "english": "Train"
+      },
+      {
+        "id": "card_30_002",
+        "japanese": "ちかてつ",
+        "romaji": "chikatetsu",
+        "english": "Subway"
+      },
+      {
+        "id": "card_30_003",
+        "japanese": "しんかんせん",
+        "romaji": "shinkansen",
+        "english": "Bullet train"
+      },
+      {
+        "id": "card_30_004",
+        "japanese": "バス",
+        "romaji": "basu",
+        "english": "Bus"
+      },
+      {
+        "id": "card_30_005",
+        "japanese": "タクシー",
+        "romaji": "takushii",
+        "english": "Taxi"
+      },
+      {
+        "id": "card_30_006",
+        "japanese": "ひこうき",
+        "romaji": "hikouki",
+        "english": "Airplane"
+      },
+      {
+        "id": "card_30_007",
+        "japanese": "ふね",
+        "romaji": "fune",
+        "english": "Ship / Boat"
+      },
+      {
+        "id": "card_30_008",
+        "japanese": "じてんしゃ",
+        "romaji": "jitensha",
+        "english": "Bicycle"
+      },
+      {
+        "id": "card_30_009",
+        "japanese": "くるま",
+        "romaji": "kuruma",
+        "english": "Car"
+      },
+      {
+        "id": "card_30_010",
+        "japanese": "じどうしゃ",
+        "romaji": "jidousha",
+        "english": "Automobile / Motor vehicle"
+      },
+      {
+        "id": "card_30_011",
+        "japanese": "きっぷ",
+        "romaji": "kippu",
+        "english": "Ticket"
+      },
+      {
+        "id": "card_30_012",
+        "japanese": "パスポート",
+        "romaji": "pasupooto",
+        "english": "Passport"
+      },
+      {
+        "id": "card_30_013",
+        "japanese": "りょこう",
+        "romaji": "ryokou",
+        "english": "Travel / Trip"
+      }
+    ]
+  },
+  {
+    "id": "deck_31",
+    "title": "School, Education & Study",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_31_001",
+        "japanese": "がっこう",
+        "romaji": "gakkou",
+        "english": "School"
+      },
+      {
+        "id": "card_31_002",
+        "japanese": "しょうがっこう",
+        "romaji": "shougakkou",
+        "english": "Elementary school"
+      },
+      {
+        "id": "card_31_003",
+        "japanese": "ちゅうがっこう",
+        "romaji": "chuugakkou",
+        "english": "Junior high school"
+      },
+      {
+        "id": "card_31_004",
+        "japanese": "こうこう",
+        "romaji": "koukou",
+        "english": "High school"
+      },
+      {
+        "id": "card_31_005",
+        "japanese": "だいがく",
+        "romaji": "daigaku",
+        "english": "University / College"
+      },
+      {
+        "id": "card_31_006",
+        "japanese": "きょうしつ",
+        "romaji": "kyoushitsu",
+        "english": "Classroom"
+      },
+      {
+        "id": "card_31_007",
+        "japanese": "しゅくだい",
+        "romaji": "shukudai",
+        "english": "Homework"
+      },
+      {
+        "id": "card_31_008",
+        "japanese": "テスト",
+        "romaji": "tesuto",
+        "english": "Test"
+      },
+      {
+        "id": "card_31_009",
+        "japanese": "しけん",
+        "romaji": "shiken",
+        "english": "Examination / Exam"
+      },
+      {
+        "id": "card_31_010",
+        "japanese": "しつもん",
+        "romaji": "shitsumon",
+        "english": "Question"
+      },
+      {
+        "id": "card_31_011",
+        "japanese": "こたえ",
+        "romaji": "kotae",
+        "english": "Answer"
+      },
+      {
+        "id": "card_31_012",
+        "japanese": "べんきょう",
+        "romaji": "benkyou",
+        "english": "Study"
+      },
+      {
+        "id": "card_31_013",
+        "japanese": "れんしゅう",
+        "romaji": "renshuu",
+        "english": "Practice"
+      },
+      {
+        "id": "card_31_014",
+        "japanese": "じゅぎょう",
+        "romaji": "jugyou",
+        "english": "Class / Lesson"
+      }
+    ]
+  },
+  {
+    "id": "deck_32",
+    "title": "Work, Office & Business",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_32_001",
+        "japanese": "しごと",
+        "romaji": "shigoto",
+        "english": "Work / Job"
+      },
+      {
+        "id": "card_32_002",
+        "japanese": "かいしゃ",
+        "romaji": "kaisha",
+        "english": "Company"
+      },
+      {
+        "id": "card_32_003",
+        "japanese": "じむしょ",
+        "romaji": "jimusho",
+        "english": "Office"
+      },
+      {
+        "id": "card_32_004",
+        "japanese": "かいぎ",
+        "romaji": "kaigi",
+        "english": "Meeting / Conference"
+      },
+      {
+        "id": "card_32_005",
+        "japanese": "しょるい",
+        "romaji": "shorui",
+        "english": "Document / Paperwork"
+      },
+      {
+        "id": "card_32_006",
+        "japanese": "パソコン",
+        "romaji": "pasokon",
+        "english": "Personal computer"
+      },
+      {
+        "id": "card_32_007",
+        "japanese": "でんわ",
+        "romaji": "denwa",
+        "english": "Telephone"
+      },
+      {
+        "id": "card_32_008",
+        "japanese": "しゃちょう",
+        "romaji": "shachou",
+        "english": "Company president"
+      },
+      {
+        "id": "card_32_009",
+        "japanese": "ぶちょう",
+        "romaji": "buchou",
+        "english": "Department manager"
+      },
+      {
+        "id": "card_32_010",
+        "japanese": "ざんぎょう",
+        "romaji": "zangyou",
+        "english": "Overtime work"
+      }
+    ]
+  },
+  {
+    "id": "deck_33",
+    "title": "Shopping, Money & Stores",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_33_001",
+        "japanese": "かいもの",
+        "romaji": "kaimono",
+        "english": "Shopping"
+      },
+      {
+        "id": "card_33_002",
+        "japanese": "みせ",
+        "romaji": "mise",
+        "english": "Shop / Store"
+      },
+      {
+        "id": "card_33_003",
+        "japanese": "おかね",
+        "romaji": "okane",
+        "english": "Money"
+      },
+      {
+        "id": "card_33_004",
+        "japanese": "えん",
+        "romaji": "en",
+        "english": "Yen"
+      },
+      {
+        "id": "card_33_005",
+        "japanese": "げんきん",
+        "romaji": "genkin",
+        "english": "Cash"
+      },
+      {
+        "id": "card_33_006",
+        "japanese": "クレジットカード",
+        "romaji": "kurejitto kaado",
+        "english": "Credit card"
+      },
+      {
+        "id": "card_33_007",
+        "japanese": "ねだん",
+        "romaji": "nedan",
+        "english": "Price"
+      },
+      {
+        "id": "card_33_008",
+        "japanese": "やすうり",
+        "romaji": "yasuuri",
+        "english": "Sale / Discount"
+      },
+      {
+        "id": "card_33_009",
+        "japanese": "レシート",
+        "romaji": "reshiito",
+        "english": "Receipt"
+      },
+      {
+        "id": "card_33_010",
+        "japanese": "おつり",
+        "romaji": "otsuri",
+        "english": "Change (money)"
+      }
+    ]
+  },
+  {
+    "id": "deck_34",
+    "title": "Hobbies, Media & Entertainment",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_34_001",
+        "japanese": "しゅみ",
+        "romaji": "shumi",
+        "english": "Hobby"
+      },
+      {
+        "id": "card_34_002",
+        "japanese": "おんがく",
+        "romaji": "ongaku",
+        "english": "Music"
+      },
+      {
+        "id": "card_34_003",
+        "japanese": "うた",
+        "romaji": "uta",
+        "english": "Song"
+      },
+      {
+        "id": "card_34_004",
+        "japanese": "えいが",
+        "romaji": "eiga",
+        "english": "Movie / Film"
+      },
+      {
+        "id": "card_34_005",
+        "japanese": "スポーツ",
+        "romaji": "supootsu",
+        "english": "Sports"
+      },
+      {
+        "id": "card_34_006",
+        "japanese": "サッカー",
+        "romaji": "sakkaa",
+        "english": "Soccer / Football"
+      },
+      {
+        "id": "card_34_007",
+        "japanese": "やきゅう",
+        "romaji": "yakyuu",
+        "english": "Baseball"
+      },
+      {
+        "id": "card_34_008",
+        "japanese": "さんぽ",
+        "romaji": "sanpo",
+        "english": "Walk / Stroll"
+      },
+      {
+        "id": "card_34_009",
+        "japanese": "ゲーム",
+        "romaji": "geemu",
+        "english": "Game"
+      },
+      {
+        "id": "card_34_010",
+        "japanese": "まんが",
+        "romaji": "manga",
+        "english": "Manga / Comic"
+      },
+      {
+        "id": "card_34_011",
+        "japanese": "アニメ",
+        "romaji": "anime",
+        "english": "Anime / Animation"
+      }
+    ]
+  },
+  {
+    "id": "deck_35",
+    "title": "Communication & Technology",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_35_001",
+        "japanese": "スマホ",
+        "romaji": "sumaho",
+        "english": "Smartphone"
+      },
+      {
+        "id": "card_35_002",
+        "japanese": "ケータイ",
+        "romaji": "keetai",
+        "english": "Mobile phone"
+      },
+      {
+        "id": "card_35_003",
+        "japanese": "メール",
+        "romaji": "meeru",
+        "english": "Email / Message"
+      },
+      {
+        "id": "card_35_004",
+        "japanese": "インターネット",
+        "romaji": "intaanetto",
+        "english": "Internet"
+      },
+      {
+        "id": "card_35_005",
+        "japanese": "ニュース",
+        "romaji": "nyuusu",
+        "english": "News"
+      },
+      {
+        "id": "card_35_006",
+        "japanese": "ばんごう",
+        "romaji": "bangou",
+        "english": "Number"
+      },
+      {
+        "id": "card_35_007",
+        "japanese": "メッセージ",
+        "romaji": "messeeji",
+        "english": "Message"
+      },
+      {
+        "id": "card_35_008",
+        "japanese": "がぞう",
+        "romaji": "gazou",
+        "english": "Image / Picture"
+      },
+      {
+        "id": "card_35_009",
+        "japanese": "どうが",
+        "romaji": "douga",
+        "english": "Video"
+      }
+    ]
+  },
+  {
+    "id": "deck_36",
+    "title": "Question Words",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_36_001",
+        "japanese": "なに / なん",
+        "romaji": "nani / nan",
+        "english": "What"
+      },
+      {
+        "id": "card_36_002",
+        "japanese": "だれ",
+        "romaji": "dare",
+        "english": "Who"
+      },
+      {
+        "id": "card_36_003",
+        "japanese": "どこ",
+        "romaji": "doko",
+        "english": "Where"
+      },
+      {
+        "id": "card_36_004",
+        "japanese": "いつ",
+        "romaji": "itsu",
+        "english": "When"
+      },
+      {
+        "id": "card_36_005",
+        "japanese": "なぜ",
+        "romaji": "naze",
+        "english": "Why (formal / general)"
+      },
+      {
+        "id": "card_36_006",
+        "japanese": "どうして",
+        "romaji": "doushite",
+        "english": "Why / How come (conversational)"
+      },
+      {
+        "id": "card_36_007",
+        "japanese": "どう",
+        "romaji": "dou",
+        "english": "How"
+      },
+      {
+        "id": "card_36_008",
+        "japanese": "どの",
+        "romaji": "dono",
+        "english": "Which (followed by noun)"
+      },
+      {
+        "id": "card_36_009",
+        "japanese": "どれ",
+        "romaji": "dore",
+        "english": "Which one"
+      },
+      {
+        "id": "card_36_010",
+        "japanese": "どんな",
+        "romaji": "donna",
+        "english": "What kind of"
+      },
+      {
+        "id": "card_36_011",
+        "japanese": "いくら",
+        "romaji": "ikura",
+        "english": "How much (cost)"
+      },
+      {
+        "id": "card_36_012",
+        "japanese": "いくつ",
+        "romaji": "ikutsu",
+        "english": "How many / How old"
+      }
+    ]
+  },
+  {
+    "id": "deck_37",
+    "title": "Conjunctions & Connectors",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_37_001",
+        "japanese": "そして",
+        "romaji": "soshite",
+        "english": "And then / And"
+      },
+      {
+        "id": "card_37_002",
+        "japanese": "しかし",
+        "romaji": "shikashi",
+        "english": "However / But (formal)"
+      },
+      {
+        "id": "card_37_003",
+        "japanese": "でも",
+        "romaji": "demo",
+        "english": "But / However (casual)"
+      },
+      {
+        "id": "card_37_004",
+        "japanese": "だから",
+        "romaji": "dakara",
+        "english": "Therefore / So"
+      }
+    ]
+  },
+  {
+    "id": "deck_38",
+    "title": "Common Adverbs & Modifiers",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_38_001",
+        "japanese": "とても",
+        "romaji": "totemo",
+        "english": "Very"
+      },
+      {
+        "id": "card_38_002",
+        "japanese": "たくさん",
+        "romaji": "takusan",
+        "english": "A lot / Many"
+      },
+      {
+        "id": "card_38_003",
+        "japanese": "すこし",
+        "romaji": "sukoshi",
+        "english": "A little / A bit"
+      },
+      {
+        "id": "card_38_004",
+        "japanese": "ちょっと",
+        "romaji": "chotto",
+        "english": "A moment / A little"
+      },
+      {
+        "id": "card_38_005",
+        "japanese": "だいぶ",
+        "romaji": "daibu",
+        "english": "Considerably / Quite"
+      },
+      {
+        "id": "card_38_006",
+        "japanese": "もっと",
+        "romaji": "motto",
+        "english": "More"
+      },
+      {
+        "id": "card_38_007",
+        "japanese": "いちばん",
+        "romaji": "ichiban",
+        "english": "Number one / Most / Best"
+      },
+      {
+        "id": "card_38_008",
+        "japanese": "いっしょに",
+        "romaji": "issho ni",
+        "english": "Together"
+      },
+      {
+        "id": "card_38_009",
+        "japanese": "じぶんで",
+        "romaji": "jibun de",
+        "english": "By oneself"
+      },
+      {
+        "id": "card_38_010",
+        "japanese": "とくに",
+        "romaji": "tokuni",
+        "english": "Especially"
+      }
+    ]
+  },
+  {
+    "id": "deck_39",
+    "title": "Expressions of Quantity & Degree",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_39_001",
+        "japanese": "ぜんぶ",
+        "romaji": "zenbu",
+        "english": "All / Whole"
+      },
+      {
+        "id": "card_39_002",
+        "japanese": "みんな",
+        "romaji": "minna",
+        "english": "Everyone / All"
+      },
+      {
+        "id": "card_39_003",
+        "japanese": "はんぶん",
+        "romaji": "hanbun",
+        "english": "Half"
+      },
+      {
+        "id": "card_39_004",
+        "japanese": "たぶん",
+        "romaji": "tabun",
+        "english": "Probably / Maybe"
+      },
+      {
+        "id": "card_39_005",
+        "japanese": "きっと",
+        "romaji": "kitto",
+        "english": "Surely / Definitely"
+      },
+      {
+        "id": "card_39_006",
+        "japanese": "まったく (+ negative)",
+        "romaji": "mattaku",
+        "english": "Completely (not)"
+      },
+      {
+        "id": "card_39_007",
+        "japanese": "じゅうぶん",
+        "romaji": "juubun",
+        "english": "Enough / Sufficient"
+      }
+    ]
+  },
+  {
+    "id": "deck_40",
+    "title": "Essential Expressions & Idioms",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_40_001",
+        "japanese": "だいじょうぶ",
+        "romaji": "daijoubu",
+        "english": "Okay / All right"
+      },
+      {
+        "id": "card_40_002",
+        "japanese": "むり",
+        "romaji": "muri",
+        "english": "Impossible / Too much"
+      },
+      {
+        "id": "card_40_003",
+        "japanese": "ざんねん",
+        "romaji": "zannen",
+        "english": "Unfortunate / Regrettable"
+      },
+      {
+        "id": "card_40_004",
+        "japanese": "ほんとう",
+        "romaji": "hontou",
+        "english": "Truth / Really"
+      },
+      {
+        "id": "card_40_005",
+        "japanese": "もちろん",
+        "romaji": "mochiron",
+        "english": "Of course"
+      },
+      {
+        "id": "card_40_006",
+        "japanese": "おめでとう",
+        "romaji": "omedetou",
+        "english": "Congratulations"
+      },
+      {
+        "id": "card_40_007",
+        "japanese": "がんばって",
+        "romaji": "ganbatte",
+        "english": "Do your best / Good luck"
+      },
+      {
+        "id": "card_40_008",
+        "japanese": "きをつけて",
+        "romaji": "ki o tsukete",
+        "english": "Take care / Be careful"
+      }
+    ]
+  },
+  {
+    "id": "deck_41",
+    "title": "Emergency, Safety & Health Expressions",
+    "icon": "footsteps",
+    "cards": [
+      {
+        "id": "card_41_001",
+        "japanese": "たすけて",
+        "romaji": "tasukete",
+        "english": "Help!"
+      },
+      {
+        "id": "card_41_002",
+        "japanese": "きけん",
+        "romaji": "kiken",
+        "english": "Danger / Dangerous"
+      },
+      {
+        "id": "card_41_003",
+        "japanese": "あんぜん",
+        "romaji": "anzen",
+        "english": "Safe / Safety"
+      },
+      {
+        "id": "card_41_004",
+        "japanese": "けいさつ",
+        "romaji": "keisatsu",
+        "english": "Police"
+      },
+      {
+        "id": "card_41_005",
+        "japanese": "きゅうきゅうしゃ",
+        "romaji": "kyuukyuusha",
+        "english": "Ambulance"
+      },
+      {
+        "id": "card_41_006",
+        "japanese": "かじ",
+        "romaji": "kaji",
+        "english": "Fire"
+      },
+      {
+        "id": "card_41_007",
+        "japanese": "じしん",
+        "romaji": "jishin",
+        "english": "Earthquake"
+      },
+      {
+        "id": "card_41_008",
+        "japanese": "ひじょうぐち",
+        "romaji": "hijouguchi",
+        "english": "Emergency exit"
+      }
     ]
   }
 ]

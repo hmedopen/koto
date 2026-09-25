@@ -18,7 +18,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -27,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.koto.app.R
 import com.koto.app.feature.lesson.audio.*
 import com.koto.app.feature.lesson.model.*
 import com.koto.app.feature.lesson.ui.*
@@ -67,19 +65,8 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
     val progress by animateFloatAsState(session.progress, tween(220), label = "Lesson progress")
     Box(Modifier.fillMaxSize().background(KotoColors.Background).windowInsetsPadding(WindowInsets.safeDrawing).testTag("lesson_screen")) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxSize().align(Alignment.TopCenter)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                TactileButton(requestExit, Modifier.size(48.dp, 52.dp).testTag("lesson_close"), tone = TactileTone.Quiet,
-                    description = "Close lesson", padding = PaddingValues(12.dp)) {
-                    Icon(painterResource(R.drawable.ic_close), null, Modifier.size(24.dp))
-                }
-                LinearProgressIndicator(progress = { progress }, Modifier.weight(1f).height(7.dp).testTag("lesson_progress"),
-                    color = KotoColors.LessonBlue, trackColor = KotoColors.Hairline, gapSize = 0.dp, drawStopIndicator = {})
-                TactileButton({ audio.stop(); settings = true }, Modifier.size(48.dp, 52.dp).testTag("lesson_settings"),
-                    tone = TactileTone.Quiet, description = "Lesson settings", padding = PaddingValues(12.dp)) {
-                    Icon(painterResource(R.drawable.ic_settings), null, Modifier.size(24.dp))
-                }
-            }
+            SessionControlBar(progress, requestExit, { audio.stop(); settings = true },
+                "lesson_close", "lesson_progress", "lesson_settings", "Close lesson", "Lesson settings")
             if (session.finished) {
                 Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp).verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {

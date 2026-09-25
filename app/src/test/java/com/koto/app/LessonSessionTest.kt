@@ -19,6 +19,7 @@ class LessonSessionTest {
                 assertEquals(index, session.state.index)
                 when (q) {
                     is Question.MeaningChoice -> { session.select(q.correctId); assertFalse(session.checked); session.check() }
+                    is Question.Listening -> { session.select(q.correctId); assertFalse(session.checked); session.check() }
                     is Question.ConversationResponse -> { session.select(q.correctId); assertFalse(session.checked); session.check() }
                     is Question.Cloze -> { session.select(q.correctId); assertFalse(session.checked); session.check() }
                     is Question.SentenceBuilder -> { q.correctOrder.forEach(session::toggleTile); session.check() }

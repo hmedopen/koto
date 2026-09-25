@@ -22,7 +22,7 @@ import com.koto.app.ui.theme.KotoColors
 import com.koto.app.ui.theme.KotoType
 
 @Composable
-fun KotoTopBar(title: String, onSettings: () -> Unit) {
+fun KotoTopBar(title: String, onSettings: () -> Unit, onBack: (() -> Unit)? = null) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -36,8 +36,24 @@ fun KotoTopBar(title: String, onSettings: () -> Unit) {
             text = title,
             color = KotoColors.Navy,
             style = KotoType.Brand,
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier.align(Alignment.Center).testTag("top_bar_title"),
         )
+        if (onBack != null) {
+            TactileButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.CenterStart).size(48.dp, 52.dp).testTag("cards_detail_back"),
+                tone = TactileTone.Quiet,
+                description = "Back to all decks",
+                padding = PaddingValues(12.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_back),
+                    contentDescription = null,
+                    tint = KotoColors.Navy,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
         TactileButton(
             onClick = onSettings,
             modifier = Modifier.align(Alignment.CenterEnd).size(48.dp, 52.dp).testTag("map_settings"),

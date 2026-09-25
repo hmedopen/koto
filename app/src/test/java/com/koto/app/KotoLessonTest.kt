@@ -32,6 +32,7 @@ class KotoLessonTest {
     private fun solve(q: Question) {
         when (q) {
             is Question.MeaningChoice -> compose.onNodeWithTag("answer_${q.correctId}").performScrollTo().performClick()
+            is Question.Listening -> compose.onNodeWithTag("answer_${q.correctId}").performScrollTo().performClick()
             is Question.ConversationResponse -> compose.onNodeWithTag("answer_${q.correctId}").performScrollTo().performClick()
             is Question.Cloze -> compose.onNodeWithTag("answer_${q.correctId}").performScrollTo().performClick()
             is Question.SentenceBuilder -> {

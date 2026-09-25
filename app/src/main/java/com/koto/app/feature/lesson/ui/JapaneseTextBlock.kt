@@ -83,8 +83,9 @@ internal fun ContentText(text: LessonText, size: TextUnit = 22.sp, alignReading:
 }
 
 @Composable
-internal fun SpeakerButton(text: JapaneseText, speechReady: Boolean, isPlaying: Boolean, speak: (JapaneseText) -> Unit) {
-    TactileButton({ speak(text) }, Modifier.size(48.dp, 52.dp), enabled = speechReady,
+internal fun SpeakerButton(text: JapaneseText, speechReady: Boolean, isPlaying: Boolean,
+    speak: (JapaneseText) -> Unit, modifier: Modifier = Modifier) {
+    TactileButton({ speak(text) }, modifier.size(48.dp, 52.dp), enabled = speechReady,
         tone = TactileTone.Quiet, description = "Play Japanese: ${text.romaji}",
         stateLabel = if (isPlaying) "Playing" else null, padding = PaddingValues(8.dp)) {
         PlaybackSpeakerIcon(isPlaying)

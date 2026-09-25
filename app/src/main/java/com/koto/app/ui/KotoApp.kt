@@ -1,6 +1,7 @@
 package com.koto.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -40,7 +41,10 @@ fun KotoApp() {
     var selected by rememberSaveable { mutableStateOf(KotoDestination.Learn) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var lessonId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var cardsStudying by rememberSaveable { mutableStateOf(false) }
+    var cardsDeckOpen by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val progress = remember { LessonProgress(context) }
     val audio = remember { JapaneseTtsController.get(context) }
     val shellState = rememberSaveableStateHolder()
@@ -64,11 +68,24 @@ fun KotoApp() {
                         WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                     ),
                 ) {
-                    KotoTopBar(title = selected.title, onSettings = { settingsOpen = true })
+                    if (selected != KotoDestination.Cards || !cardsStudying) {
+                        KotoTopBar(
+                            title = selected.title,
+                            onSettings = { settingsOpen = true },
+                            onBack = if (selected == KotoDestination.Cards && cardsDeckOpen) {
+                                { backDispatcher?.onBackPressed() }
+                            } else null,
+                        )
+                    }
                     KotoNavigation(selected, Modifier.weight(1f).fillMaxWidth(), progress.completed,
-                        onPlay = { lessonId = it })
+                        onPlay = { lessonId = it },
+                        onCardsStudyModeChanged = { cardsStudying = it },
+                        onCardsDeckOpenChanged = { cardsDeckOpen = it },
+                    )
                 }
-                KotoBottomBar(selected = selected, onSelect = { selected = it })
+                if (!cardsStudying) {
+                    KotoBottomBar(selected = selected, onSelect = { selected = it })
+                }
             }
         }
     }
