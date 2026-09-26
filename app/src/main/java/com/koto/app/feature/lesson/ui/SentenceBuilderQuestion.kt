@@ -367,15 +367,15 @@ private fun SentenceWordTile(
         validation == SentenceValidation.WrongOrder
     val wrong = validation == SentenceValidation.WrongTiles
     val face by animateColorAsState(when {
-        success -> KotoColors.CorrectWash
-        wrong -> KotoColors.WrongWash
+        success -> KotoColors.CorrectButtonFace
+        wrong -> KotoColors.WrongButtonFace
         warning -> KotoColors.WarningWash
         selected -> KotoColors.LessonBlue
         else -> Color.White
     }, tween(150), label = "Word face")
     val edge = when {
-        success -> KotoColors.Correct
-        wrong -> KotoColors.Wrong
+        success -> KotoColors.CorrectButtonDepth
+        wrong -> KotoColors.WrongButtonDepth
         warning -> KotoColors.Warning
         selected -> KotoColors.Navy
         else -> KotoColors.BlueEdge
@@ -421,7 +421,8 @@ private fun SentenceWordTile(
             .graphicsLayer { translationY = depression.dp.toPx() }
             .background(face, shape).border(1.dp, edge.copy(alpha = .55f), shape)
             .padding(horizontal = 4.dp, vertical = 7.dp), contentAlignment = Alignment.Center) {
-            CompositionLocalProvider(LocalContentColor provides if (selected && !success && !warning && !wrong) Color.White else KotoColors.Navy) {
+            CompositionLocalProvider(LocalContentColor provides if (success || wrong ||
+                selected && !warning) Color.White else KotoColors.Navy) {
                 ContentText(tile.text, 18.sp)
             }
         }

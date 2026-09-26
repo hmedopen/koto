@@ -10,6 +10,11 @@ object KotoColors {
     val CorrectWash = Color(0xFFE8F5ED)
     val Wrong = Color(0xFFAB4942)
     val WrongWash = Color(0xFFFCEDEB)
+    // Solid button faces stay brighter than their visible bottom edges.
+    val CorrectButtonFace = Color(0xFF278553)
+    val CorrectButtonDepth = Color(0xFF185B36)
+    val WrongButtonFace = Color(0xFFCF4640)
+    val WrongButtonDepth = Color(0xFF91302B)
     val Warning = Color(0xFFB56A1D)
     val WarningWash = Color(0xFFFFF3E3)
     val Background = Color.White

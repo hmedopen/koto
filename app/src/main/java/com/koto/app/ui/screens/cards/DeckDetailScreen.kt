@@ -1,14 +1,18 @@
 package com.koto.app.ui.screens.cards
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -17,18 +21,23 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.text.DateFormat
 import java.util.Date
 
 @Composable
-internal fun DeckDetailScreen(deck: FlashcardDeck, state: FlashcardState, update: (FlashcardState) -> Unit) {
+internal fun DeckDetailScreen(deck: FlashcardDeck, state: FlashcardState, update: (FlashcardState) -> Unit,
+    favorite: (String) -> Unit) {
+    val counts = remember(deck, state.ratings) { state.counts(deck) }
     Column(Modifier.fillMaxSize()) {
         LazyColumn(Modifier.weight(1f).testTag("deck_detail"), contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item(key = "header", contentType = "header") {
+                Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         DeckBadge(deck)
                         Text(deck.title, color = CardsColors.Ink, fontSize = 28.sp, lineHeight = 35.sp, fontWeight = FontWeight.Bold,
@@ -38,9 +47,11 @@ internal fun DeckDetailScreen(deck: FlashcardDeck, state: FlashcardState, update
                     Text("${deck.cards.size} cards · ${practiceLabel(state.practiced[deck.id])}", color = CardsColors.Muted, fontSize = 12.sp)
                 }
             }
-            item { DeckStats(state.counts(deck)) }
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item(key = "stats", contentType = "stats") {
+                Box(Modifier.padding(bottom = 12.dp)) { DeckStats(counts) }
+            }
+            item(key = "options", contentType = "options") {
+                Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("MAKE IT YOUR SESSION", color = CardsColors.Ink, fontSize = 11.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
                     Text("Which side comes first?", color = CardsColors.Muted, fontSize = 13.sp)
                     BoxWithConstraints(Modifier.fillMaxWidth().selectableGroup()) {
@@ -67,31 +78,43 @@ internal fun DeckDetailScreen(deck: FlashcardDeck, state: FlashcardState, update
                     }
                 }
             }
-            item {
+            item(key = "preview_heading", contentType = "preview_heading") {
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("IN THIS DECK", color = CardsColors.Ink, fontSize = 11.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold)
                     Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 12.sp)
                 }
             }
-            items(deck.cards, key = { it.id }) { card ->
-                CardsPanel(Modifier.fillMaxWidth().testTag("preview_${card.id}")) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text(card.japanese, color = CardsColors.Ink, fontSize = 22.sp, lineHeight = 30.sp)
-                            if (state.showRomaji) Text(card.romaji, color = CardsColors.Blue, fontSize = 12.sp)
-                            Text(card.english, color = CardsColors.Muted, fontSize = 14.sp)
-                        }
-                        MarkButton("star", card.id in state.favorites, "Favorite ${card.english}", "favorite_${card.id}") {
-                            update(state.favorite(card.id))
-                        }
-                    }
-                }
+            items(deck.cards, key = { it.id }, contentType = { "preview" }) { card ->
+                PreviewRow(card, state.showRomaji, card.id in state.favorites, favorite)
             }
         }
         Column(Modifier.fillMaxWidth().background(CardsColors.Surface).padding(horizontal = 20.dp, vertical = 12.dp)) {
             CardsButton("START FLASHCARDS", { update(state.start(deck)) },
                 Modifier.fillMaxWidth().testTag("start_flashcards"))
+        }
+    }
+}
+
+@Composable
+private fun PreviewRow(card: Flashcard, showRomaji: Boolean, isFavorite: Boolean, favorite: (String) -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(Modifier.fillMaxWidth().testTag("preview_${card.id}")
+        .clip(shape).background(CardsColors.Surface).border(1.dp, CardsColors.Edge, shape)
+        .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(card.japanese, color = CardsColors.Ink, fontSize = 20.sp, lineHeight = 26.sp)
+            Text(buildAnnotatedString {
+                if (showRomaji) {
+                    withStyle(SpanStyle(color = CardsColors.Blue, fontSize = 12.sp)) { append(card.romaji) }
+                    append(" · ")
+                }
+                append(card.english)
+            }, color = CardsColors.Muted, fontSize = 14.sp, lineHeight = 20.sp)
+        }
+        MarkButton("star", isFavorite, "Favorite ${card.english}", "favorite_${card.id}") {
+            favorite(card.id)
         }
     }
 }

@@ -76,20 +76,24 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
     val face by animateColorAsState(when {
         !enabled && tone == TactileTone.Default -> KotoColors.SoftGrey
         emphasized -> KotoColors.LessonBlue
-        tone == TactileTone.Correct -> KotoColors.CorrectWash
-        tone == TactileTone.Wrong -> KotoColors.WrongWash
+        tone == TactileTone.Correct -> KotoColors.CorrectButtonFace
+        tone == TactileTone.Wrong -> KotoColors.WrongButtonFace
         tone == TactileTone.Warning -> KotoColors.WarningWash
         tone == TactileTone.Quiet -> Color.White
         else -> KotoColors.BlueWash
     }, tween(180), label = "Answer feedback")
     val edge = when (tone) {
-        TactileTone.Correct -> KotoColors.Correct
-        TactileTone.Wrong -> KotoColors.Wrong
+        TactileTone.Correct -> KotoColors.CorrectButtonDepth
+        TactileTone.Wrong -> KotoColors.WrongButtonDepth
         TactileTone.Warning -> KotoColors.Warning
         TactileTone.Quiet -> KotoColors.Hairline
         else -> if (emphasized) KotoColors.Navy else KotoColors.BlueEdge
     }
-    val ink = if (emphasized) Color.White else KotoColors.Navy
+    val ink = if (emphasized || tone == TactileTone.Correct || tone == TactileTone.Wrong) {
+        Color.White
+    } else {
+        KotoColors.Navy
+    }
     val shape = RoundedCornerShape(17.dp)
     val activate: () -> Unit = {
         actionPending = true

@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 
 @Composable
@@ -38,6 +39,9 @@ fun CardsScreen(
     var state by rememberSaveable(stateSaver = FlashcardState.Saver) { mutableStateOf(FlashcardState()) }
     val deck = decks.find { it.id == state.deckId }
     val deckDetailOpen = deck != null && !state.studying
+    val openDeck: (FlashcardDeck) -> Unit = remember { { state = state.open(it) } }
+    val pinDeck: (String) -> Unit = remember { { state = state.pin(it) } }
+    val favoriteCard: (String) -> Unit = remember { { state = state.favorite(it) } }
     LaunchedEffect(state.studying) { onStudyModeChanged(state.studying) }
     LaunchedEffect(deckDetailOpen) { onDeckOpenChanged(deckDetailOpen) }
     DisposableEffect(Unit) {
@@ -49,9 +53,9 @@ fun CardsScreen(
     BackHandler(enabled = deck != null) { state = state.back() }
     Box(Modifier.fillMaxSize().background(CardsColors.Background).testTag("screen_cards")) {
         when {
-            deck == null -> CategoryGrid(decks, state, { state = state.open(it) }, { state = state.pin(it) })
+            deck == null -> CategoryGrid(decks, state, openDeck, pinDeck)
             state.studying -> FlashcardStudyScreen(deck, state, { state = it })
-            else -> DeckDetailScreen(deck, state, { state = it })
+            else -> DeckDetailScreen(deck, state, { state = it }, favoriteCard)
         }
     }
 }
@@ -59,60 +63,82 @@ fun CardsScreen(
 @Composable
 private fun CategoryGrid(decks: List<FlashcardDeck>, state: FlashcardState,
     onOpen: (FlashcardDeck) -> Unit, onFavorite: (String) -> Unit) {
-    val sorted = decks.sortedByDescending { it.id in state.pinned }
-    val largeText = LocalDensity.current.fontScale > 1.3f
+    val sorted = remember(decks, state.pinned) { decks.sortedByDescending { it.id in state.pinned } }
+    val counts = remember(decks, state.ratings) { decks.associate { it.id to state.counts(it) } }
+    val wordCount = remember(decks) { decks.sumOf { it.cards.size } }
+    val density = LocalDensity.current
+    val largeText = density.fontScale > 1.3f
+    val columns = remember { GridCells.Fixed(2) }
     var selectedSection by rememberSaveable { mutableStateOf("decks") }
-    LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize().testTag("cards_grid"),
-        contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            Column(Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                CardsSectionControl(selectedSection) { selectedSection = it }
-                if (selectedSection == "decks") FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("YOUR DECKS", color = CardsColors.Ink, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text("${decks.size} decks · ${decks.sumOf { it.cards.size }} words", color = CardsColors.Muted, fontSize = 12.sp)
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        // Match the grid's pixel rounding, including unequal columns at odd widths.
+        // Compute once per viewport instead of subcomposing every incoming tile.
+        val tileMinHeights = remember(constraints.maxWidth, density) {
+            with(columns) {
+                with(density) {
+                    calculateCrossAxisCellSizes(
+                        constraints.maxWidth - 2 * 16.dp.roundToPx(), 10.dp.roundToPx(),
+                    ).map { ((it - 2 * 10.dp.roundToPx()).toDp() - 30.dp).coerceAtLeast(0.dp) }
                 }
             }
         }
-        if (selectedSection == "decks") items(sorted, key = { it.id }) { deck ->
-            val counts = state.counts(deck)
-            CardsPressable({ onOpen(deck) }, Modifier.fillMaxWidth().testTag("deck_${deck.id}"),
-                padding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)) {
-                BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    Column(Modifier.fillMaxWidth().heightIn(min = maxWidth - 30.dp),
-                        verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween) {
-                            if (largeText) DeckBadge(deck) else {
-                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                    DeckBadge(deck)
-                                    Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
-                                }
-                            }
-                            MarkButton("heart", deck.id in state.pinned, "Favorite ${deck.title}", "favorite_deck_${deck.id}") {
-                                onFavorite(deck.id)
-                            }
-                        }
-                        Text(deck.title, color = CardsColors.Ink,
-                            fontSize = if (largeText) 11.sp else 14.sp,
-                            lineHeight = if (largeText) 14.sp else 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.heightIn(min = if (largeText) 46.dp else 52.dp))
-                        if (largeText) Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
-                        if (largeText) {
-                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                StatLine(counts.new, "New", CardsColors.Blue)
-                                StatLine(counts.weak, "Weak", CardsColors.Coral)
-                                StatLine(counts.mastered, "Mastered", CardsColors.Green)
-                            }
-                        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            TileCount(counts.new, "New", CardsColors.Blue, Modifier.weight(1f))
-                            TileCount(counts.weak, "Weak", CardsColors.Coral, Modifier.weight(1f))
-                            TileCount(counts.mastered, "Mastered", CardsColors.Green, Modifier.weight(1f))
-                        }
+        LazyVerticalGrid(columns = columns, modifier = Modifier.fillMaxSize().testTag("cards_grid"),
+            contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item(key = "sections", contentType = "sections", span = { GridItemSpan(maxLineSpan) }) {
+                Column(Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    CardsSectionControl(selectedSection) { selectedSection = it }
+                    if (selectedSection == "decks") FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("YOUR DECKS", color = CardsColors.Ink, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                        Text("${decks.size} decks · $wordCount words", color = CardsColors.Muted, fontSize = 12.sp)
                     }
                 }
+            }
+            if (selectedSection == "decks") itemsIndexed(sorted, key = { _, deck -> deck.id },
+                contentType = { _, _ -> "deck" }) { index, deck ->
+                DeckTile(deck, counts.getValue(deck.id), deck.id in state.pinned, largeText,
+                    tileMinHeights[index % 2], onOpen, onFavorite)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeckTile(deck: FlashcardDeck, counts: DeckCounts, pinned: Boolean, largeText: Boolean,
+    minHeight: Dp, onOpen: (FlashcardDeck) -> Unit, onFavorite: (String) -> Unit) {
+    CardsPressable({ onOpen(deck) }, Modifier.fillMaxWidth().testTag("deck_${deck.id}"),
+        padding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)) {
+        Column(Modifier.fillMaxWidth().heightIn(min = minHeight),
+            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                if (largeText) DeckBadge(deck) else {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        DeckBadge(deck)
+                        Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
+                    }
+                }
+                MarkButton("heart", pinned, "Favorite ${deck.title}", "favorite_deck_${deck.id}") {
+                    onFavorite(deck.id)
+                }
+            }
+            Text(deck.title, color = CardsColors.Ink,
+                fontSize = if (largeText) 11.sp else 14.sp,
+                lineHeight = if (largeText) 14.sp else 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.heightIn(min = if (largeText) 46.dp else 52.dp))
+            if (largeText) Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
+            if (largeText) {
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    StatLine(counts.new, "New", CardsColors.Blue)
+                    StatLine(counts.weak, "Weak", CardsColors.Coral)
+                    StatLine(counts.mastered, "Mastered", CardsColors.Green)
+                }
+            } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                TileCount(counts.new, "New", CardsColors.Blue, Modifier.weight(1f))
+                TileCount(counts.weak, "Weak", CardsColors.Coral, Modifier.weight(1f))
+                TileCount(counts.mastered, "Mastered", CardsColors.Green, Modifier.weight(1f))
             }
         }
     }

@@ -2,11 +2,14 @@ package com.koto.app.ui.screens.cards
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -14,11 +17,16 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
@@ -32,6 +40,7 @@ import com.koto.app.feature.lesson.model.JapaneseText
 import com.koto.app.ui.components.SessionControlBar
 import com.koto.app.ui.components.TactileButton
 import com.koto.app.ui.components.TactileTone
+import com.koto.app.ui.theme.KotoColors
 import com.koto.app.ui.screens.map.SettingsSheet
 
 @Composable
@@ -116,22 +125,26 @@ private fun AudioButton(card: Flashcard, audio: JapaneseTtsController) {
 @Composable
 private fun StudyCard(card: Flashcard, state: FlashcardState, minHeight: Dp,
     flip: () -> Unit) {
-    val transition = updateTransition(state.revealed, label = "Flashcard flip")
-    val rotation by transition.animateFloat(transitionSpec = { tween(420) }, label = "Card rotation") {
+    val transition = updateTransition(state.revealed, label = "Card flip")
+    val rotation by transition.animateFloat(transitionSpec = { tween(360) }, label = "Card rotation") {
         if (it) 180f else 0f
     }
     val backVisible = rotation > 90f
     val japaneseVisible = state.japaneseFirst != backVisible
-    // Keep both faces upright as the solid card turns through its edge. The shared
-    // button supplies the same physical press depth and ripple-free face as the header.
-    TactileButton(flip, Modifier.fillMaxWidth().graphicsLayer {
-        rotationY = if (backVisible) rotation - 180f else rotation
-        cameraDistance = 16 * density
-    }.testTag("study_card"), enabled = !transition.isRunning,
-        tone = TactileTone.Quiet,
-        stateLabel = if (state.revealed) "Answer revealed" else "Question",
-        padding = PaddingValues(20.dp)) {
-        Column(Modifier.fillMaxWidth().heightIn(min = minHeight - 40.dp),
+    val shape = RoundedCornerShape(16.dp)
+    Box(Modifier.fillMaxWidth().padding(bottom = 4.dp).testTag("study_card")
+        .clickable(interactionSource = null, indication = null, role = Role.Button,
+            onClickLabel = if (state.revealed) "Show question" else "Reveal answer") {
+            if (!transition.isRunning) flip()
+        }.semantics {
+        stateDescription = if (state.revealed) "Answer revealed" else "Question"
+    }) {
+        Column(Modifier.fillMaxWidth().graphicsLayer {
+            rotationY = if (backVisible) rotation - 180f else rotation
+            cameraDistance = 16 * density
+        }.shadow(1.dp, shape, ambientColor = Color(0x3323334A), spotColor = Color(0x3323334A)).clip(shape)
+            .background(CardsColors.Surface).border(1.dp, CardsColors.Edge, shape)
+            .padding(20.dp).heightIn(min = minHeight - 40.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally,
@@ -159,21 +172,16 @@ private fun ResponseBar(enabled: Boolean, rate: (CardRating) -> Unit) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     group.forEach { rating ->
                         val background = when (rating) {
-                            CardRating.Again -> Color(0xFFFCEDEC)
-                            CardRating.Hard -> Color(0xFFFFF3DC)
-                            CardRating.Good -> Color(0xFFE6F4EC)
+                            CardRating.Again -> KotoColors.WrongButtonFace
+                            CardRating.Hard -> Color(0xFFA66A0B)
+                            CardRating.Good -> KotoColors.CorrectButtonFace
                             CardRating.Easy -> CardsColors.Blue
                         }
-                        val ink = when (rating) {
-                            CardRating.Again -> CardsColors.Coral
-                            CardRating.Hard -> CardsColors.Yellow
-                            CardRating.Good -> CardsColors.Green
-                            CardRating.Easy -> Color.White
-                        }
+                        val ink = Color.White
                         val depth = when (rating) {
-                            CardRating.Again -> Color(0xFFD99B97)
-                            CardRating.Hard -> Color(0xFFD6B16C)
-                            CardRating.Good -> Color(0xFF90BDA4)
+                            CardRating.Again -> KotoColors.WrongButtonDepth
+                            CardRating.Hard -> Color(0xFF754A07)
+                            CardRating.Good -> KotoColors.CorrectButtonDepth
                             CardRating.Easy -> CardsColors.BlueDepth
                         }
                         CardsButton(rating.name, { rate(rating) }, Modifier.weight(1f).testTag("rate_${rating.name.lowercase()}"),

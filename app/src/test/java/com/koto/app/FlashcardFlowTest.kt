@@ -2,6 +2,7 @@ package com.koto.app
 
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.dp
 import com.koto.app.ui.screens.cards.loadFlashcardDecks
 import org.junit.Assert.assertEquals
@@ -39,6 +40,9 @@ class FlashcardFlowTest {
         assertEquals("Essential Verbs: Interactions & Transactions", decks[13].title)
         openDeck()
         screenshot("flashcards-detail")
+        compose.onNodeWithTag("deck_detail").performScrollToIndex(3)
+        detailNode("preview_card_01_001").assertIsDisplayed()
+        screenshot("flashcards-preview")
         detailNode("start_flashcards").performClick()
         compose.onNodeWithTag("rate_good").assertIsNotEnabled()
         compose.onNodeWithText("おはようございます").assertIsDisplayed()
@@ -64,7 +68,8 @@ class FlashcardFlowTest {
     @Test fun studyCloseReturnsToDeck() {
         openDeck()
         detailNode("start_flashcards").performClick()
-        compose.onNodeWithTag("study_card").performClick()
+        compose.onNodeWithTag("study_card").assertHasClickAction()
+        compose.onNodeWithTag("study_card").performTouchInput { click(Offset(24f, 24f)) }
         compose.onNodeWithTag("rate_again").performClick()
         compose.onNodeWithTag("cards_back").performClick()
         compose.onNodeWithText("Quit this session?").assertIsDisplayed()
@@ -197,6 +202,48 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("rate_good").assertIsNotEnabled()
     }
 
+    @Test fun recycledPreviewFavoritesKeepTheLatestOptionsAndOtherFavorites() {
+        openDeck()
+        detailNode("favorite_card_01_001").performClick()
+        detailNode("preview_card_01_026").assertIsDisplayed()
+        detailNode("romaji_toggle").performClick()
+        detailNode("shuffle_toggle").performClick()
+        detailNode("english_first").performClick()
+        detailNode("favorite_card_01_002").performClick()
+        detailNode("favorite_card_01_001").assertIsSelected()
+        detailNode("favorite_card_01_002").assertIsSelected()
+        detailNode("romaji_toggle").assertIsOff()
+        detailNode("shuffle_toggle").assertIsOn()
+        detailNode("english_first").assertIsSelected()
+    }
+
+    @Test fun fastScrollStartingOnFavoritesDoesNotActivateThem() {
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.onNodeWithTag("favorite_deck_deck_01").performTouchInput {
+            swipe(center, Offset(center.x, center.y - 400f), durationMillis = 130)
+        }
+        compose.onNodeWithTag("cards_grid").assertIsDisplayed()
+        compose.onNodeWithTag("cards_grid").performScrollToNode(hasTestTag("deck_deck_01"))
+        compose.onNodeWithTag("favorite_deck_deck_01").assertIsNotSelected()
+        compose.onNodeWithTag("deck_deck_01").performClick()
+        detailNode("favorite_card_01_001").performTouchInput {
+            swipe(center, Offset(center.x, center.y - 400f), durationMillis = 130)
+        }
+        compose.onNodeWithTag("deck_detail").assertIsDisplayed()
+        detailNode("favorite_card_01_001").assertIsNotSelected()
+        compose.onNodeWithTag("start_flashcards").assertIsDisplayed()
+    }
+
+    @Test @Config(qualifiers = "w800dp-h360dp-land-xhdpi")
+    fun landscapeGridAndPreviewKeepTheirLayout() {
+        compose.onNodeWithTag("tab_cards").performClick()
+        screenshot("flashcards-landscape-grid")
+        compose.onNodeWithTag("deck_deck_01").performClick()
+        detailNode("preview_card_01_001").assertIsDisplayed()
+        screenshot("flashcards-landscape-preview")
+        compose.onNodeWithTag("start_flashcards").assertIsDisplayed()
+    }
+
     @Test fun startButtonCompressesAndCancelledPressDoesNotStartSession() {
         openDeck()
         val label = compose.onNodeWithText("START FLASHCARDS", useUnmergedTree = true)
@@ -221,6 +268,9 @@ class FlashcardFlowTest {
     @Test @Config(qualifiers = "w320dp-h640dp-xhdpi")
     fun compactLayoutHasReachableStudyControls() {
         openDeck()
+        compose.onNodeWithTag("deck_detail").performScrollToIndex(3)
+        detailNode("preview_card_01_001").assertIsDisplayed()
+        screenshot("flashcards-preview-compact")
         detailNode("start_flashcards").performClick()
         compose.onNodeWithTag("study_card").performClick()
         listOf("again", "hard", "good", "easy").forEach { compose.onNodeWithTag("rate_$it").assertIsDisplayed() }
@@ -241,6 +291,9 @@ class FlashcardFlowTest {
     fun doubleFontScaleCanStartRevealAndRate() {
         org.robolectric.RuntimeEnvironment.setFontScale(2f)
         openDeck()
+        compose.onNodeWithTag("deck_detail").performScrollToIndex(3)
+        detailNode("preview_card_01_001").assertIsDisplayed()
+        screenshot("flashcards-preview-large-text")
         detailNode("start_flashcards").performClick()
         compose.onNodeWithTag("study_card").performScrollTo().performClick()
         compose.onNodeWithTag("rate_easy").performScrollTo().assertIsDisplayed()
