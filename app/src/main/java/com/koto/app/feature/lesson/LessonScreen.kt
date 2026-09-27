@@ -2,7 +2,6 @@ package com.koto.app.feature.lesson
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -62,25 +61,23 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
     LaunchedEffect(session.state.mismatch, session.state.index, settings, exitRequested, resumed) {
         if (session.state.mismatch && !settings && !exitRequested && resumed) { delay(200); session.clearMismatch() }
     }
-    val progress by animateFloatAsState(session.progress, tween(220), label = "Lesson progress")
     Box(Modifier.fillMaxSize().background(KotoColors.Background).windowInsetsPadding(WindowInsets.safeDrawing).testTag("lesson_screen")) {
         Column(Modifier.widthIn(max = 560.dp).fillMaxSize().align(Alignment.TopCenter)) {
-            SessionControlBar(progress, requestExit, { audio.stop(); settings = true },
+            if (!session.finished) SessionControlBar(session.progress, requestExit, { audio.stop(); settings = true },
                 "lesson_close", "lesson_progress", "lesson_settings", "Close lesson", "Lesson settings")
             if (session.finished) {
-                Column(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 20.dp).verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Text("Level ${lesson.id.toString().padStart(2, '0')} complete", fontSize = 26.sp, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.testTag("lesson_complete").semantics { heading() })
-                    Spacer(Modifier.height(12.dp))
-                    Text(lesson.title, style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(28.dp))
-                    Text("${session.state.results.count { it }} / ${lesson.questions.size}", fontSize = 40.sp, fontWeight = FontWeight.Bold)
-                    Text("correct on the first try", color = KotoColors.QuietInk)
-                    Spacer(Modifier.height(36.dp))
-                    ActionButton("Replay Level", "lesson_replay") { session.replay() }
-                    Spacer(Modifier.height(12.dp))
-                    ActionButton("Back to Map", "lesson_map", tone = TactileTone.Default, onClick = exit)
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                        .heightIn(min = maxHeight).padding(horizontal = 24.dp, vertical = 36.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                        Text("Level ${lesson.id.toString().padStart(2, '0')} complete", fontSize = 26.sp, fontWeight = FontWeight.Bold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.testTag("lesson_complete").semantics { heading() })
+                        Spacer(Modifier.height(40.dp))
+                        ActionButton("Replay Level", "lesson_replay") { session.replay() }
+                        Spacer(Modifier.height(14.dp))
+                        ActionButton("Back to Map", "lesson_map", tone = TactileTone.Default, onClick = exit)
+                    }
                 }
             } else if (session.state.reviewPending) {
                 Column(Modifier.weight(1f).fillMaxWidth().padding(20.dp),

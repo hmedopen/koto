@@ -1,6 +1,5 @@
 package com.koto.app.ui.screens.cards
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.core.tween
@@ -46,17 +45,19 @@ import com.koto.app.ui.screens.map.SettingsSheet
 @Composable
 internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, update: (FlashcardState) -> Unit) {
     if (state.complete) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp).testTag("study_complete"),
-            verticalArrangement = Arrangement.spacedBy(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(Modifier.height(20.dp))
-            DeckBadge(deck)
-            Text("A little stronger.", color = CardsColors.Blue, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text("Deck complete", color = CardsColors.Ink, fontSize = 30.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-            Text("You reviewed ${state.order.size} cards in ${deck.title}.", color = CardsColors.Muted, textAlign = TextAlign.Center)
-            CardsPanel(Modifier.fillMaxWidth()) { DeckStats(state.counts(deck)) }
-            CardsButton("Practice again", { update(state.start(deck)) }, Modifier.fillMaxWidth().testTag("practice_again"))
-            CardsButton("Back to deck", { update(state.back()) }, Modifier.fillMaxWidth().testTag("back_to_deck"),
-                background = CardsColors.Ice, ink = CardsColors.Ink, depth = CardsColors.IceDepth)
+        BoxWithConstraints(Modifier.fillMaxSize().testTag("study_complete")) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight).padding(horizontal = 24.dp, vertical = 36.dp),
+                verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Deck complete", color = CardsColors.Ink, fontSize = 30.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Spacer(Modifier.height(36.dp))
+                CompletionStats(state.counts(deck))
+                Spacer(Modifier.height(44.dp))
+                CardsButton("Practice again", { update(state.start(deck)) }, Modifier.fillMaxWidth().testTag("practice_again"))
+                Spacer(Modifier.height(14.dp))
+                CardsButton("Back to deck", { update(state.back()) }, Modifier.fillMaxWidth().testTag("back_to_deck"),
+                    background = CardsColors.Ice, ink = CardsColors.Ink, depth = CardsColors.IceDepth)
+            }
         }
         return
     }
@@ -66,7 +67,6 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
     var settings by rememberSaveable { mutableStateOf(false) }
     var exitRequested by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(card.id) { onDispose { audio.stop() } }
-    val progress by animateFloatAsState(state.index.toFloat() / state.order.size, tween(220), label = "Cards progress")
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollWholeScreen = maxHeight < 420.dp || LocalDensity.current.fontScale > 1.5f
         val cardHeight = when {
@@ -76,7 +76,7 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
         }
         Column(Modifier.fillMaxSize().let { if (scrollWholeScreen) it.verticalScroll(rememberScrollState()) else it }
             .testTag("flashcard_study")) {
-            SessionControlBar(progress, { audio.stop(); exitRequested = true },
+            SessionControlBar(state.index.toFloat() / state.order.size, { audio.stop(); exitRequested = true },
                 { audio.stop(); settings = true }, "cards_back", "study_progress", "cards_settings",
                 "Close cards", "Cards settings")
             Column((if (scrollWholeScreen) Modifier else Modifier.weight(1f).verticalScroll(rememberScrollState()))
@@ -84,9 +84,22 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
                 .offset { IntOffset(0, (-56).dp.roundToPx()) },
                 verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 key(card.id) {
-                    StudyCard(card, state, cardHeight, { update(state.flip()) })
+                    val transition = updateTransition(state.revealed, label = "Card flip")
+                    val rotation by transition.animateFloat(transitionSpec = { tween(360) }, label = "Card rotation") {
+                        if (it) 180f else 0f
+                    }
+                    val japaneseVisible = state.japaneseFirst != (rotation > 90f)
+                    // Wait until the Japanese face is settled; never reveal the
+                    // answer through audio while English is visible or flipping.
+                    val allowAudio = japaneseVisible && !transition.isRunning &&
+                        (state.japaneseFirst != state.revealed)
+                    LaunchedEffect(allowAudio) { if (!allowAudio) audio.stop() }
+                    StudyCard(card, state, cardHeight, rotation, transition.isRunning) {
+                        audio.stop()
+                        update(state.flip())
+                    }
                     Spacer(Modifier.height(12.dp))
-                    AudioButton(card, audio)
+                    AudioButton(card, audio, allowAudio)
                 }
             }
             Box(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
@@ -116,26 +129,46 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
 }
 
 @Composable
-private fun AudioButton(card: Flashcard, audio: JapaneseTtsController) {
-    val ready = audio.enabled && audio.status == SpeechStatus.Ready
+private fun CompletionStats(counts: DeckCounts) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        val stats = listOf(Triple("New", counts.new, CardsColors.Blue),
+            Triple("Weak", counts.weak, CardsColors.Coral),
+            Triple("Mastered", counts.mastered, CardsColors.Green))
+        stats.forEachIndexed { index, (label, count, color) ->
+            if (index > 0) Box(Modifier.width(1.dp).height(44.dp).background(CardsColors.Edge))
+            Column(Modifier.weight(1f).padding(horizontal = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("$count", color = color, fontSize = 36.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.testTag("stat_${label.lowercase()}"))
+                Text(label, color = CardsColors.Muted, fontSize = 12.sp, textAlign = TextAlign.Center)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AudioButton(card: Flashcard, audio: JapaneseTtsController, japaneseVisible: Boolean) {
+    val ready = japaneseVisible && audio.enabled && audio.status == SpeechStatus.Ready
+    // The tactile button may defer a pointer callback. Recheck the latest face
+    // before speaking so a queued tap cannot play after a flip to English.
+    val canPlay by rememberUpdatedState(ready)
     SpeakerButton(JapaneseText(card.japanese, card.romaji), ready, audio.isSpeaking,
-        audio::speak, Modifier.testTag("play_audio"))
+        { if (canPlay) audio.speak(it) }, Modifier.testTag("play_audio"),
+        description = if (japaneseVisible) "Play Japanese: ${card.romaji}" else "Audio available on the Japanese side")
 }
 
 @Composable
 private fun StudyCard(card: Flashcard, state: FlashcardState, minHeight: Dp,
+    rotation: Float, isFlipping: Boolean,
     flip: () -> Unit) {
-    val transition = updateTransition(state.revealed, label = "Card flip")
-    val rotation by transition.animateFloat(transitionSpec = { tween(360) }, label = "Card rotation") {
-        if (it) 180f else 0f
-    }
     val backVisible = rotation > 90f
     val japaneseVisible = state.japaneseFirst != backVisible
     val shape = RoundedCornerShape(16.dp)
     Box(Modifier.fillMaxWidth().padding(bottom = 4.dp).testTag("study_card")
         .clickable(interactionSource = null, indication = null, role = Role.Button,
             onClickLabel = if (state.revealed) "Show question" else "Reveal answer") {
-            if (!transition.isRunning) flip()
+            if (!isFlipping) flip()
         }.semantics {
         stateDescription = if (state.revealed) "Answer revealed" else "Question"
     }) {

@@ -122,7 +122,7 @@ internal fun MarkButton(kind: String, active: Boolean, label: String, tag: Strin
 
 @Composable
 internal fun DeckBadge(deck: FlashcardDeck) {
-    LineIcon(deck.icon, deck.accent, Modifier.size(28.dp))
+    DeckArtwork(deck, Modifier.size(28.dp))
 }
 
 /** Geometry is built once and only read by drawing; recycled rows share the same paths. */

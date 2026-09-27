@@ -43,9 +43,10 @@ class JapaneseTtsController private constructor(context: Context) {
                     status = if (result == TextToSpeech.SUCCESS && tts != null) {
                         try {
                             val language = tts.setLanguage(Locale.JAPAN)
-                            val voice = tts.voices?.filter { it.locale.language == "ja" && !it.isNetworkConnectionRequired }
-                                ?.sortedBy { it.name }?.firstOrNull()
-                            if (language >= TextToSpeech.LANG_AVAILABLE && voice != null && tts.setVoice(voice) == TextToSpeech.SUCCESS) {
+                            // setLanguage selects the engine's default Japanese voice. Some
+                            // engines can speak Japanese without exposing an offline Voice
+                            // entry, so do not reject a successful language selection.
+                            if (language >= TextToSpeech.LANG_AVAILABLE) {
                                 observePlayback(tts)
                                 SpeechStatus.Ready
                             } else SpeechStatus.Unavailable

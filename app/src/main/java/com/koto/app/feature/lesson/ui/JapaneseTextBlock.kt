@@ -1,28 +1,32 @@
 package com.koto.app.feature.lesson.ui
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.koto.app.R
 import com.koto.app.feature.lesson.model.*
 import com.koto.app.ui.components.*
 import com.koto.app.ui.theme.KotoColors
+import kotlin.math.PI
+import kotlin.math.cos
 
 @Composable
 fun JapaneseTextBlock(text: JapaneseText, modifier: Modifier = Modifier, size: TextUnit = 22.sp,
@@ -84,43 +88,61 @@ internal fun ContentText(text: LessonText, size: TextUnit = 22.sp, alignReading:
 
 @Composable
 internal fun SpeakerButton(text: JapaneseText, speechReady: Boolean, isPlaying: Boolean,
-    speak: (JapaneseText) -> Unit, modifier: Modifier = Modifier) {
+    speak: (JapaneseText) -> Unit, modifier: Modifier = Modifier,
+    description: String = "Play Japanese: ${text.romaji}") {
     TactileButton({ speak(text) }, modifier.size(48.dp, 52.dp), enabled = speechReady,
-        tone = TactileTone.Quiet, description = "Play Japanese: ${text.romaji}",
+        tone = TactileTone.Quiet, description = description,
         stateLabel = if (isPlaying) "Playing" else null, padding = PaddingValues(8.dp)) {
-        PlaybackSpeakerIcon(isPlaying)
+        PlaybackSpeakerIcon(isPlaying && speechReady, speechReady)
     }
 }
 
 @Composable
-private fun PlaybackSpeakerIcon(isPlaying: Boolean) {
-    val phase = remember { Animatable(0f) }
-    LaunchedEffect(isPlaying) {
-        if (!isPlaying) {
-            phase.snapTo(0f)
-        } else {
-            while (true) {
-                phase.snapTo(0f)
-                phase.animateTo(1f, tween(900, easing = LinearEasing))
-            }
+private fun PlaybackSpeakerIcon(isPlaying: Boolean, enabled: Boolean) {
+    // Only run a clock during playback. InfiniteTransition also respects the
+    // system animation scale without a zero-duration coroutine loop.
+    val phase = if (isPlaying) {
+        rememberInfiniteTransition(label = "Speaker playback").animateFloat(
+            initialValue = 0f, targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(850, easing = LinearEasing)),
+            label = "Speaker wave pulse",
+        )
+    } else rememberUpdatedState(0f)
+    val ink = if (enabled) KotoColors.LessonBlue else KotoColors.QuietInk.copy(alpha = .45f)
+    Box(Modifier.size(26.dp).testTag("audio_playback_waves").drawWithCache {
+        // One 24-unit glyph: the arcs share an origin and never move across the
+        // speaker body. Cache geometry; read animation state only while drawing.
+        val unit = size.width / 24f
+        val speaker = Path().apply {
+            moveTo(3f * unit, 9f * unit)
+            lineTo(7f * unit, 9f * unit)
+            lineTo(11f * unit, 5f * unit)
+            lineTo(11f * unit, 19f * unit)
+            lineTo(7f * unit, 15f * unit)
+            lineTo(3f * unit, 15f * unit)
+            close()
         }
-    }
-    Box(Modifier.size(30.dp, 24.dp), contentAlignment = Alignment.CenterStart) {
-        Icon(painterResource(R.drawable.ic_speaker), null, modifier = Modifier.size(22.dp), tint = KotoColors.LessonBlue)
-        Canvas(Modifier.matchParentSize().testTag("audio_playback_waves")) {
-            if (isPlaying) repeat(3) { index ->
-                val progress = (phase.value + index / 3f) % 1f
-                val radius = 7.dp.toPx() + progress * 9.dp.toPx()
+        val stroke = Stroke(width = 1.8f * unit, cap = StrokeCap.Round)
+        onDrawBehind {
+            drawPath(speaker, ink)
+            repeat(2) { index ->
+                // The outer arc follows the inner arc; pulse the actual waves,
+                // never a second overlay. Keep a faint outline at the trough.
+                val alpha = if (isPlaying) {
+                    val pulse = (1f + cos((phase.value - index * .22f) * 2f * PI).toFloat()) / 2f
+                    .18f + .82f * pulse
+                } else 1f
+                val radius = (6f + index * 4f) * unit
                 drawArc(
-                    color = KotoColors.LessonBlue.copy(alpha = (1f - progress) * .55f),
-                    startAngle = -42f,
-                    sweepAngle = 84f,
+                    color = ink.copy(alpha = ink.alpha * alpha),
+                    startAngle = -46f,
+                    sweepAngle = 92f,
                     useCenter = false,
-                    topLeft = Offset(4.dp.toPx() - radius, size.height / 2f - radius),
+                    topLeft = Offset(10f * unit - radius, 12f * unit - radius),
                     size = Size(radius * 2f, radius * 2f),
-                    style = Stroke(width = 1.4.dp.toPx()),
+                    style = stroke,
                 )
             }
         }
-    }
+    })
 }

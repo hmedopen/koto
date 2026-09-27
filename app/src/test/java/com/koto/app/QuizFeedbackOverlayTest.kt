@@ -148,7 +148,14 @@ class QuizFeedbackOverlayTest {
             }
         }
         compose.onNodeWithTag("lesson_complete").assertIsDisplayed()
-        compose.onNodeWithText(if (correct) "4 / 4" else "0 / 4").assertIsDisplayed()
+        compose.onNodeWithText(if (correct) "4 / 4" else "0 / 4").assertDoesNotExist()
+        compose.onNodeWithText("correct on the first try").assertDoesNotExist()
+        compose.onNodeWithTag("lesson_close").assertDoesNotExist()
+        compose.onNodeWithTag("lesson_progress").assertDoesNotExist()
+        compose.onNodeWithTag("lesson_settings").assertDoesNotExist()
+        compose.onNodeWithTag("lesson_replay").assertIsDisplayed()
+        compose.onNodeWithTag("lesson_map").assertIsDisplayed()
+        saveRenderedScreenshot(compose.activity, "lesson-complete-clean-$correct")
     }
 
     @Test fun correctResultsNeverMoveTheQuizAndContinueReallyWorks() = verifyFlow(true)
