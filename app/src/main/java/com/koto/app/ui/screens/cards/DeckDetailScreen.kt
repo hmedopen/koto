@@ -89,7 +89,10 @@ internal fun DeckDetailScreen(deck: FlashcardDeck, state: FlashcardState, update
                 PreviewRow(card, state.showRomaji, card.id in state.favorites, favorite)
             }
         }
-        Column(Modifier.fillMaxWidth().background(CardsColors.Surface).padding(horizontal = 20.dp, vertical = 12.dp)) {
+        // Keep the primary action low in the thumb zone, with enough clearance
+        // that it does not sit against the gesture/navigation edge.
+        Column(Modifier.fillMaxWidth().background(CardsColors.Surface)
+            .navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 28.dp)) {
             CardsButton("START FLASHCARDS", { update(state.start(deck)) },
                 Modifier.fillMaxWidth().testTag("start_flashcards"))
         }

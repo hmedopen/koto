@@ -30,6 +30,19 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("deck_deck_01").assertDoesNotExist()
     }
 
+    @Test fun deckDetailHidesTabsAndKeepsStartAboveTheBottomEdge() {
+        openDeck()
+        compose.onNodeWithTag("tab_map").assertDoesNotExist()
+        compose.onNodeWithTag("tab_learn").assertDoesNotExist()
+        compose.onNodeWithTag("tab_cards").assertDoesNotExist()
+        compose.onNodeWithTag("top_bar_title").assertTextEquals("Cards")
+        val rootBottom = compose.onRoot().fetchSemanticsNode().boundsInRoot.bottom
+        val startBottom = compose.onNodeWithTag("start_flashcards").fetchSemanticsNode().boundsInRoot.bottom
+        with(compose.activity.resources.displayMetrics) {
+            assertTrue("Start button needs comfortable bottom clearance", rootBottom - startBottom >= 24f * density)
+        }
+    }
+
     @Test fun fixtureAndFullSessionFlow() {
         val decks = loadFlashcardDecks(compose.activity)
         assertEquals(41, decks.size)

@@ -83,7 +83,7 @@ fun KotoApp() {
                         onCardsDeckOpenChanged = { cardsDeckOpen = it },
                     )
                 }
-                if (!cardsStudying) {
+                if (!cardsStudying && !(selected == KotoDestination.Cards && cardsDeckOpen)) {
                     KotoBottomBar(selected = selected, onSelect = { selected = it })
                 }
             }
