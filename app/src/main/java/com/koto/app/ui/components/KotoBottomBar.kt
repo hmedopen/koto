@@ -18,6 +18,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.testTag
 import com.koto.app.ui.navigation.KotoDestination
 import com.koto.app.ui.theme.KotoColors
@@ -36,7 +40,37 @@ fun KotoBottomBar(
         modifier
             .fillMaxWidth()
             .background(KotoColors.BarSurface)
-            .drawBehind { drawLine(KotoColors.Hairline, Offset.Zero, Offset(size.width, 0f), 1f) }
+            .drawBehind {
+                // Multi-layered ambient elevation shadow cast upward
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color(0x031A3761),
+                            Color(0x081A3761),
+                            Color(0x121A3761),
+                        ),
+                        startY = -10.dp.toPx(),
+                        endY = 0f,
+                    ),
+                    topLeft = Offset(0f, -10.dp.toPx()),
+                    size = Size(size.width, 10.dp.toPx()),
+                )
+                // Crisp dividing hairline border
+                drawLine(
+                    color = Color(0xFFE2E7ED),
+                    start = Offset.Zero,
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 1.dp.toPx(),
+                )
+                // Delicate crisp top highlight
+                drawLine(
+                    color = Color.White.copy(alpha = 0.9f),
+                    start = Offset(0f, 1.dp.toPx()),
+                    end = Offset(size.width, 1.dp.toPx()),
+                    strokeWidth = 1.dp.toPx(),
+                )
+            }
             .windowInsetsPadding(
                 WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal),
             ),

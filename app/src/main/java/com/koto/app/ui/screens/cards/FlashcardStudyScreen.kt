@@ -1,8 +1,21 @@
 package com.koto.app.ui.screens.cards
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,6 +79,10 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
     val audio = remember(context) { JapaneseTtsController.get(context) }
     var settings by rememberSaveable { mutableStateOf(false) }
     var exitRequested by rememberSaveable { mutableStateOf(false) }
+    var lastRatedCardId by rememberSaveable { mutableStateOf<String?>(null) }
+    var lastRatingName by rememberSaveable { mutableStateOf<String?>(null) }
+    val lastRating = lastRatingName?.let { name -> CardRating.entries.firstOrNull { it.name == name } }
+
     DisposableEffect(card.id) { onDispose { audio.stop() } }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollWholeScreen = maxHeight < 420.dp || LocalDensity.current.fontScale > 1.5f
@@ -83,28 +100,93 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
                 .fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp)
                 .offset { IntOffset(0, (-56).dp.roundToPx()) },
                 verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                key(card.id) {
-                    val transition = updateTransition(state.revealed, label = "Card flip")
-                    val rotation by transition.animateFloat(transitionSpec = { tween(360) }, label = "Card rotation") {
-                        if (it) 180f else 0f
-                    }
-                    val japaneseVisible = state.japaneseFirst != (rotation > 90f)
-                    // Wait until the Japanese face is settled; never reveal the
-                    // answer through audio while English is visible or flipping.
-                    val allowAudio = japaneseVisible && !transition.isRunning &&
-                        (state.japaneseFirst != state.revealed)
-                    LaunchedEffect(allowAudio) { if (!allowAudio) audio.stop() }
-                    StudyCard(card, state, cardHeight, rotation, transition.isRunning) {
-                        audio.stop()
-                        update(state.flip())
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    AudioButton(card, audio, allowAudio)
+
+                val flipTransition = updateTransition(state.revealed, label = "Card flip")
+                val currentRotation by flipTransition.animateFloat(transitionSpec = { tween(360) }, label = "Card rotation") {
+                    if (it) 180f else 0f
                 }
+                val japaneseVisible = state.japaneseFirst != (currentRotation > 90f)
+                val allowAudio = japaneseVisible && !flipTransition.isRunning &&
+                    (state.japaneseFirst != state.revealed)
+                LaunchedEffect(allowAudio) { if (!allowAudio) audio.stop() }
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val cardsLeft = state.order.size - state.index
+                    if (cardsLeft > 1) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth(0.96f)
+                                .height(cardHeight - 40.dp)
+                                .offset(y = 5.dp)
+                                .background(Color(0xFFF1F5F9), RoundedCornerShape(16.dp))
+                                .border(1.dp, CardsColors.Edge.copy(alpha = 0.8f), RoundedCornerShape(16.dp)),
+                        )
+                    }
+
+                    AnimatedContent(
+                        targetState = card,
+                        transitionSpec = {
+                            val duration = 260
+                            (slideInHorizontally(
+                                animationSpec = spring(
+                                    dampingRatio = 0.82f,
+                                    stiffness = 400f,
+                                ),
+                                initialOffsetX = { fullWidth -> (fullWidth * 0.92f).toInt() },
+                            ) + fadeIn(
+                                animationSpec = tween(durationMillis = 180, easing = LinearOutSlowInEasing),
+                            ) + scaleIn(
+                                animationSpec = spring(dampingRatio = 0.82f, stiffness = 400f),
+                                initialScale = 0.93f,
+                            )).togetherWith(
+                                slideOutHorizontally(
+                                    animationSpec = tween(durationMillis = duration, easing = FastOutSlowInEasing),
+                                    targetOffsetX = { fullWidth -> (-fullWidth * 0.92f).toInt() },
+                                ) + fadeOut(
+                                    animationSpec = tween(durationMillis = duration - 40, easing = FastOutLinearInEasing),
+                                ) + scaleOut(
+                                    animationSpec = tween(durationMillis = duration),
+                                    targetScale = 0.93f,
+                                ),
+                            )
+                        },
+                        label = "Card slide transition",
+                    ) { targetCard ->
+                        val isCurrent = targetCard.id == state.currentId
+                        val isExiting = targetCard.id == lastRatedCardId && !isCurrent
+                        val cardRotation = if (isCurrent) currentRotation else 180f
+
+                        StudyCard(
+                            card = targetCard,
+                            state = state,
+                            minHeight = cardHeight,
+                            rotation = cardRotation,
+                            isFlipping = isCurrent && flipTransition.isRunning,
+                            isCurrent = isCurrent,
+                            isExiting = isExiting,
+                            rating = if (isExiting) lastRating else null,
+                        ) {
+                            if (isCurrent) {
+                                audio.stop()
+                                update(state.flip())
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+                AudioButton(card, audio, allowAudio)
             }
             Box(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
                 .offset { IntOffset(0, (-24).dp.roundToPx()) }) {
-                ResponseBar(state.hasBeenRevealed) { rating -> update(state.rate(card.id, rating)) }
+                ResponseBar(state.hasBeenRevealed) { rating ->
+                    lastRatedCardId = card.id
+                    lastRatingName = rating.name
+                    update(state.rate(card.id, rating))
+                }
             }
         }
     }
@@ -159,38 +241,132 @@ private fun AudioButton(card: Flashcard, audio: JapaneseTtsController, japaneseV
 }
 
 @Composable
-private fun StudyCard(card: Flashcard, state: FlashcardState, minHeight: Dp,
-    rotation: Float, isFlipping: Boolean,
-    flip: () -> Unit) {
+private fun StudyCard(
+    card: Flashcard,
+    state: FlashcardState,
+    minHeight: Dp,
+    rotation: Float,
+    isFlipping: Boolean,
+    isCurrent: Boolean = true,
+    isExiting: Boolean = false,
+    rating: CardRating? = null,
+    flip: () -> Unit,
+) {
     val backVisible = rotation > 90f
     val japaneseVisible = state.japaneseFirst != backVisible
     val shape = RoundedCornerShape(16.dp)
-    Box(Modifier.fillMaxWidth().padding(bottom = 4.dp).testTag("study_card")
-        .clickable(interactionSource = null, indication = null, role = Role.Button,
-            onClickLabel = if (state.revealed) "Show question" else "Reveal answer") {
-            if (!isFlipping) flip()
-        }.semantics {
-        stateDescription = if (state.revealed) "Answer revealed" else "Question"
-    }) {
-        Column(Modifier.fillMaxWidth().graphicsLayer {
-            rotationY = if (backVisible) rotation - 180f else rotation
-            cameraDistance = 16 * density
-        }.shadow(1.dp, shape, ambientColor = Color(0x3323334A), spotColor = Color(0x3323334A)).clip(shape)
-            .background(CardsColors.Surface).border(1.dp, CardsColors.Edge, shape)
-            .padding(20.dp).heightIn(min = minHeight - 40.dp),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
+
+    val exitTilt by animateFloatAsState(
+        targetValue = if (isExiting) -3.5f else 0f,
+        animationSpec = tween(260, easing = FastOutSlowInEasing),
+        label = "Exit tilt",
+    )
+
+    val ratingColor = when (rating) {
+        CardRating.Again -> KotoColors.WrongButtonFace
+        CardRating.Hard -> Color(0xFFA66A0B)
+        CardRating.Good -> KotoColors.CorrectButtonFace
+        CardRating.Easy -> CardsColors.Blue
+        null -> null
+    }
+
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp)
+            .testTag(if (isCurrent) "study_card" else "study_card_exiting")
+            .clickable(
+                interactionSource = null,
+                indication = null,
+                role = Role.Button,
+                onClickLabel = if (state.revealed) "Show question" else "Reveal answer",
+            ) {
+                if (!isFlipping && !isExiting) flip()
+            }
+            .semantics {
+                stateDescription = if (state.revealed) "Answer revealed" else "Question"
+            },
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    rotationY = if (backVisible) rotation - 180f else rotation
+                    rotationZ = exitTilt
+                    cameraDistance = 16 * density
+                }
+                .shadow(
+                    elevation = if (isExiting) 4.dp else 1.dp,
+                    shape = shape,
+                    ambientColor = Color(0x3323334A),
+                    spotColor = Color(0x3323334A),
+                )
+                .clip(shape)
+                .background(CardsColors.Surface)
+                .border(
+                    width = if (isExiting && ratingColor != null) 2.dp else 1.dp,
+                    color = if (isExiting && ratingColor != null) ratingColor.copy(alpha = 0.85f) else CardsColors.Edge,
+                    shape = shape,
+                )
+                .padding(20.dp)
+                .heightIn(min = minHeight - 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
+        ) {
             Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(if (japaneseVisible) card.japanese else card.english, color = CardsColors.Ink,
-                        fontSize = if (japaneseVisible) 36.sp else 30.sp, lineHeight = 48.sp,
-                        fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.testTag("card_word"))
-                    if (japaneseVisible && state.showRomaji) Text(card.romaji, color = CardsColors.Muted, fontSize = 16.sp,
-                        textAlign = TextAlign.Center, modifier = Modifier.testTag("card_romaji"))
+                Column(
+                    Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        if (japaneseVisible) card.japanese else card.english,
+                        color = CardsColors.Ink,
+                        fontSize = if (japaneseVisible) 36.sp else 30.sp,
+                        lineHeight = 48.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.testTag("card_word"),
+                    )
+                    if (japaneseVisible && state.showRomaji) {
+                        Text(
+                            card.romaji,
+                            color = CardsColors.Muted,
+                            fontSize = 16.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.testTag("card_romaji"),
+                        )
+                    }
+                }
+
+                // If this card is exiting after rating, stamp the rating badge
+                if (isExiting && rating != null && ratingColor != null) {
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .graphicsLayer { rotationZ = 6f }
+                            .background(ratingColor, RoundedCornerShape(8.dp))
+                            .border(1.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = rating.name.uppercase(),
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
             }
-            Text(if (backVisible) "↻  Tap to see the front" else if (state.hasBeenRevealed) "↻  Tap to see the answer again" else "↻  Tap to reveal answer", color = CardsColors.Blue,
-                fontSize = 12.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
+            Text(
+                if (backVisible) "↻  Tap to see the front" else if (state.hasBeenRevealed) "↻  Tap to see the answer again" else "↻  Tap to reveal answer",
+                color = CardsColors.Blue,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }
