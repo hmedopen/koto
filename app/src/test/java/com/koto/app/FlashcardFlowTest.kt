@@ -3,6 +3,7 @@ package com.koto.app
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.dp
 import com.koto.app.ui.screens.cards.loadFlashcardDecks
 import org.junit.Assert.assertEquals
@@ -20,14 +21,49 @@ import org.robolectric.annotation.GraphicsMode
 class FlashcardFlowTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
-    @Test fun cardsHomeUsesDecksAndMixesWithoutHeroCopy() {
+    @Test fun cardsHomeShowsDecksCatalogWithoutMixesBar() {
         compose.onNodeWithTag("tab_cards").performClick()
         compose.onNodeWithText("Small practice.\nLasting progress.").assertDoesNotExist()
         compose.onNodeWithText("Choose a deck. Make the words your own.").assertDoesNotExist()
-        compose.onNodeWithTag("cards_section_decks").assertIsSelected()
+        compose.onNodeWithTag("cards_section_decks").assertDoesNotExist()
+        compose.onNodeWithTag("cards_section_mixes").assertDoesNotExist()
         compose.onNodeWithTag("deck_deck_01").assertExists()
-        compose.onNodeWithTag("cards_section_mixes").performClick().assertIsSelected()
-        compose.onNodeWithTag("deck_deck_01").assertDoesNotExist()
+        compose.onNodeWithTag("cards_starred_words").assertExists()
+        compose.onNodeWithTag("cards_create_deck").assertExists()
+        compose.onNodeWithTag("cards_random_deck").assertExists()
+    }
+
+    @Test fun starredWordsScreenOpensAndCloses() {
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.onNodeWithTag("cards_starred_words").performClick()
+        compose.onNodeWithTag("starred_cards_screen").assertIsDisplayed()
+        compose.onNodeWithTag("cards_detail_back").performClick()
+        compose.onNodeWithTag("cards_grid").assertIsDisplayed()
+    }
+
+    @Test fun createDeckPlaceholderOpensAndCloses() {
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.onNodeWithTag("cards_create_deck").performClick()
+        compose.onNodeWithTag("create_deck_placeholder_screen").assertIsDisplayed()
+        compose.onNodeWithTag("cards_detail_back").performClick()
+        compose.onNodeWithTag("cards_grid").assertIsDisplayed()
+    }
+
+    @Test fun deckContentScreenBackArrowTakesToDeckDetailNotCatalog() {
+        openDeck()
+        compose.onNodeWithTag("deck_detail").assertIsDisplayed()
+        try {
+            compose.onNodeWithTag("deck_detail").performScrollToNode(hasTestTag("show_content"))
+        } catch (_: Throwable) {}
+        compose.onNodeWithTag("show_content").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("content_table").assertIsDisplayed()
+        compose.onNodeWithTag("cards_detail_back").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("deck_detail").assertIsDisplayed()
+        compose.onNodeWithTag("cards_detail_back").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("cards_grid").assertIsDisplayed()
     }
 
     @Test fun deckDetailHidesTabsAndKeepsStartAboveTheBottomEdge() {
@@ -45,20 +81,19 @@ class FlashcardFlowTest {
 
     @Test fun fixtureAndFullSessionFlow() {
         val decks = loadFlashcardDecks(compose.activity)
-        assertEquals(41, decks.size)
-        assertEquals(609, decks.sumOf { it.cards.size })
-        assertEquals(609, decks.flatMap { it.cards }.map { it.id }.toSet().size)
-        assertEquals("Greetings & Courtesy", decks.first().title)
-        assertEquals("Work, Office & Business", decks[31].title)
-        assertEquals("Essential Verbs: Interactions & Transactions", decks[13].title)
+        assertEquals(50, decks.size)
+        assertEquals(1257, decks.sumOf { it.cards.size })
+        assertEquals(1257, decks.flatMap { it.cards }.map { it.id }.toSet().size)
+        assertEquals("Greetings & Essential Courtesy", decks.first().title)
+        assertEquals("Primary Adjectives II (Sensory & Living)", decks[31].title)
+        assertEquals("Fundamental Action Verbs II (Daily Routine)", decks[13].title)
         openDeck()
         screenshot("flashcards-detail")
-        compose.onNodeWithTag("deck_detail").performScrollToIndex(3)
         detailNode("preview_card_01_001").assertIsDisplayed()
         screenshot("flashcards-preview")
         detailNode("start_flashcards").performClick()
         compose.onNodeWithTag("rate_good").assertIsNotEnabled()
-        compose.onNodeWithText("おはようございます").assertIsDisplayed()
+        compose.onNodeWithText("おはよう").assertIsDisplayed()
         screenshot("flashcards-study-front")
         val ratings = List(decks.first().cards.size) { index ->
             listOf("again", "hard", "good", "easy")[index % 4]
@@ -66,7 +101,7 @@ class FlashcardFlowTest {
         ratings.forEachIndexed { index, rating ->
             compose.onNodeWithTag("study_card").performClick()
             if (index == 0) {
-                compose.onNodeWithText("Good morning (formal)").assertIsDisplayed()
+                compose.onNodeWithText("Good morning (casual)").assertIsDisplayed()
                 screenshot("flashcards-study-answer")
             }
             compose.onNodeWithTag("rate_$rating").performClick()
@@ -74,7 +109,7 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("study_complete").assertIsDisplayed()
         screenshot("flashcards-complete")
         compose.onNodeWithTag("back_to_deck").performClick()
-        compose.onNodeWithTag("stat_weak").assertTextContains("14")
+        compose.onNodeWithTag("stat_weak").assertTextContains("13")
         compose.onNodeWithTag("stat_mastered").assertTextContains("12")
     }
 
@@ -145,6 +180,8 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("english_first").assertIsSelected()
         detailNode("favorite_card_01_001").assertIsSelected()
         back()
+        compose.onNodeWithTag("deck_detail").assertIsDisplayed()
+        back()
         compose.onNodeWithTag("cards_grid").assertIsDisplayed()
         back()
         compose.onNodeWithTag("tab_learn").assertIsSelected()
@@ -175,7 +212,7 @@ class FlashcardFlowTest {
             return compose.onNodeWithTag("deck_$id").fetchSemanticsNode().boundsInRoot.height
         }
         val expected = height("deck_14")
-        (1..41).forEach { number ->
+        (1..50).forEach { number ->
             val id = "deck_${number.toString().padStart(2, '0')}"
             assertEquals("$id should match the three-line tile", expected, height(id), 2f)
         }
@@ -207,18 +244,18 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("study_card").performClick()
         compose.onNodeWithTag("rate_good").assertIsEnabled()
         compose.onNodeWithTag("study_card").performClick()
-        compose.onNodeWithText("おはようございます").assertIsDisplayed()
+        compose.onNodeWithText("おはよう").assertIsDisplayed()
         compose.onNodeWithTag("rate_good").assertIsEnabled()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithTag("rate_good").assertIsEnabled().performClick()
-        compose.onNodeWithText("おはよう").assertIsDisplayed()
+        compose.onNodeWithText("おはようございます").assertIsDisplayed()
         compose.onNodeWithTag("rate_good").assertIsNotEnabled()
     }
 
     @Test fun recycledPreviewFavoritesKeepTheLatestOptionsAndOtherFavorites() {
         openDeck()
         detailNode("favorite_card_01_001").performClick()
-        detailNode("preview_card_01_026").assertIsDisplayed()
+        detailNode("preview_card_01_025").assertIsDisplayed()
         detailNode("romaji_toggle").performClick()
         detailNode("shuffle_toggle").performClick()
         detailNode("english_first").performClick()
@@ -242,8 +279,9 @@ class FlashcardFlowTest {
         detailNode("favorite_card_01_001").performTouchInput {
             swipe(center, Offset(center.x, center.y - 400f), durationMillis = 130)
         }
-        compose.onNodeWithTag("deck_detail").assertIsDisplayed()
         detailNode("favorite_card_01_001").assertIsNotSelected()
+        back()
+        compose.onNodeWithTag("deck_detail").assertIsDisplayed()
         compose.onNodeWithTag("start_flashcards").assertIsDisplayed()
     }
 
@@ -254,12 +292,19 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("deck_deck_01").performClick()
         detailNode("preview_card_01_001").assertIsDisplayed()
         screenshot("flashcards-landscape-preview")
+        if (compose.onAllNodesWithTag("content_drawer").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag("content_drawer").performSemanticsAction(SemanticsActions.Dismiss)
+            compose.waitForIdle()
+        }
+        try {
+            compose.onNodeWithTag("deck_detail").performScrollToNode(hasTestTag("start_flashcards"))
+        } catch (_: Throwable) {}
         compose.onNodeWithTag("start_flashcards").assertIsDisplayed()
     }
 
     @Test fun startButtonCompressesAndCancelledPressDoesNotStartSession() {
         openDeck()
-        val label = compose.onNodeWithText("START FLASHCARDS", useUnmergedTree = true)
+        val label = compose.onNodeWithText("START REVIEW", useUnmergedTree = true)
         val restingTop = label.fetchSemanticsNode().boundsInRoot.top
         compose.mainClock.autoAdvance = false
         compose.onNodeWithTag("start_flashcards").performTouchInput { down(center) }
@@ -273,7 +318,11 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("deck_detail").assertIsDisplayed()
         compose.mainClock.autoAdvance = true
         // The CTA remains reachable after scrolling to the final preview.
-        detailNode("preview_card_01_026").assertIsDisplayed()
+        detailNode("preview_card_01_025").assertIsDisplayed()
+        if (compose.onAllNodesWithTag("content_drawer").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag("content_drawer").performSemanticsAction(SemanticsActions.Dismiss)
+            compose.waitForIdle()
+        }
         compose.onNodeWithTag("start_flashcards").assertIsDisplayed().performClick()
         compose.onNodeWithTag("flashcard_study").assertIsDisplayed()
     }
@@ -281,7 +330,6 @@ class FlashcardFlowTest {
     @Test @Config(qualifiers = "w320dp-h640dp-xhdpi")
     fun compactLayoutHasReachableStudyControls() {
         openDeck()
-        compose.onNodeWithTag("deck_detail").performScrollToIndex(3)
         detailNode("preview_card_01_001").assertIsDisplayed()
         screenshot("flashcards-preview-compact")
         detailNode("start_flashcards").performClick()
@@ -296,7 +344,7 @@ class FlashcardFlowTest {
         detailNode("start_flashcards").performClick()
         compose.onNodeWithTag("study_card").performScrollTo().performClick()
         compose.onNodeWithTag("rate_good").performScrollTo().assertIsDisplayed().performClick()
-        compose.onNodeWithText("おはよう").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("おはようございます").performScrollTo().assertIsDisplayed()
         screenshot("flashcards-landscape")
     }
 
@@ -304,7 +352,6 @@ class FlashcardFlowTest {
     fun doubleFontScaleCanStartRevealAndRate() {
         org.robolectric.RuntimeEnvironment.setFontScale(2f)
         openDeck()
-        compose.onNodeWithTag("deck_detail").performScrollToIndex(3)
         detailNode("preview_card_01_001").assertIsDisplayed()
         screenshot("flashcards-preview-large-text")
         detailNode("start_flashcards").performClick()
@@ -312,12 +359,30 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("rate_easy").performScrollTo().assertIsDisplayed()
         screenshot("flashcards-large-text")
         compose.onNodeWithTag("rate_easy").performClick()
-        compose.onNodeWithText("おはよう").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("おはようございます").performScrollTo().assertIsDisplayed()
     }
 
     private fun detailNode(tag: String): SemanticsNodeInteraction {
-        // The session CTA is anchored below the scrolling previews.
-        if (tag != "start_flashcards") compose.onNodeWithTag("deck_detail").performScrollToNode(hasTestTag(tag))
+        if (tag.startsWith("preview_") || tag.startsWith("favorite_card_")) {
+            if (compose.onAllNodesWithTag("content_table").fetchSemanticsNodes().isEmpty()) {
+                try {
+                    compose.onNodeWithTag("deck_detail").performScrollToNode(hasTestTag("show_content"))
+                } catch (_: Throwable) {}
+                compose.onNodeWithTag("show_content").performClick()
+                compose.waitForIdle()
+            }
+            if (compose.onAllNodesWithTag("content_table").fetchSemanticsNodes().isNotEmpty()) {
+                compose.onNodeWithTag("content_table").performScrollToNode(hasTestTag(tag))
+            }
+            return compose.onNodeWithTag(tag)
+        }
+        if (compose.onAllNodesWithTag("content_drawer").fetchSemanticsNodes().isNotEmpty()) {
+            compose.onNodeWithTag("content_drawer").performSemanticsAction(SemanticsActions.Dismiss)
+            compose.waitForIdle()
+        }
+        try {
+            compose.onNodeWithTag("deck_detail").performScrollToNode(hasTestTag(tag))
+        } catch (_: Throwable) {}
         return compose.onNodeWithTag(tag)
     }
 

@@ -20,9 +20,20 @@ import com.koto.app.ui.theme.KotoDimens
 import com.koto.app.ui.theme.KotoMotion
 
 @Composable
-fun KotoNavigation(selected: KotoDestination, modifier: Modifier = Modifier, completed: Set<Int> = emptySet(),
-    onPlay: (Int) -> Unit = {}, onCardsStudyModeChanged: (Boolean) -> Unit = {},
-    onCardsDeckOpenChanged: (Boolean) -> Unit = {}) {
+fun KotoNavigation(
+    selected: KotoDestination,
+    modifier: Modifier = Modifier,
+    completed: Set<Int> = emptySet(),
+    onPlay: (Int) -> Unit = {},
+    onCardsStudyModeChanged: (Boolean) -> Unit = {},
+    onCardsDeckOpenChanged: (Boolean) -> Unit = {},
+    randomDeckTrigger: Boolean = false,
+    onRandomDeckHandled: () -> Unit = {},
+    starredWordsTrigger: Boolean = false,
+    onStarredWordsHandled: () -> Unit = {},
+    createDeckTrigger: Boolean = false,
+    onCreateDeckHandled: () -> Unit = {},
+) {
     val stateHolder = rememberSaveableStateHolder()
     val distance = with(LocalDensity.current) { KotoDimens.ContentDisplacement.roundToPx() }
     val layoutSign = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
@@ -33,10 +44,10 @@ fun KotoNavigation(selected: KotoDestination, modifier: Modifier = Modifier, com
         modifier = modifier,
         transitionSpec = {
             val direction = if (targetState.ordinal > initialState.ordinal) layoutSign else -layoutSign
-            (fadeIn(tween(KotoMotion.ContentDuration)) +
+            ((fadeIn(tween(KotoMotion.ContentDuration)) +
                 slideInHorizontally(tween(KotoMotion.ContentDuration)) { direction * distance }) togetherWith
                 (fadeOut(tween(KotoMotion.ContentExitDuration)) +
-                    slideOutHorizontally(tween(KotoMotion.ContentExitDuration)) { -direction * distance })
+                    slideOutHorizontally(tween(KotoMotion.ContentExitDuration)) { -direction * distance })).using(null)
         },
         label = "Primary destination",
     ) { destination ->
@@ -47,6 +58,12 @@ fun KotoNavigation(selected: KotoDestination, modifier: Modifier = Modifier, com
                 KotoDestination.Cards -> CardsScreen(
                     onStudyModeChanged = onCardsStudyModeChanged,
                     onDeckOpenChanged = onCardsDeckOpenChanged,
+                    randomDeckTrigger = randomDeckTrigger,
+                    onRandomDeckHandled = onRandomDeckHandled,
+                    starredWordsTrigger = starredWordsTrigger,
+                    onStarredWordsHandled = onStarredWordsHandled,
+                    createDeckTrigger = createDeckTrigger,
+                    onCreateDeckHandled = onCreateDeckHandled,
                 )
             }
         }

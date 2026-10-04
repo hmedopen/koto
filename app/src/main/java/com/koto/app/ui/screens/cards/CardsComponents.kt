@@ -47,6 +47,7 @@ internal object CardsColors {
     val IceDepth = Color(0xFFCFDEEC)
     val Coral = Color(0xFFB44242)
     val Green = Color(0xFF237451)
+    val GreenDepth = Color(0xFF185B36)
     val Yellow = Color(0xFF936013)
 }
 
@@ -86,7 +87,7 @@ internal fun CardsButton(label: String, onClick: () -> Unit, modifier: Modifier 
  */
 @Composable
 internal fun CardsPressable(onClick: () -> Unit, modifier: Modifier = Modifier,
-    face: Color = CardsColors.Surface, depth: Color = CardsColors.IceDepth,
+    face: Color = CardsColors.Surface, depth: Color = CardsColors.Edge,
     enabled: Boolean = true, padding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 14.dp),
     content: @Composable () -> Unit) {
     val interaction = remember { MutableInteractionSource() }

@@ -1,6 +1,16 @@
 package com.koto.app.ui.screens.cards
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,7 +20,13 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.koto.app.ui.components.TactileButton
+import com.koto.app.ui.components.TactileTone
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -20,59 +36,231 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
+import com.koto.app.R
+import kotlin.random.Random
+
+private enum class CardsStage {
+    Browser,
+    Detail,
+    Content,
+    Study,
+    Starred,
+    CreateDeck,
+}
 
 @Composable
 fun CardsScreen(
     onStudyModeChanged: (Boolean) -> Unit = {},
     onDeckOpenChanged: (Boolean) -> Unit = {},
+    randomDeckTrigger: Boolean = false,
+    onRandomDeckHandled: () -> Unit = {},
+    starredWordsTrigger: Boolean = false,
+    onStarredWordsHandled: () -> Unit = {},
+    createDeckTrigger: Boolean = false,
+    onCreateDeckHandled: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val decks = remember(context) { loadFlashcardDecks(context) }
-    var state by rememberSaveable(stateSaver = FlashcardState.Saver) { mutableStateOf(FlashcardState()) }
-    val deck = decks.find { it.id == state.deckId }
-    val deckDetailOpen = deck != null && !state.studying
-    val openDeck: (FlashcardDeck) -> Unit = remember { { state = state.open(it) } }
+    val srsStore = remember(context) { FlashcardSrsStore(context) }
+    var state by rememberSaveable(stateSaver = FlashcardState.Saver) {
+        val initialSrs = srsStore.loadAll()
+        mutableStateOf(FlashcardState(srsRecords = initialSrs))
+    }
+
+    // Persist SRS updates to local database
+    LaunchedEffect(state.srsRecords) {
+        if (state.srsRecords.isNotEmpty()) {
+            srsStore.saveAll(state.srsRecords)
+        }
+    }
+
+    var showSurpriseMeDialog by rememberSaveable { mutableStateOf(false) }
+    var showStarred by rememberSaveable { mutableStateOf(false) }
+    var showCreateDeck by rememberSaveable { mutableStateOf(false) }
+    var showContent by rememberSaveable { mutableStateOf(false) }
+    var dynamicStarredDeck by remember { mutableStateOf<FlashcardDeck?>(null) }
+
+    LaunchedEffect(randomDeckTrigger) {
+        if (randomDeckTrigger) {
+            showSurpriseMeDialog = true
+            onRandomDeckHandled()
+        }
+    }
+
+    LaunchedEffect(starredWordsTrigger) {
+        if (starredWordsTrigger) {
+            showStarred = true
+            showCreateDeck = false
+            onStarredWordsHandled()
+        }
+    }
+
+    LaunchedEffect(createDeckTrigger) {
+        if (createDeckTrigger) {
+            showCreateDeck = true
+            showStarred = false
+            onCreateDeckHandled()
+        }
+    }
+
+    val deck = if (state.deckId == "starred_review") dynamicStarredDeck else decks.find { it.id == state.deckId }
+    var lastActiveDeck by remember { mutableStateOf<FlashcardDeck?>(null) }
+    if (deck != null) {
+        lastActiveDeck = deck
+    }
+    val activeDeck = deck ?: lastActiveDeck
+
+    val currentStage = when {
+        showStarred -> CardsStage.Starred
+        showCreateDeck -> CardsStage.CreateDeck
+        deck == null -> CardsStage.Browser
+        state.studying -> CardsStage.Study
+        showContent -> CardsStage.Content
+        else -> CardsStage.Detail
+    }
+
+    val subScreenOpen = (deck != null && !state.studying) || showStarred || showCreateDeck
+    val openDeck: (FlashcardDeck) -> Unit = remember { {
+        showContent = false
+        state = state.open(it)
+    } }
     val pinDeck: (String) -> Unit = remember { { state = state.pin(it) } }
     val favoriteCard: (String) -> Unit = remember { { state = state.favorite(it) } }
+
     LaunchedEffect(state.studying) { onStudyModeChanged(state.studying) }
-    LaunchedEffect(deckDetailOpen) { onDeckOpenChanged(deckDetailOpen) }
+    LaunchedEffect(subScreenOpen) { onDeckOpenChanged(subScreenOpen) }
     DisposableEffect(Unit) {
         onDispose {
             onStudyModeChanged(false)
             onDeckOpenChanged(false)
         }
     }
-    BackHandler(enabled = deck != null) { state = state.back() }
-    Box(Modifier.fillMaxSize().background(CardsColors.Background).testTag("screen_cards")) {
+    BackHandler(enabled = deck != null || showStarred || showCreateDeck) {
         when {
-            deck == null -> CategoryGrid(decks, state, openDeck, pinDeck)
-            state.studying -> FlashcardStudyScreen(deck, state, { state = it })
-            else -> DeckDetailScreen(deck, state, { state = it }, favoriteCard)
+            showStarred -> showStarred = false
+            showCreateDeck -> showCreateDeck = false
+            showContent -> showContent = false
+            else -> state = state.back()
+        }
+    }
+
+    val layoutSign = if (LocalLayoutDirection.current == LayoutDirection.Ltr) 1 else -1
+
+    Box(Modifier.fillMaxSize().background(Color.White).testTag("screen_cards")) {
+        AnimatedContent(
+            targetState = currentStage,
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = {
+                val forward = targetState.ordinal > initialState.ordinal
+                val direction = if (forward) layoutSign else -layoutSign
+                (slideInHorizontally(
+                    animationSpec = tween(300, easing = FastOutSlowInEasing),
+                    initialOffsetX = { fullWidth -> direction * fullWidth },
+                ) + fadeIn(
+                    animationSpec = tween(250, easing = LinearOutSlowInEasing),
+                )).togetherWith(
+                    slideOutHorizontally(
+                        animationSpec = tween(280, easing = FastOutSlowInEasing),
+                        targetOffsetX = { fullWidth -> -direction * fullWidth },
+                    ) + fadeOut(
+                        animationSpec = tween(200, easing = FastOutLinearInEasing),
+                    ),
+                ).using(null)
+            },
+            label = "Cards flow navigation",
+        ) { stage ->
+            when (stage) {
+                CardsStage.Browser -> CategoryGrid(decks, state, openDeck, pinDeck)
+                CardsStage.Detail -> {
+                    if (activeDeck != null) {
+                        DeckDetailScreen(activeDeck, state, { state = it }, favoriteCard, onShowContent = { showContent = true })
+                    }
+                }
+                CardsStage.Content -> {
+                    if (activeDeck != null) {
+                        DeckContentScreen(activeDeck, state, favoriteCard, onClose = { showContent = false })
+                    }
+                }
+                CardsStage.Study -> {
+                    if (activeDeck != null) {
+                        FlashcardStudyScreen(activeDeck, state, { state = it })
+                    }
+                }
+                CardsStage.Starred -> {
+                    StarredCardsScreen(
+                        decks = decks,
+                        state = state,
+                        onToggleFavorite = favoriteCard,
+                        onStartReview = { starredCards ->
+                            val dynamicDeck = FlashcardDeck(
+                                id = "starred_review",
+                                title = "Starred Words",
+                                category = "Favorites",
+                                icon = "star",
+                                cards = starredCards,
+                            )
+                            dynamicStarredDeck = dynamicDeck
+                            showStarred = false
+                            state = state.start(dynamicDeck, size = null)
+                        },
+                        onBack = { showStarred = false },
+                    )
+                }
+                CardsStage.CreateDeck -> {
+                    CreateDeckPlaceholderScreen(
+                        onBack = { showCreateDeck = false },
+                    )
+                }
+            }
+        }
+
+        if (showSurpriseMeDialog && deck == null) {
+            val counts = remember(decks, state.ratings, state.srsRecords) {
+                decks.associate { it.id to state.counts(it) }
+            }
+            SurpriseMeDialog(
+                decks = decks,
+                counts = counts,
+                onDismiss = { showSurpriseMeDialog = false },
+                onOpenDeck = openDeck,
+            )
         }
     }
 }
 
 @Composable
-private fun CategoryGrid(decks: List<FlashcardDeck>, state: FlashcardState,
-    onOpen: (FlashcardDeck) -> Unit, onFavorite: (String) -> Unit) {
+private fun CategoryGrid(
+    decks: List<FlashcardDeck>,
+    state: FlashcardState,
+    onOpen: (FlashcardDeck) -> Unit,
+    onFavorite: (String) -> Unit,
+) {
     val sorted = remember(decks, state.pinned) { decks.sortedByDescending { it.id in state.pinned } }
-    val counts = remember(decks, state.ratings) { decks.associate { it.id to state.counts(it) } }
-    val wordCount = remember(decks) { decks.sumOf { it.cards.size } }
+    val counts = remember(decks, state.ratings, state.srsRecords) { decks.associate { it.id to state.counts(it) } }
     val density = LocalDensity.current
     val largeText = density.fontScale > 1.3f
     val columns = remember { GridCells.Fixed(2) }
-    var selectedSection by rememberSaveable { mutableStateOf("decks") }
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        // Match the grid's pixel rounding, including unequal columns at odd widths.
-        // Compute once per viewport instead of subcomposing every incoming tile.
+    var masteredExpanded by rememberSaveable { mutableStateOf(false) }
+
+    val (masteredDecks, activeDecks) = remember(sorted, counts) {
+        sorted.partition { deck ->
+            val c = counts.getValue(deck.id)
+            c.mastered == deck.cards.size && deck.cards.isNotEmpty()
+        }
+    }
+    val wordCount = remember(activeDecks) { activeDecks.sumOf { it.cards.size } }
+
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.White)) {
         val tileMinHeights = remember(constraints.maxWidth, density) {
             with(columns) {
                 with(density) {
@@ -82,98 +270,471 @@ private fun CategoryGrid(decks: List<FlashcardDeck>, state: FlashcardState,
                 }
             }
         }
-        LazyVerticalGrid(columns = columns, modifier = Modifier.fillMaxSize().testTag("cards_grid"),
-            contentPadding = PaddingValues(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item(key = "sections", contentType = "sections", span = { GridItemSpan(maxLineSpan) }) {
-                Column(Modifier.padding(top = 4.dp, bottom = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    CardsSectionControl(selectedSection) { selectedSection = it }
-                    if (selectedSection == "decks") FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("YOUR DECKS", color = CardsColors.Ink, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                        Text("${decks.size} decks · $wordCount words", color = CardsColors.Muted, fontSize = 12.sp)
-                    }
+        LazyVerticalGrid(
+            columns = columns,
+            modifier = Modifier.fillMaxSize().testTag("cards_grid"),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item(key = "decks_header", contentType = "header", span = { GridItemSpan(maxLineSpan) }) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("YOUR DECKS", color = CardsColors.Ink, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                    Text("${activeDecks.size} active · $wordCount words", color = CardsColors.Muted, fontSize = 12.sp)
                 }
             }
-            if (selectedSection == "decks") itemsIndexed(sorted, key = { _, deck -> deck.id },
-                contentType = { _, _ -> "deck" }) { index, deck ->
-                DeckTile(deck, counts.getValue(deck.id), deck.id in state.pinned, largeText,
-                    tileMinHeights[index % 2], onOpen, onFavorite)
-            }
+                // Active Decks
+                itemsIndexed(
+                    activeDecks,
+                    key = { _, deck -> deck.id },
+                    contentType = { _, _ -> "deck" },
+                ) { index, deck ->
+                    DeckTile(
+                        deck = deck,
+                        counts = counts.getValue(deck.id),
+                        pinned = deck.id in state.pinned,
+                        largeText = largeText,
+                        minHeight = tileMinHeights[index % 2],
+                        isMastered = false,
+                        onOpen = onOpen,
+                        onFavorite = onFavorite,
+                    )
+                }
+
+                // Mastered Decks Section (Separated & Collapsible)
+                if (masteredDecks.isNotEmpty()) {
+                    item(key = "mastered_header", contentType = "mastered_header", span = { GridItemSpan(maxLineSpan) }) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { masteredExpanded = !masteredExpanded }
+                                .padding(vertical = 10.dp, horizontal = 4.dp)
+                                .testTag("mastered_decks_header"),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_trophy),
+                                    contentDescription = null,
+                                    tint = CardsColors.Green,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Text(
+                                    "MASTERED DECKS (${masteredDecks.size})",
+                                    color = CardsColors.Green,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp,
+                                )
+                            }
+                            Text(
+                                if (masteredExpanded) "Hide" else "Show",
+                                color = CardsColors.Muted,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
+                    }
+
+                    if (masteredExpanded) {
+                        itemsIndexed(
+                            masteredDecks,
+                            key = { _, deck -> "mastered_${deck.id}" },
+                            contentType = { _, _ -> "deck" },
+                        ) { index, deck ->
+                            DeckTile(
+                                deck = deck,
+                                counts = counts.getValue(deck.id),
+                                pinned = deck.id in state.pinned,
+                                largeText = largeText,
+                                minHeight = tileMinHeights[index % 2],
+                                isMastered = true,
+                                onOpen = onOpen,
+                                onFavorite = onFavorite,
+                            )
+                        }
+                    }
+                }
         }
     }
 }
 
 @Composable
-private fun DeckTile(deck: FlashcardDeck, counts: DeckCounts, pinned: Boolean, largeText: Boolean,
-    minHeight: Dp, onOpen: (FlashcardDeck) -> Unit, onFavorite: (String) -> Unit) {
-    CardsPressable({ onOpen(deck) }, Modifier.fillMaxWidth().testTag("deck_${deck.id}"),
-        padding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)) {
-        Column(Modifier.fillMaxWidth().heightIn(min = minHeight),
-            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween) {
-                if (largeText) DeckBadge(deck) else {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+private fun DeckTile(
+    deck: FlashcardDeck,
+    counts: DeckCounts,
+    pinned: Boolean,
+    largeText: Boolean,
+    minHeight: Dp,
+    isMastered: Boolean = false,
+    onOpen: (FlashcardDeck) -> Unit,
+    onFavorite: (String) -> Unit,
+) {
+    if (isMastered) {
+        CardsPressable(
+            onClick = { onOpen(deck) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("deck_${deck.id}"),
+            face = CardsColors.Green,
+            depth = CardsColors.GreenDepth,
+            padding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = minHeight),
+                verticalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    DeckBadge(deck)
+                    MarkButton("heart", pinned, "Favorite ${deck.title}", "favorite_deck_${deck.id}") {
+                        onFavorite(deck.id)
+                    }
+                }
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        deck.title,
+                        color = Color.White,
+                        fontSize = if (largeText) 12.sp else 15.sp,
+                        lineHeight = if (largeText) 15.sp else 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                    )
+                    Text(
+                        "${deck.cards.size} words",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 2.dp)
+                        .testTag("indicator_mastered_${deck.id}"),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_trophy),
+                        contentDescription = "Mastered",
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(22.dp)
+                            .testTag("badge_trophy_${deck.id}"),
+                    )
+                }
+            }
+        }
+    } else {
+        CardsPressable(
+            onClick = { onOpen(deck) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("deck_${deck.id}"),
+            padding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = minHeight),
+                verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    if (largeText) {
                         DeckBadge(deck)
-                        Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
+                    } else {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            DeckBadge(deck)
+                            Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
+                        }
+                    }
+                    MarkButton("heart", pinned, "Favorite ${deck.title}", "favorite_deck_${deck.id}") {
+                        onFavorite(deck.id)
                     }
                 }
-                MarkButton("heart", pinned, "Favorite ${deck.title}", "favorite_deck_${deck.id}") {
-                    onFavorite(deck.id)
+                Text(
+                    deck.title,
+                    color = CardsColors.Ink,
+                    fontSize = if (largeText) 11.sp else 14.sp,
+                    lineHeight = if (largeText) 14.sp else 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.heightIn(min = if (largeText) 46.dp else 52.dp),
+                )
+                if (largeText) {
+                    Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
                 }
-            }
-            Text(deck.title, color = CardsColors.Ink,
-                fontSize = if (largeText) 11.sp else 14.sp,
-                lineHeight = if (largeText) 14.sp else 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.heightIn(min = if (largeText) 46.dp else 52.dp))
-            if (largeText) Text("${deck.cards.size} words", color = CardsColors.Muted, fontSize = 10.sp)
-            if (largeText) {
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    StatLine(counts.new, "New", CardsColors.Blue)
-                    StatLine(counts.weak, "Weak", CardsColors.Coral)
-                    StatLine(counts.mastered, "Mastered", CardsColors.Green)
+                if (largeText) {
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        StatLine(counts.due, "Due", CardsColors.Blue)
+                        StatLine(counts.weak, "Weak", CardsColors.Coral)
+                        StatLine(counts.mastered, "Mastered", CardsColors.Green)
+                    }
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                        TileCount(counts.due, "Due", CardsColors.Blue, Modifier.weight(1f))
+                        TileCount(counts.weak, "Weak", CardsColors.Coral, Modifier.weight(1f))
+                        TileCount(counts.mastered, "Mastered", CardsColors.Green, Modifier.weight(1f))
+                    }
                 }
-            } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                TileCount(counts.new, "New", CardsColors.Blue, Modifier.weight(1f))
-                TileCount(counts.weak, "Weak", CardsColors.Coral, Modifier.weight(1f))
-                TileCount(counts.mastered, "Mastered", CardsColors.Green, Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun CardsSectionControl(selectedSection: String, select: (String) -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    Row(Modifier.fillMaxWidth().clip(shape).background(CardsColors.Surface)
-        .border(1.dp, CardsColors.Edge, shape).padding(3.dp).testTag("cards_sections")) {
-        listOf("decks" to "Decks", "mixes" to "Mixes").forEach { (id, label) ->
-            val selected = selectedSection == id
-            Box(Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
-                .background(if (selected) CardsColors.Blue else Color.Transparent)
-                .clickable(role = Role.Tab) { select(id) }
-                .testTag("cards_section_$id").semantics { this.selected = selected; role = Role.Tab }
-                .padding(vertical = 11.dp), contentAlignment = Alignment.Center) {
-                Text(label, color = if (selected) Color.White else CardsColors.Ink,
-                    fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
+private fun SurpriseMeDialog(
+    decks: List<FlashcardDeck>,
+    counts: Map<String, DeckCounts>,
+    onDismiss: () -> Unit,
+    onOpenDeck: (FlashcardDeck) -> Unit,
+) {
+    var seed by rememberSaveable { mutableIntStateOf(0) }
+
+    val eligibleDecks = remember(decks, counts) {
+        decks.filter { deck ->
+            val c = counts[deck.id]
+            c == null || c.mastered < deck.cards.size || deck.cards.isEmpty()
         }
     }
+
+    val selectedDeck = remember(eligibleDecks, seed) {
+        if (eligibleDecks.isNotEmpty()) eligibleDecks.random(Random(System.currentTimeMillis() + seed)) else null
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("surprise_me_dialog"),
+        shape = RoundedCornerShape(16.dp),
+        containerColor = CardsColors.Surface,
+        title = {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "DAILY SHUFFLE",
+                    color = CardsColors.Ink,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                )
+                TactileButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(36.dp).testTag("close_dialog"),
+                    tone = TactileTone.Quiet,
+                    padding = PaddingValues(6.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_close),
+                        contentDescription = "Close",
+                        tint = CardsColors.Ink,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                if (selectedDeck != null) {
+                    val deckCount = counts[selectedDeck.id]
+
+                    // Crisp square deck icon badge with breathing room
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CardsColors.Surface)
+                            .border(1.dp, CardsColors.Edge, RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        DeckArtwork(selectedDeck, Modifier.size(34.dp))
+                    }
+
+                    // Deck title and word count
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = selectedDeck.title,
+                            color = CardsColors.Ink,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 23.sp,
+                        )
+                        Text(
+                            text = "${selectedDeck.cards.size} words",
+                            color = CardsColors.Muted,
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+
+                    // Zero-bubble typographic stats
+                    if (deckCount != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${deckCount.due}",
+                                    color = CardsColors.Blue,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    text = "DUE",
+                                    color = CardsColors.Muted,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp,
+                                )
+                            }
+                            Box(
+                                Modifier
+                                    .width(1.dp)
+                                    .height(24.dp)
+                                    .background(CardsColors.Edge)
+                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${deckCount.weak}",
+                                    color = CardsColors.Coral,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    text = "WEAK",
+                                    color = CardsColors.Muted,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp,
+                                )
+                            }
+                            Box(
+                                Modifier
+                                    .width(1.dp)
+                                    .height(24.dp)
+                                    .background(CardsColors.Edge)
+                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${deckCount.mastered}",
+                                    color = CardsColors.Green,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    text = "MASTERED",
+                                    color = CardsColors.Muted,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp,
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "All active decks are 100% mastered!",
+                            color = CardsColors.Muted,
+                            fontSize = 13.sp,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (selectedDeck != null) {
+                    CardsButton(
+                        label = "START REVIEW",
+                        onClick = {
+                            onDismiss()
+                            onOpenDeck(selectedDeck)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("open_random_deck"),
+                    )
+                }
+                if (eligibleDecks.size > 1) {
+                    CardsButton(
+                        label = "Roll Again",
+                        onClick = { seed += 1 },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("roll_again"),
+                        background = CardsColors.Surface,
+                        ink = CardsColors.Ink,
+                        depth = CardsColors.Edge,
+                    )
+                }
+            }
+        },
+    )
 }
 
+
 @Composable
-private fun StatLine(count: Int, label: String, color: androidx.compose.ui.graphics.Color) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically) {
+private fun StatLine(count: Int, label: String, color: Color) {
+    Row(
+        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text(label, color = CardsColors.Ink, fontSize = 8.sp, modifier = Modifier.weight(1f))
         Text("$count", color = color, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-private fun TileCount(count: Int, label: String, color: androidx.compose.ui.graphics.Color, modifier: Modifier) {
+private fun TileCount(count: Int, label: String, color: Color, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(1.dp)) {
         Text("$count", color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         Text(label, color = CardsColors.Ink, fontSize = 8.sp, maxLines = 1)

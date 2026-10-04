@@ -77,6 +77,15 @@ internal fun DeckArtwork(deck: FlashcardDeck, modifier: Modifier = Modifier) {
                 "deck_39" -> { box(3f, 21f, 7f, 9f, Mint); box(13f, 13f, 7f, 17f, Gold); box(23f, 3f, 7f, 27f, Coral) }
                 "deck_40" -> { box(3f, 4f, 26f, 20f, Blue); polygon(Blue, 8f, 22f, 8f, 30f, 17f, 22f); line(10f, 10f, 8f, 16f, Paper, 3f); line(21f, 10f, 19f, 16f, Paper, 3f) }
                 "deck_41" -> { polygon(Mint, 3f, 5f, 16f, 2f, 29f, 5f, 27f, 22f, 16f, 31f, 5f, 22f); box(13f, 8f, 6f, 16f, Color.White); box(8f, 13f, 16f, 6f, Color.White) }
+                "deck_42" -> { box(5f, 12f, 22f, 15f, Coral); line(11f, 12f, 11f, 6f, Navy); line(21f, 12f, 21f, 6f, Navy); line(11f, 6f, 21f, 6f, Navy); disc(16f, 19f, 3f, Gold) }
+                "deck_43" -> { polygon(Coral, 16f, 3f, 29f, 27f, 3f, 27f); line(16f, 11f, 16f, 19f, Color.White, 3f); disc(16f, 23f, 1.6f, Color.White) }
+                "deck_44" -> { arrow(4f, 10f, 28f, 10f, Mint); arrow(28f, 22f, 4f, 22f, Blue) }
+                "deck_45" -> { disc(16f, 13f, 10f, Blue); disc(10f, 24f, 3f, Mint); disc(7f, 28f, 1.8f, Mint); line(12f, 13f, 20f, 13f, Paper) }
+                "deck_46" -> { box(6f, 12f, 20f, 15f, Violet); line(16f, 12f, 16f, 27f, Gold, 3f); line(6f, 19f, 26f, 19f, Gold, 3f); disc(16f, 10f, 4f, Coral) }
+                "deck_47" -> { box(7f, 10f, 15f, 16f, Coral); drawArc(Navy, 270f, 180f, false, Offset(17f, 12f), Size(10f, 10f), style = Stroke(2.5f)); line(10f, 6f, 12f, 3f, Gold, 2f); line(16f, 6f, 18f, 3f, Gold, 2f) }
+                "deck_48" -> { disc(16f, 16f, 6f, Gold); line(16f, 3f, 16f, 8f, Coral, 2.5f); line(16f, 24f, 16f, 29f, Coral, 2.5f); line(3f, 16f, 8f, 16f, Blue, 2.5f); line(24f, 16f, 29f, 16f, Blue, 2.5f) }
+                "deck_49" -> { line(4f, 8f, 28f, 8f, Coral, 3.5f); line(7f, 13f, 25f, 13f, Coral, 2.5f); line(10f, 8f, 10f, 29f, Coral, 3f); line(22f, 8f, 22f, 29f, Coral, 3f); box(14f, 8f, 4f, 5f, Gold) }
+                "deck_50" -> { box(4f, 5f, 24f, 18f, Mint); polygon(Mint, 8f, 22f, 8f, 28f, 16f, 22f); line(16f, 9f, 16f, 15f, Color.White, 3f); disc(16f, 18f, 1.5f, Color.White) }
                 else -> { box(4f, 5f, 24f, 23f, Blue); line(16f, 7f, 16f, 26f, Paper) }
             }
         }

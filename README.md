@@ -82,3 +82,13 @@ Local Robolectric tests run against an API 35 Android runtime with native graphi
 Test-tool compatibility: Robolectric 4.16.1's native loader mishandles spaces in Maven cache paths. The test task uses a `koto-robolectric-maven` cache beneath the system temporary directory (a short path on this Windows installation). If that directory contains spaces on another machine, pass `-ProbolectricMavenCache=<a-path-without-spaces>`. Screenshots use native `PixelCopy` directly to avoid Compose's device-only frame-commit wait in this runtime. These accommodations are test-only and add nothing to the APK.
 
 Implementation references: [Android state restoration](https://developer.android.com/develop/ui/compose/state-saving), [system insets](https://developer.android.com/develop/ui/compose/system/insets-ui), [accessibility defaults](https://developer.android.com/develop/ui/compose/accessibility/api-defaults), [AGP 9.1.1 compatibility](https://developer.android.com/build/releases/agp-9-1-0-release-notes).
+
+## Design Philosophy & UI Standards
+
+Koto enforces strict design guidelines based on a Japanese editorial aesthetic and tactile interactions. See [`docs/DESIGN_PHILOSOPHY.md`](docs/DESIGN_PHILOSOPHY.md) for the complete reference. Key non-negotiable rules include:
+- **Anti-Bubble Principle**: Zero cartoonish nested cards or pastel pill chips. Content stands out via typography hierarchy, disciplined whitespace, and crisp hairline dividers.
+- **Glued Spatial Placement**: Anchored controls and fixed slot heights to ensure dynamic text never pushes or shifts buttons.
+- **Pure White Neutrals**: Dialogs and neutral buttons use pure white fills (`CardsColors.Surface`) with tactile edge depth (`CardsColors.Edge`); no grey fills.
+- **Square Geometry**: Badges and miniatures use crisp 6–8dp corners with hairline borders.
+- **Top Dismiss**: Popups and sheets use top-right `[X]` controls; never clutter bottom action areas with redundant "Close" buttons.
+

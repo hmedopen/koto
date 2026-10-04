@@ -43,6 +43,9 @@ fun KotoApp() {
     var lessonId by rememberSaveable { mutableStateOf<Int?>(null) }
     var cardsStudying by rememberSaveable { mutableStateOf(false) }
     var cardsDeckOpen by rememberSaveable { mutableStateOf(false) }
+    var randomDeckTrigger by rememberSaveable { mutableStateOf(false) }
+    var starredWordsTrigger by rememberSaveable { mutableStateOf(false) }
+    var createDeckTrigger by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val progress = remember { LessonProgress(context) }
@@ -75,12 +78,30 @@ fun KotoApp() {
                             onBack = if (selected == KotoDestination.Cards && cardsDeckOpen) {
                                 { backDispatcher?.onBackPressed() }
                             } else null,
+                            onRandomDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                { randomDeckTrigger = true }
+                            } else null,
+                            onStarredWords = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                { starredWordsTrigger = true }
+                            } else null,
+                            onCreateDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                { createDeckTrigger = true }
+                            } else null,
                         )
                     }
-                    KotoNavigation(selected, Modifier.weight(1f).fillMaxWidth(), progress.completed,
+                    KotoNavigation(
+                        selected = selected,
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        completed = progress.completed,
                         onPlay = { lessonId = it },
                         onCardsStudyModeChanged = { cardsStudying = it },
                         onCardsDeckOpenChanged = { cardsDeckOpen = it },
+                        randomDeckTrigger = randomDeckTrigger,
+                        onRandomDeckHandled = { randomDeckTrigger = false },
+                        starredWordsTrigger = starredWordsTrigger,
+                        onStarredWordsHandled = { starredWordsTrigger = false },
+                        createDeckTrigger = createDeckTrigger,
+                        onCreateDeckHandled = { createDeckTrigger = false },
                     )
                 }
                 if (!cardsStudying && !(selected == KotoDestination.Cards && cardsDeckOpen)) {
