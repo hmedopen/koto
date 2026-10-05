@@ -11,6 +11,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -20,6 +30,7 @@ import com.koto.app.feature.lesson.LessonScreen
 import com.koto.app.feature.lesson.audio.JapaneseTtsController
 import com.koto.app.feature.lesson.data.LessonProgress
 import com.koto.app.feature.lesson.data.FoundationLessons
+import com.koto.app.feature.translator.ui.TranslatorScreen
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,9 +54,12 @@ fun KotoApp() {
     var lessonId by rememberSaveable { mutableStateOf<Int?>(null) }
     var cardsStudying by rememberSaveable { mutableStateOf(false) }
     var cardsDeckOpen by rememberSaveable { mutableStateOf(false) }
+    var cardsCreateDeckOpen by rememberSaveable { mutableStateOf(false) }
+    var cardsContentOpen by rememberSaveable { mutableStateOf(false) }
     var randomDeckTrigger by rememberSaveable { mutableStateOf(false) }
     var starredWordsTrigger by rememberSaveable { mutableStateOf(false) }
     var createDeckTrigger by rememberSaveable { mutableStateOf(false) }
+    var translatorOpen by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val progress = remember { LessonProgress(context) }
@@ -53,7 +67,7 @@ fun KotoApp() {
     val shellState = rememberSaveableStateHolder()
 
     // Top-level section changes don't accumulate a history of tab taps.
-    BackHandler(enabled = lessonId == null && selected != KotoDestination.Learn) {
+    BackHandler(enabled = lessonId == null && !translatorOpen && selected != KotoDestination.Learn) {
         selected = KotoDestination.Learn
     }
 
@@ -64,48 +78,80 @@ fun KotoApp() {
             LessonScreen(lesson, audio, progress::complete, onExit = { lessonId = null; selected = KotoDestination.Map })
         }
     } else {
-        shellState.SaveableStateProvider("main_shell") {
-            Column(Modifier.fillMaxSize().background(KotoColors.Background)) {
-                Column(
-                    Modifier.weight(1f).fillMaxWidth().windowInsetsPadding(
-                        WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-                    ),
-                ) {
-                    if (selected != KotoDestination.Cards || !cardsStudying) {
-                        KotoTopBar(
-                            title = selected.title,
-                            onSettings = { settingsOpen = true },
-                            onBack = if (selected == KotoDestination.Cards && cardsDeckOpen) {
-                                { backDispatcher?.onBackPressed() }
-                            } else null,
-                            onRandomDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
-                                { randomDeckTrigger = true }
-                            } else null,
-                            onStarredWords = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
-                                { starredWordsTrigger = true }
-                            } else null,
-                            onCreateDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
-                                { createDeckTrigger = true }
-                            } else null,
-                        )
-                    }
-                    KotoNavigation(
-                        selected = selected,
-                        modifier = Modifier.weight(1f).fillMaxWidth(),
-                        completed = progress.completed,
-                        onPlay = { lessonId = it },
-                        onCardsStudyModeChanged = { cardsStudying = it },
-                        onCardsDeckOpenChanged = { cardsDeckOpen = it },
-                        randomDeckTrigger = randomDeckTrigger,
-                        onRandomDeckHandled = { randomDeckTrigger = false },
-                        starredWordsTrigger = starredWordsTrigger,
-                        onStarredWordsHandled = { starredWordsTrigger = false },
-                        createDeckTrigger = createDeckTrigger,
-                        onCreateDeckHandled = { createDeckTrigger = false },
+        AnimatedContent(
+            targetState = translatorOpen,
+            transitionSpec = {
+                if (targetState) {
+                    (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth } +
+                        fadeIn(tween(250, easing = LinearOutSlowInEasing))).togetherWith(
+                        slideOutHorizontally(tween(280, easing = FastOutSlowInEasing)) { fullWidth -> -fullWidth } +
+                            fadeOut(tween(200, easing = FastOutLinearInEasing)),
+                    )
+                } else {
+                    (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { fullWidth -> -fullWidth } +
+                        fadeIn(tween(250, easing = LinearOutSlowInEasing))).togetherWith(
+                        slideOutHorizontally(tween(280, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth } +
+                            fadeOut(tween(200, easing = FastOutLinearInEasing)),
                     )
                 }
-                if (!cardsStudying && !(selected == KotoDestination.Cards && cardsDeckOpen)) {
-                    KotoBottomBar(selected = selected, onSelect = { selected = it })
+            },
+            label = "Translator dedicated screen transition",
+        ) { isTranslator ->
+            if (isTranslator) {
+                TranslatorScreen(onDismiss = { translatorOpen = false }, onSettings = { settingsOpen = true })
+            } else {
+                shellState.SaveableStateProvider("main_shell") {
+                    Column(Modifier.fillMaxSize().background(KotoColors.Background)) {
+                        Column(
+                            Modifier.weight(1f).fillMaxWidth().windowInsetsPadding(
+                                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                            ),
+                        ) {
+                            if ((selected != KotoDestination.Cards || !cardsStudying) && !cardsCreateDeckOpen) {
+                                val topBarTitle = if (selected == KotoDestination.Cards && cardsContentOpen) {
+                                    "Deck Content"
+                                } else {
+                                    selected.title
+                                }
+                                KotoTopBar(
+                                    title = topBarTitle,
+                                    onSettings = { settingsOpen = true },
+                                    onBack = if (selected == KotoDestination.Cards && cardsDeckOpen) {
+                                        { backDispatcher?.onBackPressed() }
+                                    } else null,
+                                    onRandomDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                        { randomDeckTrigger = true }
+                                    } else null,
+                                    onStarredWords = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                        { starredWordsTrigger = true }
+                                    } else null,
+                                    onCreateDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                        { createDeckTrigger = true }
+                                    } else null,
+                                )
+                            }
+                            KotoNavigation(
+                                selected = selected,
+                                modifier = Modifier.weight(1f).fillMaxWidth(),
+                                completed = progress.completed,
+                                onPlay = { lessonId = it },
+                                onCardsStudyModeChanged = { cardsStudying = it },
+                                onCardsDeckOpenChanged = { cardsDeckOpen = it },
+                                onCardsCreateDeckModeChanged = { cardsCreateDeckOpen = it },
+                                onCardsContentOpenChanged = { cardsContentOpen = it },
+                                randomDeckTrigger = randomDeckTrigger,
+                                onRandomDeckHandled = { randomDeckTrigger = false },
+                                starredWordsTrigger = starredWordsTrigger,
+                                onStarredWordsHandled = { starredWordsTrigger = false },
+                                createDeckTrigger = createDeckTrigger,
+                                onCreateDeckHandled = { createDeckTrigger = false },
+                                onOpenTranslator = { translatorOpen = true },
+                            )
+                        }
+                        if (!cardsStudying && !cardsCreateDeckOpen && !(selected == KotoDestination.Cards && cardsDeckOpen)) {
+                            KotoBottomBar(selected = selected, onSelect = { selected = it })
+                        }
+                    }
                 }
             }
         }

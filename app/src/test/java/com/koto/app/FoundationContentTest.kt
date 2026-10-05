@@ -8,12 +8,19 @@ import com.koto.app.feature.lesson.model.*
 import com.koto.app.ui.screens.map.MapFixtures
 import com.koto.app.ui.screens.map.MapRow
 import org.junit.Assert.*
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class FoundationContentTest {
+    @Before
+    fun setUp() {
+        SrsTracker.defaultInstance?.clear()
+    }
     @Test fun onlyStagesOneAndTwoHaveContentAndEverySourceStaysWithinTheLearnedRange() {
         assertEquals((1..12).toList(), FoundationLessons.levels.map { it.id })
         assertEquals(List(5) { 1 } + List(7) { 2 }, FoundationLessons.levels.map { it.stage })

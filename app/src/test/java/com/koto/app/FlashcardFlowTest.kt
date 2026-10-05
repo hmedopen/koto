@@ -41,12 +41,118 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("cards_grid").assertIsDisplayed()
     }
 
-    @Test fun createDeckPlaceholderOpensAndCloses() {
+    @Test fun starredWordsScreenDeferredUnstarring() {
+        // 1. Open Deck 01 and favorite card_01_001
+        openDeck()
+        compose.waitForIdle()
+        detailNode("favorite_card_01_001").performClick()
+        compose.waitForIdle()
+
+        // 2. Go back to cards grid
+        back()
+        if (compose.onAllNodesWithTag("deck_detail").fetchSemanticsNodes().isNotEmpty()) {
+            back()
+        }
+        compose.waitForIdle()
+        compose.onNodeWithTag("cards_grid").assertIsDisplayed()
+
+        // 3. Open Starred Words screen
+        compose.onNodeWithTag("cards_starred_words").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("starred_cards_screen").assertIsDisplayed()
+        compose.onNodeWithTag("favorite_card_01_001").assertIsDisplayed()
+
+        // 4. Unstar the card: it must remain visible in the list during the active session!
+        compose.onNodeWithTag("favorite_card_01_001").performClick()
+        compose.waitForIdle()
+        // Card is STILL displayed in the list (deferred unstarring)
+        compose.onNodeWithTag("favorite_card_01_001").assertIsDisplayed()
+
+        // 5. Navigate back to grid
+        compose.onNodeWithTag("cards_detail_back").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("cards_grid").assertIsDisplayed()
+
+        // 6. Re-open Starred Words screen: unstarred card is now removed
+        compose.onNodeWithTag("cards_starred_words").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("favorite_card_01_001").assertDoesNotExist()
+    }
+
+    @Test fun createDeckScreenOpensAndCloses() {
         compose.onNodeWithTag("tab_cards").performClick()
         compose.onNodeWithTag("cards_create_deck").performClick()
-        compose.onNodeWithTag("create_deck_placeholder_screen").assertIsDisplayed()
-        compose.onNodeWithTag("cards_detail_back").performClick()
+        compose.onNodeWithTag("create_deck_back").assertIsDisplayed()
+        compose.onNodeWithText("Create Deck").assertIsDisplayed()
+        compose.onNodeWithTag("create_deck_save").assertIsDisplayed()
+        compose.onNodeWithTag("create_deck_back").performClick()
         compose.onNodeWithTag("cards_grid").assertIsDisplayed()
+    }
+
+    @Test fun createCustomDeckPersistsAndAppearsInGrid() {
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.onNodeWithTag("cards_create_deck").performClick()
+        compose.onNodeWithTag("create_deck_save").assertIsNotEnabled()
+
+        // Input title
+        compose.onNodeWithTag("input_deck_title").performTextInput("Custom Colors")
+
+        // Quick add card
+        compose.onNodeWithTag("input_quick_kana").performTextInput("あか")
+        compose.onNodeWithTag("input_quick_english").performTextInput("Red")
+        compose.onNodeWithTag("btn_quick_add_save").performClick()
+
+        // Verify card added to list and Save button is enabled
+        compose.onNodeWithText("あか").assertIsDisplayed()
+        compose.onNodeWithText("Red").assertIsDisplayed()
+        compose.onNodeWithTag("create_deck_save").assertIsEnabled()
+
+        // Save deck
+        compose.onNodeWithTag("create_deck_save").performClick()
+        compose.waitForIdle()
+
+        // Navigates directly into the new deck detail or grid with the new deck
+        compose.onNodeWithText("Custom Colors").assertIsDisplayed()
+    }
+
+    @Test fun continuousCardAdditionAndEditCardFlow() {
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.onNodeWithTag("cards_create_deck").performClick()
+
+        // 1. First card addition
+        compose.onNodeWithTag("input_quick_kana").performTextInput("みどり")
+        compose.onNodeWithTag("input_quick_english").performTextInput("Green")
+        compose.onNodeWithTag("btn_quick_add_save").performClick()
+
+        // Verify first card in deck
+        compose.onNodeWithText("みどり").assertIsDisplayed()
+        compose.onNodeWithText("Green").assertIsDisplayed()
+
+        // 2. Continuous second card addition on the spot
+        compose.onNodeWithTag("input_quick_kana").performTextInput("くろ")
+        compose.onNodeWithTag("input_quick_english").performTextInput("Black")
+        compose.onNodeWithTag("btn_quick_add_save").performClick()
+
+        // Verify both cards exist
+        compose.onNodeWithText("みどり").assertIsDisplayed()
+        compose.onNodeWithText("くろ").assertIsDisplayed()
+        compose.onNodeWithText("Black").assertIsDisplayed()
+
+        // 3. Edit single card flow
+        compose.onAllNodesWithContentDescription("Edit Card")[0].performClick()
+        compose.waitForIdle()
+
+        // Verify on Edit Card screen
+        compose.onNodeWithText("Edit Card").assertIsDisplayed()
+        compose.onNodeWithTag("input_editor_english").performTextClearance()
+        compose.onNodeWithTag("input_editor_english").performTextInput("Emerald Green")
+        compose.onNodeWithTag("btn_edit_card_save").performClick()
+        compose.waitForIdle()
+
+        // Verify returned to overview and edited text is displayed
+        compose.onNodeWithText("Create Deck").assertIsDisplayed()
+        compose.onNodeWithText("Emerald Green").assertIsDisplayed()
     }
 
     @Test fun deckContentScreenBackArrowTakesToDeckDetailNotCatalog() {
@@ -57,9 +163,11 @@ class FlashcardFlowTest {
         } catch (_: Throwable) {}
         compose.onNodeWithTag("show_content").performClick()
         compose.waitForIdle()
+        compose.onNodeWithTag("top_bar_title").assertTextEquals("Deck Content")
         compose.onNodeWithTag("content_table").assertIsDisplayed()
         compose.onNodeWithTag("cards_detail_back").performClick()
         compose.waitForIdle()
+        compose.onNodeWithTag("top_bar_title").assertTextEquals("Cards")
         compose.onNodeWithTag("deck_detail").assertIsDisplayed()
         compose.onNodeWithTag("cards_detail_back").performClick()
         compose.waitForIdle()
@@ -360,6 +468,70 @@ class FlashcardFlowTest {
         screenshot("flashcards-large-text")
         compose.onNodeWithTag("rate_easy").performClick()
         compose.onNodeWithText("おはようございます").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun englishSideAudioPlaysWithoutIssue() {
+        openDeck()
+        detailNode("english_first").performClick()
+        detailNode("start_flashcards").performClick()
+        compose.onNodeWithTag("play_audio").assertIsDisplayed()
+        compose.onNodeWithTag("play_audio").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("cards_back").performClick()
+        compose.onNodeWithTag("quit_session").performClick()
+    }
+
+    @Test fun quickTranslationsDeckShowsInfoAndCanBeDeleted() {
+        val context = compose.activity
+        val store = com.koto.app.feature.translator.data.TranslatorCardStore(context)
+        store.toggleStar(
+            sourceText = "spoon",
+            targetText = "スプーン",
+            targetRomaji = "supuun",
+            sourceLang = com.koto.app.feature.translator.model.TranslationLanguage.English,
+            targetLang = com.koto.app.feature.translator.model.TranslationLanguage.Japanese,
+        )
+
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Quick Translations").assertIsDisplayed()
+        compose.onNodeWithText("Quick Translations").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Auto-synced from your starred translations in Learn → Translate").assertIsDisplayed()
+        compose.onNodeWithTag("btn_delete_deck").performClick()
+        compose.onNodeWithText("Delete Quick Translations?").assertIsDisplayed()
+        compose.onNodeWithTag("btn_confirm_delete_deck").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Quick Translations").assertDoesNotExist()
+    }
+
+    @Test fun deleteDeckDialogCancelLeavesDeckIntact() {
+        val context = compose.activity
+        com.koto.app.feature.translator.data.TranslatorCardStore(context).toggleStar(
+            sourceText = "fork",
+            targetText = "フォーク",
+            targetRomaji = "fooku",
+            sourceLang = com.koto.app.feature.translator.model.TranslationLanguage.English,
+            targetLang = com.koto.app.feature.translator.model.TranslationLanguage.Japanese,
+        )
+
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Quick Translations").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("btn_delete_deck").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithText("Delete Quick Translations?").assertIsDisplayed()
+        compose.onNodeWithTag("btn_cancel_delete_deck").assertIsDisplayed()
+        compose.onNodeWithTag("btn_confirm_delete_deck").assertIsDisplayed()
+
+        // Cancel
+        compose.onNodeWithTag("btn_cancel_delete_deck").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Delete Quick Translations?").assertDoesNotExist()
+        compose.onNodeWithText("Quick Translations").assertIsDisplayed()
     }
 
     private fun detailNode(tag: String): SemanticsNodeInteraction {

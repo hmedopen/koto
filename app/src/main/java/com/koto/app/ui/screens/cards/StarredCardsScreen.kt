@@ -8,8 +8,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -38,11 +37,18 @@ internal fun StarredCardsScreen(
 ) {
     val context = LocalContext.current
     val audio = remember(context) { JapaneseTtsController.get(context) }
+    var playingCardId by remember { mutableStateOf<String?>(null) }
 
-    // Aggregate all starred cards across all decks in order
-    val starredCards = remember(decks, state.favorites) {
+    LaunchedEffect(audio.isSpeaking) {
+        if (!audio.isSpeaking) {
+            playingCardId = null
+        }
+    }
+
+    // Aggregate all starred cards across all decks upon entering screen (deferred removal)
+    val starredCards = remember(decks) {
         val allCards = decks.flatMap { it.cards }
-        // Keep unique cards by id that are in favorites
+        // Keep unique cards by id that are initially in favorites
         val seen = mutableSetOf<String>()
         allCards.filter { card ->
             card.id in state.favorites && seen.add(card.id)
@@ -133,8 +139,11 @@ internal fun StarredCardsScreen(
                         SpeakerButton(
                             text = JapaneseText(card.japanese, card.romaji),
                             speechReady = audio.enabled && audio.status == SpeechStatus.Ready,
-                            isPlaying = audio.isSpeaking,
-                            speak = { audio.speak(it) },
+                            isPlaying = (playingCardId == card.id) && audio.isSpeaking,
+                            speak = {
+                                playingCardId = card.id
+                                audio.speak(it)
+                            },
                             modifier = Modifier.size(38.dp, 42.dp),
                             description = "Play pronunciation: ${card.romaji}",
                         )
@@ -153,14 +162,19 @@ internal fun StarredCardsScreen(
                 }
             }
 
+            val activeStarredCards = remember(starredCards, state.favorites) {
+                starredCards.filter { it.id in state.favorites }
+            }
+
             Box(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             ) {
                 CardsButton(
-                    label = "START REVIEW (${starredCards.size})",
-                    onClick = { onStartReview(starredCards) },
+                    label = "START REVIEW (${activeStarredCards.size})",
+                    onClick = { onStartReview(activeStarredCards) },
+                    enabled = activeStarredCards.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth().testTag("start_starred_review"),
                 )
             }

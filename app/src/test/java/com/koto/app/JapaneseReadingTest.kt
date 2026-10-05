@@ -8,7 +8,12 @@ import com.koto.app.feature.lesson.ui.kanaReadingUnits
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class JapaneseReadingTest {
     @Test fun alignsRomajiToEachKana() {
         val units = kanaReadingUnits(JapaneseText("わたし", "watashi"))

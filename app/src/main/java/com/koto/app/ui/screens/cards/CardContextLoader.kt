@@ -31,6 +31,24 @@ object CardContextLoader {
     private var cachedData: Map<String, CardContext>? = null
     private var appContext: Context? = null
 
+    private val dynamicContexts = java.util.concurrent.ConcurrentHashMap<String, CardContext>()
+
+    fun registerContext(cardId: String, context: CardContext) {
+        dynamicContexts[cardId] = context
+        val composite = "${context.kana.trim()}|${context.romaji.trim()}"
+        dynamicContexts[composite] = context
+        dynamicContexts[context.kana.trim()] = context
+    }
+
+    fun removeContext(cardId: String) {
+        val ctx = dynamicContexts.remove(cardId)
+        if (ctx != null) {
+            val composite = "${ctx.kana.trim()}|${ctx.romaji.trim()}"
+            dynamicContexts.remove(composite)
+            dynamicContexts.remove(ctx.kana.trim())
+        }
+    }
+
     fun getContext(card: Flashcard, context: Context? = null): CardContext? {
         return getContext(card.id, card.japanese, card.romaji, context)
     }
@@ -40,13 +58,19 @@ object CardContextLoader {
     }
 
     fun getContext(cardId: String?, japanese: String, romaji: String, context: Context? = null): CardContext? {
-        val data = loadData(context)
         if (!cardId.isNullOrEmpty()) {
-            data[cardId]?.let { return it }
+            dynamicContexts[cardId]?.let { return it }
         }
         val normalizedKana = japanese.trim()
         val normalizedRomaji = romaji.trim()
         val compositeKey = "$normalizedKana|$normalizedRomaji"
+        dynamicContexts[compositeKey]?.let { return it }
+        dynamicContexts[normalizedKana]?.let { return it }
+
+        val data = loadData(context)
+        if (!cardId.isNullOrEmpty()) {
+            data[cardId]?.let { return it }
+        }
 
         return data[compositeKey] ?: data[normalizedKana]
     }

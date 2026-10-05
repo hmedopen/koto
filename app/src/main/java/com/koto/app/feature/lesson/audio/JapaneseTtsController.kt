@@ -66,9 +66,22 @@ class JapaneseTtsController private constructor(context: Context) {
     fun speak(text: JapaneseText) {
         if (!enabled || status != SpeechStatus.Ready || !canSpeak(text)) return
         try {
+            engine?.language = Locale.JAPAN
             val utteranceId = "koto-${++utterance}"
             activeUtteranceId = utteranceId
             if (engine?.speak(text.tts.replace("___", "、"), TextToSpeech.QUEUE_FLUSH, null, utteranceId) == TextToSpeech.ERROR) {
+                status = SpeechStatus.Unavailable
+                clearPlayback(utteranceId)
+            }
+        } catch (_: RuntimeException) { status = SpeechStatus.Unavailable; clearPlayback() }
+    }
+    fun speakEnglish(text: String) {
+        if (!enabled || status != SpeechStatus.Ready || text.isBlank()) return
+        try {
+            engine?.language = Locale.US
+            val utteranceId = "koto-en-${++utterance}"
+            activeUtteranceId = utteranceId
+            if (engine?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId) == TextToSpeech.ERROR) {
                 status = SpeechStatus.Unavailable
                 clearPlayback(utteranceId)
             }

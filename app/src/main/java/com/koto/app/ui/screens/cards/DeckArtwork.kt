@@ -86,10 +86,35 @@ internal fun DeckArtwork(deck: FlashcardDeck, modifier: Modifier = Modifier) {
                 "deck_48" -> { disc(16f, 16f, 6f, Gold); line(16f, 3f, 16f, 8f, Coral, 2.5f); line(16f, 24f, 16f, 29f, Coral, 2.5f); line(3f, 16f, 8f, 16f, Blue, 2.5f); line(24f, 16f, 29f, 16f, Blue, 2.5f) }
                 "deck_49" -> { line(4f, 8f, 28f, 8f, Coral, 3.5f); line(7f, 13f, 25f, 13f, Coral, 2.5f); line(10f, 8f, 10f, 29f, Coral, 3f); line(22f, 8f, 22f, 29f, Coral, 3f); box(14f, 8f, 4f, 5f, Gold) }
                 "deck_50" -> { box(4f, 5f, 24f, 18f, Mint); polygon(Mint, 8f, 22f, 8f, 28f, 16f, 22f); line(16f, 9f, 16f, 15f, Color.White, 3f); disc(16f, 18f, 1.5f, Color.White) }
-                else -> { box(4f, 5f, 24f, 23f, Blue); line(16f, 7f, 16f, 26f, Paper) }
+                else -> {
+                    when (deck.icon) {
+                        "calendar" -> { calendar(); repeat(7) { i -> box(6f + (i % 4) * 5f, 14f + (i / 4) * 6f, 3f, 4f, if (i == 2) Coral else Blue) } }
+                        "clock" -> { disc(16f, 16f, 13f, Blue); disc(16f, 16f, 10f, Paper); line(16f, 16f, 16f, 9f); line(16f, 16f, 22f, 19f); disc(16f, 16f, 1.5f, Coral) }
+                        "notebook" -> { box(3f, 8f, 18f, 21f, Blue); line(7f, 9f, 7f, 27f, Paper); line(12f, 14f, 17f, 14f, Paper); line(25f, 24f, 29f, 5f, Gold, 4f); polygon(Navy, 23f, 28f, 24f, 22f, 28f, 23f) }
+                        "hashtag", "math" -> {
+                            box(3f, 3f, 26f, 26f, Paper)
+                            for (y in listOf(9f, 16f, 23f)) { line(6f, y, 26f, y); for (x in listOf(10f, 15f, if (y == 16f) 23f else 20f)) box(x - 2f, y - 3f, 4f, 6f, if (y == 16f) Coral else Gold) }
+                        }
+                        "home" -> { box(7f, 13f, 19f, 16f, Gold); polygon(Coral, 2f, 15f, 16f, 3f, 30f, 15f); box(14f, 20f, 6f, 9f, Blue); box(9f, 17f, 4f, 4f, Paper) }
+                        "utensils" -> { drawCircle(Mint, 5f, Offset(25f, 18f), style = Stroke(3f)); box(5f, 11f, 19f, 15f, Mint); line(4f, 28f, 27f, 28f, Navy); line(10f, 7f, 12f, 3f, Coral); line(17f, 7f, 19f, 3f, Coral) }
+                        "train" -> { box(6f, 2f, 20f, 25f, Blue); box(9f, 6f, 14f, 10f, Paper); disc(11f, 22f, 2f, Gold); disc(21f, 22f, 2f, Gold); line(10f, 27f, 7f, 31f); line(22f, 27f, 25f, 31f) }
+                        "star" -> { disc(16f, 16f, 12f, Mint); line(9f, 16f, 14f, 21f, Color.White, 3f); line(14f, 21f, 23f, 11f, Color.White, 3f); disc(26f, 5f, 3f, Gold) }
+                        "bookmark" -> { box(5f, 2f, 18f, 28f, Navy); box(8f, 5f, 12f, 21f, Paper); box(13f, 9f, 17f, 11f, Mint); polygon(Mint, 17f, 18f, 17f, 24f, 23f, 18f); line(17f, 14f, 26f, 14f, Color.White) }
+                        else -> { // chatbubble default
+                            person(8f, 12f, Mint); person(24f, 12f, Blue)
+                            box(5f, 2f, 16f, 10f, Mint); polygon(Mint, 9f, 10f, 9f, 15f, 14f, 10f)
+                            line(9f, 7f, 17f, 7f, Color.White)
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+internal fun CanonIconArtwork(icon: String, modifier: Modifier = Modifier) {
+    DeckArtwork(FlashcardDeck(id = "preview_$icon", title = "", icon = icon, cards = emptyList()), modifier)
 }
 
 private fun DrawScope.box(x: Float, y: Float, w: Float, h: Float, color: Color) =

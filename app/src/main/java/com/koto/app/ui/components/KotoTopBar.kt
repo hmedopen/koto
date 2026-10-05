@@ -67,7 +67,7 @@ fun KotoTopBar(
                         onClick = onBack,
                         modifier = Modifier.size(48.dp, 52.dp).testTag("cards_detail_back"),
                         tone = TactileTone.Quiet,
-                        description = "Back to all decks",
+                        description = if (title == "Deck Content") "Back to Deck Detail" else "Back to all decks",
                         padding = PaddingValues(12.dp),
                     ) {
                         Icon(

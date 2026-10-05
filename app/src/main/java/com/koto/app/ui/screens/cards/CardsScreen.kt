@@ -47,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.R
+import com.koto.app.feature.cards.data.CustomDeckStore
+import com.koto.app.feature.translator.data.TranslatorCardStore
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 private enum class CardsStage {
@@ -62,16 +65,65 @@ private enum class CardsStage {
 fun CardsScreen(
     onStudyModeChanged: (Boolean) -> Unit = {},
     onDeckOpenChanged: (Boolean) -> Unit = {},
+    onCreateDeckModeChanged: (Boolean) -> Unit = {},
     randomDeckTrigger: Boolean = false,
     onRandomDeckHandled: () -> Unit = {},
     starredWordsTrigger: Boolean = false,
     onStarredWordsHandled: () -> Unit = {},
     createDeckTrigger: Boolean = false,
     onCreateDeckHandled: () -> Unit = {},
+    onContentOpenChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val decks = remember(context) { loadFlashcardDecks(context) }
     val srsStore = remember(context) { FlashcardSrsStore(context) }
+    val cardStore = remember(context) { TranslatorCardStore(context) }
+    val customDeckStore = remember(context) { CustomDeckStore(context) }
+    val coroutineScope = rememberCoroutineScope()
+    var starredTranslationCards by remember { mutableStateOf(cardStore.loadStarredCards()) }
+    var customDecks by remember { mutableStateOf(customDeckStore.loadCustomDecks()) }
+
+    LaunchedEffect(Unit) {
+        launch {
+            cardStore.starredCardsFlow.collect { cards ->
+                starredTranslationCards = cards
+            }
+        }
+        launch {
+            customDeckStore.customDecksFlow.collect { cDecks ->
+                customDecks = cDecks
+            }
+        }
+    }
+
+    val quickTranslationsDeck = remember(starredTranslationCards) {
+        if (starredTranslationCards.isEmpty()) null
+        else FlashcardDeck(
+            id = "deck_quick_translations",
+            title = "Quick Translations",
+            icon = "chatbubble",
+            cards = starredTranslationCards.map { card ->
+                Flashcard(
+                    id = card.id,
+                    japanese = card.targetText,
+                    romaji = card.targetRomaji,
+                    english = card.sourceText,
+                )
+            },
+            number = 0,
+            category = "Quick Translations",
+            tier = 1,
+        )
+    }
+
+    val allDecks = remember(decks, quickTranslationsDeck, customDecks) {
+        val list = mutableListOf<FlashcardDeck>()
+        if (quickTranslationsDeck != null) list.add(quickTranslationsDeck)
+        list.addAll(customDecks)
+        list.addAll(decks)
+        list
+    }
+
     var state by rememberSaveable(stateSaver = FlashcardState.Saver) {
         val initialSrs = srsStore.loadAll()
         mutableStateOf(FlashcardState(srsRecords = initialSrs))
@@ -87,8 +139,13 @@ fun CardsScreen(
     var showSurpriseMeDialog by rememberSaveable { mutableStateOf(false) }
     var showStarred by rememberSaveable { mutableStateOf(false) }
     var showCreateDeck by rememberSaveable { mutableStateOf(false) }
+    var editingCustomDeckId by rememberSaveable { mutableStateOf<String?>(null) }
     var showContent by rememberSaveable { mutableStateOf(false) }
     var dynamicStarredDeck by remember { mutableStateOf<FlashcardDeck?>(null) }
+
+    LaunchedEffect(showCreateDeck) {
+        onCreateDeckModeChanged(showCreateDeck)
+    }
 
     LaunchedEffect(randomDeckTrigger) {
         if (randomDeckTrigger) {
@@ -107,13 +164,14 @@ fun CardsScreen(
 
     LaunchedEffect(createDeckTrigger) {
         if (createDeckTrigger) {
+            editingCustomDeckId = null
             showCreateDeck = true
             showStarred = false
             onCreateDeckHandled()
         }
     }
 
-    val deck = if (state.deckId == "starred_review") dynamicStarredDeck else decks.find { it.id == state.deckId }
+    val deck = if (state.deckId == "starred_review") dynamicStarredDeck else allDecks.find { it.id == state.deckId }
     var lastActiveDeck by remember { mutableStateOf<FlashcardDeck?>(null) }
     if (deck != null) {
         lastActiveDeck = deck
@@ -139,16 +197,22 @@ fun CardsScreen(
 
     LaunchedEffect(state.studying) { onStudyModeChanged(state.studying) }
     LaunchedEffect(subScreenOpen) { onDeckOpenChanged(subScreenOpen) }
+    LaunchedEffect(showContent) { onContentOpenChanged(showContent) }
     DisposableEffect(Unit) {
         onDispose {
             onStudyModeChanged(false)
             onDeckOpenChanged(false)
+            onCreateDeckModeChanged(false)
+            onContentOpenChanged(false)
         }
     }
     BackHandler(enabled = deck != null || showStarred || showCreateDeck) {
         when {
             showStarred -> showStarred = false
-            showCreateDeck -> showCreateDeck = false
+            showCreateDeck -> {
+                showCreateDeck = false
+                editingCustomDeckId = null
+            }
             showContent -> showContent = false
             else -> state = state.back()
         }
@@ -180,10 +244,34 @@ fun CardsScreen(
             label = "Cards flow navigation",
         ) { stage ->
             when (stage) {
-                CardsStage.Browser -> CategoryGrid(decks, state, openDeck, pinDeck)
+                CardsStage.Browser -> CategoryGrid(allDecks, state, openDeck, pinDeck)
                 CardsStage.Detail -> {
                     if (activeDeck != null) {
-                        DeckDetailScreen(activeDeck, state, { state = it }, favoriteCard, onShowContent = { showContent = true })
+                        DeckDetailScreen(
+                            deck = activeDeck,
+                            state = state,
+                            update = { state = it },
+                            favorite = favoriteCard,
+                            onShowContent = { showContent = true },
+                            onEditDeck = { deckId ->
+                                editingCustomDeckId = deckId
+                                showCreateDeck = true
+                            },
+                            onDeleteDeck = { deckId ->
+                                coroutineScope.launch {
+                                    if (deckId == "deck_quick_translations") {
+                                        cardStore.clearAll()
+                                    } else {
+                                        customDeckStore.deleteDeck(deckId)
+                                    }
+                                    state = state.back()
+                                }
+                            },
+                            onAddCard = { deckId ->
+                                editingCustomDeckId = deckId
+                                showCreateDeck = true
+                            },
+                        )
                     }
                 }
                 CardsStage.Content -> {
@@ -198,7 +286,7 @@ fun CardsScreen(
                 }
                 CardsStage.Starred -> {
                     StarredCardsScreen(
-                        decks = decks,
+                        decks = allDecks,
                         state = state,
                         onToggleFavorite = favoriteCard,
                         onStartReview = { starredCards ->
@@ -217,19 +305,28 @@ fun CardsScreen(
                     )
                 }
                 CardsStage.CreateDeck -> {
-                    CreateDeckPlaceholderScreen(
-                        onBack = { showCreateDeck = false },
+                    CreateDeckScreen(
+                        deckIdToEdit = editingCustomDeckId,
+                        onBack = {
+                            showCreateDeck = false
+                            editingCustomDeckId = null
+                        },
+                        onDeckSaved = { savedDeck ->
+                            showCreateDeck = false
+                            editingCustomDeckId = null
+                            openDeck(savedDeck)
+                        },
                     )
                 }
             }
         }
 
         if (showSurpriseMeDialog && deck == null) {
-            val counts = remember(decks, state.ratings, state.srsRecords) {
-                decks.associate { it.id to state.counts(it) }
+            val counts = remember(allDecks, state.ratings, state.srsRecords) {
+                allDecks.associate { it.id to state.counts(it) }
             }
             SurpriseMeDialog(
-                decks = decks,
+                decks = allDecks,
                 counts = counts,
                 onDismiss = { showSurpriseMeDialog = false },
                 onOpenDeck = openDeck,

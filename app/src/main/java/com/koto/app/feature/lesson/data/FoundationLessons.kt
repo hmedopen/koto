@@ -100,6 +100,7 @@ object FoundationLessons : LessonRepository {
         "F01Q2" -> forward(id, "ありがとう~arigatou", 0, "thank you", "hello", "morning", "book")
         "F02Q2" -> forward(id, "ねこ~neko", 0, "cat", "dog", "book", "water")
         "F02Q3" -> build(id, "This is a book.", "これ~kore", "は~wa", "ほん~hon", "です~desu")
+        "P03Q1" -> build(id, "I am a student.", "わたし~watashi", "は~wa", "がくせい~gakusei", "です~desu")
         "P03Q2" -> conversation(id, "わたし は ケン です。~watashi wa Ken desu.", "わたし は ユキ です~watashi wa Yuki desu", "みず です~mizu desu", "ねこ です~neko desu", "ぱん たべます~pan tabemasu")
         "P03Q3" -> forward(id, "ともだち~tomodachi", 0, "friend", "teacher", "student", "book")
         "F03Q1" -> forward(id, "わたし~watashi", 0, "I", "friend", "teacher", "student")

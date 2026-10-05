@@ -3,6 +3,7 @@ package com.koto.app
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.koto.app.feature.lesson.data.FoundationLessons
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -46,7 +47,7 @@ class KotoMapTest {
     @Test fun playableLevelOpensFocusedLesson() {
         openMap()
         compose.onNodeWithTag("level_1").performClick()
-        compose.onNodeWithText("Japanese First Steps · 7 questions").assertIsDisplayed()
+        compose.onNodeWithText("${FoundationLessons.levels[0].title} · ${FoundationLessons.levels[0].questionCount} questions").assertIsDisplayed()
         compose.onNodeWithTag("level_action").performClick()
         compose.onNodeWithTag("lesson_screen").assertIsDisplayed()
         compose.onNodeWithTag("bottom_bar").assertDoesNotExist()

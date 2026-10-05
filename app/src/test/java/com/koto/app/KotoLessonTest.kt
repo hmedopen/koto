@@ -60,7 +60,7 @@ class KotoLessonTest {
             solve(q)
         }
         compose.onNodeWithTag("lesson_complete").assertIsDisplayed()
-        compose.onNodeWithText("${lesson.questions.size} / ${lesson.questions.size}").assertIsDisplayed()
+        compose.onNodeWithText("Level ${level.toString().padStart(2, '0')} complete").assertIsDisplayed()
         compose.runOnIdle { assertTrue(level in LessonProgress(compose.activity).completed) }
         compose.activityRule.scenario.recreate()
         compose.onNodeWithTag("lesson_complete").assertIsDisplayed()

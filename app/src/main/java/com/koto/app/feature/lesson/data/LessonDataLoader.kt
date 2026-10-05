@@ -126,6 +126,18 @@ object LessonDataLoader {
             }.getOrNull()?.let { return it }
         }
 
+        val candidates = listOf(
+            File("src/main/assets/$ASSET_FILE_NAME"),
+            File("app/src/main/assets/$ASSET_FILE_NAME"),
+            File("../app/src/main/assets/$ASSET_FILE_NAME"),
+            File("c:/Users/HMED OPEN/Documents/koto/koto the project/app/src/main/assets/$ASSET_FILE_NAME"),
+        )
+        for (f in candidates) {
+            if (f.exists() && f.isFile) {
+                return runCatching { f.readText(Charsets.UTF_8) }.getOrNull()
+            }
+        }
+
         val stream: InputStream? = javaClass.classLoader?.getResourceAsStream(ASSET_FILE_NAME)
             ?: javaClass.classLoader?.getResourceAsStream("assets/$ASSET_FILE_NAME")
         if (stream != null) {
@@ -443,6 +455,10 @@ object LessonDataLoader {
         if (punctMatch != null) {
             val base = punctMatch.groupValues[1]
             val punct = punctMatch.groupValues[2]
+                .replace("！", "!")
+                .replace("？", "?")
+                .replace("。", ".")
+                .replace("、", ", ")
             return kanaToRomaji(base) + punct
         }
 

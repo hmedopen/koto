@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import com.koto.app.feature.lesson.data.FoundationLessons
 import com.koto.app.ui.KotoApp
 import com.koto.app.ui.components.KotoBottomBar
 import com.koto.app.ui.navigation.KotoDestination
@@ -47,7 +48,7 @@ class KotoAccessibilityLayoutTest {
         compose.onNodeWithTag("tab_map").performClick()
         compose.onNodeWithTag("level_2").assertIsDisplayed().performClick()
         compose.runOnIdle { saveOverlayScreenshot("map-v2-popup-large-text") }
-        compose.onNodeWithText("First Words · 7 questions")
+        compose.onNodeWithText("${FoundationLessons.levels[1].title} · ${FoundationLessons.levels[1].questionCount} questions")
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { getLayout ->
                 val results = mutableListOf<TextLayoutResult>()
                 assertTrue(getLayout(results))

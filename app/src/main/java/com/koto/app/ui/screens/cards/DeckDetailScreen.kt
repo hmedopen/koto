@@ -57,6 +57,9 @@ internal fun DeckDetailScreen(
     update: (FlashcardState) -> Unit,
     favorite: (String) -> Unit,
     onShowContent: () -> Unit,
+    onEditDeck: ((String) -> Unit)? = null,
+    onDeleteDeck: ((String) -> Unit)? = null,
+    onAddCard: ((String) -> Unit)? = null,
 ) {
     val counts = remember(deck, state.ratings, state.srsRecords) { state.counts(deck) }
 
@@ -67,6 +70,9 @@ internal fun DeckDetailScreen(
             counts = counts,
             update = update,
             onShowContent = onShowContent,
+            onEditDeck = onEditDeck,
+            onDeleteDeck = onDeleteDeck,
+            onAddCard = onAddCard,
         )
     }
 }
@@ -78,6 +84,9 @@ private fun DeckDetailContent(
     counts: DeckCounts,
     update: (FlashcardState) -> Unit,
     onShowContent: () -> Unit,
+    onEditDeck: ((String) -> Unit)? = null,
+    onDeleteDeck: ((String) -> Unit)? = null,
+    onAddCard: ((String) -> Unit)? = null,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollEnabled = maxHeight < 700.dp
@@ -121,8 +130,17 @@ private fun DeckDetailContent(
                 fontSize = 12.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(bottom = 10.dp),
+                modifier = Modifier.padding(bottom = if (deck.id == "deck_quick_translations") 4.dp else 10.dp),
             )
+            if (deck.id == "deck_quick_translations") {
+                Text(
+                    text = "Auto-synced from your starred translations in Learn → Translate",
+                    color = CardsColors.Blue,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
+            }
 
             // Deck Stats (Due · Weak · Mastered)
             Box(Modifier.padding(bottom = 12.dp)) {
@@ -193,6 +211,99 @@ private fun DeckDetailContent(
                 depth = CardsColors.Edge,
             )
 
+            // Custom Deck Management Actions (Add Card, Edit Deck, Delete Deck)
+            var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+            val isCustomDeck = deck.category == "Custom" || deck.id.startsWith("custom_")
+            val isQuickTranslations = deck.id == "deck_quick_translations"
+            if (isCustomDeck || isQuickTranslations) {
+                Spacer(Modifier.height(8.dp))
+                if (onEditDeck != null && isCustomDeck) {
+                    CardsButton(
+                        label = "Edit Deck",
+                        onClick = { onEditDeck(deck.id) },
+                        modifier = Modifier.fillMaxWidth().testTag("edit_custom_deck"),
+                        background = CardsColors.Surface,
+                        ink = CardsColors.Ink,
+                        depth = CardsColors.Edge,
+                    )
+                }
+
+                if (onDeleteDeck != null) {
+                    if (isCustomDeck) Spacer(Modifier.height(8.dp))
+                    CardsButton(
+                        label = if (isQuickTranslations) "Delete Translations Deck" else "Delete Deck",
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.fillMaxWidth().testTag("btn_delete_deck"),
+                        background = CardsColors.Surface,
+                        ink = CardsColors.Coral,
+                        depth = CardsColors.Edge,
+                    )
+                }
+            }
+
+            if (showDeleteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteDialog = false },
+                    title = {
+                        Text(
+                            text = if (isQuickTranslations) "Delete Quick Translations?" else "Delete Deck?",
+                            color = CardsColors.Ink,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = if (isQuickTranslations) {
+                                "Are you sure you want to delete this deck? All starred words saved from the Translate tool will be cleared."
+                            } else {
+                                "Are you sure you want to delete \"${deck.title}\"? All cards in this deck will be permanently removed."
+                            },
+                            color = CardsColors.Ink,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    },
+                    confirmButton = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            CardsButton(
+                                label = "Cancel",
+                                onClick = { showDeleteDialog = false },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("btn_cancel_delete_deck"),
+                                background = CardsColors.Surface,
+                                ink = CardsColors.Ink,
+                                depth = CardsColors.Edge,
+                            )
+                            CardsButton(
+                                label = "Delete",
+                                onClick = {
+                                    showDeleteDialog = false
+                                    onDeleteDeck?.invoke(deck.id)
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .testTag("btn_confirm_delete_deck"),
+                                background = CardsColors.Coral,
+                                depth = Color(0xFF833323),
+                                ink = Color.White,
+                            )
+                        }
+                    },
+                    dismissButton = null,
+                    containerColor = Color.White,
+                    shape = RoundedCornerShape(12.dp),
+                )
+            }
+
             Spacer(Modifier.weight(1f))
 
             // Start Review Button: No white bottom bar container underneath, sits cleanly above navigation bar
@@ -232,23 +343,7 @@ internal fun DeckContentScreen(
             }
             .testTag("content_drawer"),
     ) {
-        // Top Bar: Clean header with title
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "DECK CONTENT",
-                color = CardsColors.Ink,
-                fontSize = 12.sp,
-                letterSpacing = 1.2.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
-        HorizontalDivider(color = CardsColors.Edge, thickness = 1.dp)
+
 
         LazyColumn(
             Modifier

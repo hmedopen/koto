@@ -27,12 +27,15 @@ fun KotoNavigation(
     onPlay: (Int) -> Unit = {},
     onCardsStudyModeChanged: (Boolean) -> Unit = {},
     onCardsDeckOpenChanged: (Boolean) -> Unit = {},
+    onCardsCreateDeckModeChanged: (Boolean) -> Unit = {},
     randomDeckTrigger: Boolean = false,
     onRandomDeckHandled: () -> Unit = {},
     starredWordsTrigger: Boolean = false,
     onStarredWordsHandled: () -> Unit = {},
     createDeckTrigger: Boolean = false,
     onCreateDeckHandled: () -> Unit = {},
+    onOpenTranslator: () -> Unit = {},
+    onCardsContentOpenChanged: (Boolean) -> Unit = {},
 ) {
     val stateHolder = rememberSaveableStateHolder()
     val distance = with(LocalDensity.current) { KotoDimens.ContentDisplacement.roundToPx() }
@@ -54,16 +57,18 @@ fun KotoNavigation(
         stateHolder.SaveableStateProvider(destination.name) {
             when (destination) {
                 KotoDestination.Map -> MapScreen(completed, onPlay)
-                KotoDestination.Learn -> LearnScreen()
+                KotoDestination.Learn -> LearnScreen(onOpenTranslator = onOpenTranslator)
                 KotoDestination.Cards -> CardsScreen(
                     onStudyModeChanged = onCardsStudyModeChanged,
                     onDeckOpenChanged = onCardsDeckOpenChanged,
+                    onCreateDeckModeChanged = onCardsCreateDeckModeChanged,
                     randomDeckTrigger = randomDeckTrigger,
                     onRandomDeckHandled = onRandomDeckHandled,
                     starredWordsTrigger = starredWordsTrigger,
                     onStarredWordsHandled = onStarredWordsHandled,
                     createDeckTrigger = createDeckTrigger,
                     onCreateDeckHandled = onCreateDeckHandled,
+                    onContentOpenChanged = onCardsContentOpenChanged,
                 )
             }
         }

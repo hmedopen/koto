@@ -55,8 +55,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
@@ -188,6 +192,11 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
         when (stage) {
             StudyStage.Active -> {
                 if (card != null) {
+                    val isCustomOrImported = deck.category == "Custom" ||
+                        deck.id.startsWith("custom_") ||
+                        deck.id == "deck_quick_translations" ||
+                        deck.id == "starred_review" ||
+                        deck.number == 0
                     ActiveStudyContent(
                         card = card,
                         state = state,
@@ -203,6 +212,7 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
                         onOpenContext = { contextCard = card },
                         onOpenSettings = { settings = true },
                         onRequestExit = { exitRequested = true },
+                        isCustomDeck = isCustomOrImported,
                     )
                 }
             }
@@ -430,6 +440,7 @@ private fun ActiveStudyContent(
     onOpenContext: () -> Unit,
     onOpenSettings: () -> Unit,
     onRequestExit: () -> Unit,
+    isCustomDeck: Boolean = false,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollWholeScreen = maxHeight < 420.dp || LocalDensity.current.fontScale > 1.5f
@@ -461,39 +472,42 @@ private fun ActiveStudyContent(
                     if (it) 180f else 0f
                 }
                 val japaneseVisible = state.japaneseFirst != (currentRotation > 90f)
-                val allowAudio = japaneseVisible && !flipTransition.isRunning &&
-                    (state.japaneseFirst != state.revealed)
+                val allowAudio = !flipTransition.isRunning
                 LaunchedEffect(allowAudio) { if (!allowAudio) audio.stop() }
 
-                // Anti-Cheat Context Action Button ("?"): Positioned above card at top-right
+                // Anti-Cheat Context Action Button ("?"): Reserved solely for built-in curriculum decks
                 // Locked and unclickable until card is revealed so the user cannot cheat
                 val canInspectContext = state.revealed || state.hasBeenRevealed
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TactileButton(
-                        onClick = { if (canInspectContext) onOpenContext() },
-                        enabled = canInspectContext,
+                if (!isCustomDeck) {
+                    Row(
                         modifier = Modifier
-                            .size(44.dp, 48.dp)
-                            .testTag("card_context_button")
-                            .alpha(if (canInspectContext) 1f else 0.38f),
-                        tone = TactileTone.Quiet,
-                        description = if (canInspectContext) "Card context & examples" else "Reveal card first to unlock context",
-                        padding = PaddingValues(0.dp),
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            text = "?",
-                            color = if (canInspectContext) CardsColors.Ink else CardsColors.Muted,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                        )
+                        TactileButton(
+                            onClick = { if (canInspectContext) onOpenContext() },
+                            enabled = canInspectContext,
+                            modifier = Modifier
+                                .size(44.dp, 48.dp)
+                                .testTag("card_context_button")
+                                .alpha(if (canInspectContext) 1f else 0.38f),
+                            tone = TactileTone.Quiet,
+                            description = if (canInspectContext) "Card context & examples" else "Reveal card first to unlock context",
+                            padding = PaddingValues(0.dp),
+                        ) {
+                            Text(
+                                text = "?",
+                                color = if (canInspectContext) CardsColors.Ink else CardsColors.Muted,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
                     }
+                } else {
+                    Spacer(Modifier.height(8.dp))
                 }
 
                 Box(
@@ -558,7 +572,7 @@ private fun ActiveStudyContent(
                 }
 
                 Spacer(Modifier.height(12.dp))
-                AudioButton(card, audio, allowAudio)
+                AudioButton(card, audio, japaneseVisible, allowAudio)
             }
             Box(
                 Modifier.padding(start = 20.dp, end = 20.dp, bottom = 20.dp)
@@ -984,13 +998,29 @@ private fun CompletionStats(counts: DeckCounts) {
 }
 
 @Composable
-private fun AudioButton(card: Flashcard, audio: JapaneseTtsController, japaneseVisible: Boolean) {
-    val ready = japaneseVisible && audio.enabled && audio.status == SpeechStatus.Ready
+private fun AudioButton(
+    card: Flashcard,
+    audio: JapaneseTtsController,
+    japaneseVisible: Boolean,
+    enabled: Boolean = true,
+) {
+    val ready = enabled && audio.enabled && audio.status == SpeechStatus.Ready
     val canPlay by rememberUpdatedState(ready)
     SpeakerButton(
-        JapaneseText(card.japanese, card.romaji), ready, audio.isSpeaking,
-        { if (canPlay) audio.speak(it) }, Modifier.testTag("play_audio"),
-        description = if (japaneseVisible) "Play Japanese: ${card.romaji}" else "Audio available on the Japanese side",
+        text = JapaneseText(card.japanese, card.romaji),
+        speechReady = ready,
+        isPlaying = audio.isSpeaking,
+        speak = {
+            if (canPlay) {
+                if (japaneseVisible) {
+                    audio.speak(it)
+                } else {
+                    audio.speakEnglish(card.english)
+                }
+            }
+        },
+        modifier = Modifier.testTag("play_audio"),
+        description = if (japaneseVisible) "Play Japanese: ${card.romaji}" else "Play English: ${card.english}",
     )
 }
 
@@ -1067,24 +1097,80 @@ private fun StudyCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                val textMeasurer = rememberTextMeasurer()
+                val density = LocalDensity.current
+                val primaryText = if (japaneseVisible) card.japanese else card.english
+                val maxFontSize = if (japaneseVisible) 36.sp else 30.sp
+                val minFontSize = 13.sp
+                val reservedRomajiHeight = if (japaneseVisible && state.showRomaji) {
+                    with(density) { 36.dp.roundToPx() }
+                } else 0
+                val availableHeightPx = (constraints.maxHeight - reservedRomajiHeight).coerceAtLeast(80)
+
+                val computedFontSize = remember(primaryText, constraints.maxWidth, availableHeightPx, maxFontSize) {
+                    if (constraints.maxWidth <= 0 || availableHeightPx <= 0) return@remember maxFontSize
+                    val maxStyle = TextStyle(
+                        fontSize = maxFontSize,
+                        lineHeight = (maxFontSize.value * 1.32f).sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                    )
+                    val maxResult = textMeasurer.measure(
+                        text = AnnotatedString(primaryText),
+                        style = maxStyle,
+                        constraints = Constraints(maxWidth = constraints.maxWidth),
+                    )
+                    if (maxResult.size.height <= availableHeightPx) {
+                        maxFontSize
+                    } else {
+                        var low = minFontSize.value
+                        var high = maxFontSize.value
+                        var best = minFontSize.value
+                        repeat(7) {
+                            val mid = (low + high) / 2f
+                            val midStyle = TextStyle(
+                                fontSize = mid.sp,
+                                lineHeight = (mid * 1.32f).sp,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center,
+                            )
+                            val measure = textMeasurer.measure(
+                                text = AnnotatedString(primaryText),
+                                style = midStyle,
+                                constraints = Constraints(maxWidth = constraints.maxWidth),
+                            )
+                            if (measure.size.height <= availableHeightPx) {
+                                best = mid
+                                low = mid + 0.5f
+                            } else {
+                                high = mid - 0.5f
+                            }
+                        }
+                        best.sp
+                    }
+                }
+
                 Column(
-                    Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
-                        if (japaneseVisible) card.japanese else card.english,
+                        text = primaryText,
                         color = CardsColors.Ink,
-                        fontSize = if (japaneseVisible) 36.sp else 30.sp,
-                        lineHeight = 48.sp,
+                        fontSize = computedFontSize,
+                        lineHeight = (computedFontSize.value * 1.32f).sp,
                         fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.testTag("card_word"),
                     )
                     if (japaneseVisible && state.showRomaji) {
                         Text(
-                            card.romaji,
+                            text = card.romaji,
                             color = CardsColors.Muted,
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center,
