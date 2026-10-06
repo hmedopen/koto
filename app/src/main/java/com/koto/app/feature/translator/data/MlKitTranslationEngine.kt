@@ -124,36 +124,53 @@ class MlKitTranslationEngine(
         }
 
         if (sourceLanguage == targetLanguage) {
-            val romaji = if (sourceLanguage == TranslationLanguage.Japanese) {
-                KanaConverter.toRomaji(KanaConverter.toPureKana(clean))
-            } else ""
-            return TranslationResult(clean, clean, romaji, sourceLanguage, targetLanguage)
+            val isJp = sourceLanguage == TranslationLanguage.Japanese
+            val pureKana = if (isJp) KanaConverter.toPureKana(clean) else ""
+            val rubyTokens = if (isJp) KanaConverter.extractRubyTokens(clean) else emptyList()
+            val romaji = if (isJp) KanaConverter.toSpacedRomaji(clean) else ""
+            return TranslationResult(
+                sourceText = clean,
+                translatedText = clean,
+                kanaText = pureKana,
+                rubyTokens = rubyTokens,
+                romaji = romaji,
+                sourceLanguage = sourceLanguage,
+                targetLanguage = targetLanguage,
+            )
         }
 
         return try {
             val rawTranslated = performMlKitTranslation(clean, sourceLanguage, targetLanguage)
 
             if (targetLanguage == TranslationLanguage.Japanese) {
-                // ENFORCE STRICT KANA-ONLY RULE: Convert any Kanji in output into Hiragana/Katakana
                 val pureKana = KanaConverter.toPureKana(rawTranslated)
-                val romaji = KanaConverter.toRomaji(pureKana)
+                val rubyTokens = KanaConverter.extractRubyTokens(rawTranslated)
+                val romaji = KanaConverter.toSpacedRomaji(rawTranslated)
                 TranslationResult(
                     sourceText = clean,
-                    translatedText = pureKana,
+                    translatedText = rawTranslated.trim(),
+                    kanaText = pureKana,
+                    rubyTokens = rubyTokens,
                     romaji = romaji,
                     sourceLanguage = sourceLanguage,
                     targetLanguage = targetLanguage,
+                    isOffline = true,
                 )
             } else {
                 // Target is English
                 val englishText = rawTranslated.trim().replaceFirstChar { it.uppercase() }
-                val romaji = KanaConverter.toRomaji(KanaConverter.toPureKana(clean))
+                val pureKana = KanaConverter.toPureKana(clean)
+                val rubyTokens = KanaConverter.extractRubyTokens(clean)
+                val romaji = KanaConverter.toSpacedRomaji(clean)
                 TranslationResult(
                     sourceText = clean,
                     translatedText = englishText,
+                    kanaText = pureKana,
+                    rubyTokens = rubyTokens,
                     romaji = romaji,
                     sourceLanguage = sourceLanguage,
                     targetLanguage = targetLanguage,
+                    isOffline = true,
                 )
             }
         } catch (_: Exception) {
@@ -161,10 +178,20 @@ class MlKitTranslationEngine(
             val fallback = MockTranslationEngine.translate(clean, sourceLanguage, targetLanguage)
             if (targetLanguage == TranslationLanguage.Japanese) {
                 val pureKana = KanaConverter.toPureKana(fallback.translatedText)
-                val romaji = KanaConverter.toRomaji(pureKana)
-                TranslationResult(clean, pureKana, romaji, sourceLanguage, targetLanguage)
+                val rubyTokens = KanaConverter.extractRubyTokens(fallback.translatedText)
+                val romaji = KanaConverter.toSpacedRomaji(fallback.translatedText)
+                TranslationResult(
+                    sourceText = clean,
+                    translatedText = fallback.translatedText,
+                    kanaText = pureKana,
+                    rubyTokens = rubyTokens,
+                    romaji = romaji,
+                    sourceLanguage = sourceLanguage,
+                    targetLanguage = targetLanguage,
+                    isOffline = true,
+                )
             } else {
-                fallback
+                fallback.copy(isOffline = true)
             }
         }
     }

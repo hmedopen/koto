@@ -20,6 +20,11 @@ import org.robolectric.annotation.GraphicsMode
 class KotoLessonTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
+    @org.junit.After
+    fun tearDown() {
+        org.robolectric.RuntimeEnvironment.setFontScale(1f)
+    }
+
     private fun start(level: Int) {
         compose.onNodeWithTag("tab_map").performClick()
         compose.onNodeWithTag("map_list").performScrollToNode(hasTestTag("level_$level"))
@@ -94,7 +99,7 @@ class KotoLessonTest {
         compose.onNodeWithTag("lesson_action").performClick()
         compose.onNodeWithTag("lesson_settings").performClick()
         compose.onNodeWithTag("settings_sound").performClick()
-        compose.onNodeWithTag("settings_done").performClick()
+        compose.onNodeWithTag("settings_close").performClick()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithTag("answer_${wrong.id}").assertIsSelected()
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }

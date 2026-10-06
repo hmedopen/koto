@@ -1,6 +1,15 @@
 package com.koto.app.feature.lesson.model
 
-data class JapaneseText(val kana: String, val romaji: String, val tts: String = kana)
+data class JapaneseText(
+    val kana: String,
+    val romaji: String,
+    val tts: String = kana,
+    val kanji: String? = null,
+    val furigana: String? = null
+) {
+    val displayKanji: String
+        get() = kanji?.takeIf { it.isNotBlank() } ?: kana
+}
 sealed interface LessonText {
     data class English(val value: String) : LessonText
     data class Japanese(val value: JapaneseText) : LessonText
@@ -45,8 +54,14 @@ sealed interface Question {
         fun filled(answerId: String?): JapaneseText {
             val word = (options.firstOrNull { it.id == answerId }?.text as? LessonText.Japanese)?.value
                 ?: return sentence
-            return JapaneseText(sentence.kana.replace("___", word.kana),
-                sentence.romaji.replace("___", word.romaji))
+            val filledKana = sentence.kana.replace("___", word.kana)
+            val filledRomaji = sentence.romaji.replace("___", word.romaji)
+            val filledKanji = if (sentence.kanji != null && word.kanji != null) {
+                sentence.kanji.replace("___", word.kanji)
+            } else if (sentence.kanji != null) {
+                sentence.kanji.replace("___", word.displayKanji)
+            } else null
+            return JapaneseText(filledKana, filledRomaji, filledKana, filledKanji)
         }
     }
 

@@ -41,14 +41,26 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.R
+import com.koto.app.ui.components.JapaneseWordDisplay
 import com.koto.app.ui.components.TactileButton
 import com.koto.app.ui.components.TactileTone
-import androidx.compose.ui.text.style.TextOverflow
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.koto.app.feature.cards.data.CustomCardItem
+import com.koto.app.feature.cards.data.CustomDeckStore
+import com.koto.app.feature.cards.spreadsheet.ExportFormat
+import com.koto.app.feature.cards.spreadsheet.SpreadsheetEngine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @Composable
 internal fun DeckDetailScreen(
@@ -62,6 +74,7 @@ internal fun DeckDetailScreen(
     onAddCard: ((String) -> Unit)? = null,
 ) {
     val counts = remember(deck, state.ratings, state.srsRecords) { state.counts(deck) }
+    val snackbarHostState = remember { SnackbarHostState() }
 
     Box(Modifier.fillMaxSize().background(Color.White)) {
         DeckDetailContent(
@@ -73,6 +86,14 @@ internal fun DeckDetailScreen(
             onEditDeck = onEditDeck,
             onDeleteDeck = onDeleteDeck,
             onAddCard = onAddCard,
+            snackbarHostState = snackbarHostState,
+        )
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
         )
     }
 }
@@ -87,7 +108,12 @@ private fun DeckDetailContent(
     onEditDeck: ((String) -> Unit)? = null,
     onDeleteDeck: ((String) -> Unit)? = null,
     onAddCard: ((String) -> Unit)? = null,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    var showExportDialog by rememberSaveable { mutableStateOf(false) }
+
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollEnabled = maxHeight < 700.dp
         Column(
@@ -211,6 +237,17 @@ private fun DeckDetailContent(
                 depth = CardsColors.Edge,
             )
 
+            // Export Deck Trigger Button (White fill & edge depth)
+            Spacer(Modifier.height(8.dp))
+            CardsButton(
+                label = "Export Deck",
+                onClick = { showExportDialog = true },
+                modifier = Modifier.fillMaxWidth().testTag("btn_export_deck"),
+                background = CardsColors.Surface,
+                ink = CardsColors.Ink,
+                depth = CardsColors.Edge,
+            )
+
             // Custom Deck Management Actions (Add Card, Edit Deck, Delete Deck)
             var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
             val isCustomDeck = deck.category == "Custom" || deck.id.startsWith("custom_")
@@ -304,6 +341,46 @@ private fun DeckDetailContent(
                 )
             }
 
+            if (showExportDialog) {
+                ExportDeckDialog(
+                    deckTitle = deck.title,
+                    cardCount = deck.cards.size,
+                    onDismiss = { showExportDialog = false },
+                    onExport = { format ->
+                        showExportDialog = false
+                        coroutineScope.launch {
+                            val result = withContext(Dispatchers.IO) {
+                                SpreadsheetEngine.exportDeck(
+                                    deck = deck,
+                                    format = format,
+                                    context = context,
+                                )
+                            }
+                            if (result != null) {
+                                val action = snackbarHostState.showSnackbar(
+                                    message = "Exported ${result.filename} successfully.",
+                                    actionLabel = "Share",
+                                    duration = SnackbarDuration.Long,
+                                )
+                                if (action == SnackbarResult.ActionPerformed) {
+                                    SpreadsheetEngine.shareExportedFile(
+                                        context = context,
+                                        uri = result.uri,
+                                        mimeType = result.mimeType,
+                                        title = result.deckTitle,
+                                    )
+                                }
+                            } else {
+                                snackbarHostState.showSnackbar(
+                                    message = "Failed to export deck.",
+                                    duration = SnackbarDuration.Short,
+                                )
+                            }
+                        }
+                    },
+                )
+            }
+
             Spacer(Modifier.weight(1f))
 
             // Start Review Button: No white bottom bar container underneath, sits cleanly above navigation bar
@@ -362,13 +439,19 @@ internal fun DeckContentScreen(
                         .padding(vertical = 12.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    // Left: Kana + Romaji
-                    Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(card.japanese, color = CardsColors.Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                        if (state.showRomaji) {
-                            Text(card.romaji, color = CardsColors.Blue, fontSize = 12.sp)
-                        }
-                    }
+                    // Left: Japanese word (respecting display mode & romaji setting)
+                    JapaneseWordDisplay(
+                        kanji = card.displayKanji,
+                        kana = card.japanese,
+                        romaji = card.romaji,
+                        showRomaji = state.showRomaji,
+                        fontSize = 17.sp,
+                        fontColor = CardsColors.Ink,
+                        furiganaColor = CardsColors.Blue,
+                        romajiColor = CardsColors.Blue,
+                        horizontalAlignment = Alignment.Start,
+                        modifier = Modifier.weight(1.2f),
+                    )
                     // Right: English meaning
                     Text(
                         text = card.english,

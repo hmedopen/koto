@@ -221,7 +221,7 @@ fun TranslationHistoryDialog(
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
                             )
-                            if (item.targetRomaji.isNotBlank()) {
+                            if (item.targetLang == TranslationLanguage.Japanese && item.targetRomaji.isNotBlank()) {
                                 Text(
                                     text = item.targetRomaji,
                                     color = CardsColors.Blue,

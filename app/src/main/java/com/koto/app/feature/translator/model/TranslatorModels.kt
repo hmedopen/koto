@@ -1,5 +1,7 @@
 package com.koto.app.feature.translator.model
 
+import com.koto.app.ui.screens.settings.RubyToken
+
 enum class TranslationLanguage(
     val code: String,
     val displayName: String,
@@ -22,6 +24,8 @@ data class SavedTranslationCard(
     val sourceLanguage: TranslationLanguage,
     val targetLanguage: TranslationLanguage,
     val timestamp: Long = System.currentTimeMillis(),
+    val targetKana: String = "",
+    val targetKanji: String = "",
 )
 
 data class TranslationResult(
@@ -30,6 +34,9 @@ data class TranslationResult(
     val romaji: String = "",
     val sourceLanguage: TranslationLanguage,
     val targetLanguage: TranslationLanguage,
+    val kanaText: String = "",
+    val rubyTokens: List<RubyToken> = emptyList(),
+    val isOffline: Boolean = false,
 )
 
 data class TranslatorUiState(

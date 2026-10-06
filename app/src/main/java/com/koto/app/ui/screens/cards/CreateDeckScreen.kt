@@ -20,7 +20,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -58,6 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.koto.app.feature.translator.data.HybridTranslationEngine
 import com.koto.app.feature.translator.data.MlKitTranslationEngine
 import com.koto.app.feature.translator.model.TranslationLanguage
 import kotlinx.coroutines.launch
@@ -69,6 +69,14 @@ import com.koto.app.feature.cards.data.CustomDeckStore
 import com.koto.app.feature.translator.data.KanaConverter
 import com.koto.app.ui.components.TactileButton
 import com.koto.app.ui.components.TactileTone
+import com.koto.app.feature.cards.spreadsheet.ExportFormat
+import com.koto.app.feature.cards.spreadsheet.SkippedRow
+import com.koto.app.feature.cards.spreadsheet.SpreadsheetEngine
+import com.koto.app.feature.cards.spreadsheet.SpreadsheetValidationResult
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.koto.app.ui.theme.KotoColors
 
 private enum class CreateDeckStage {
@@ -98,7 +106,6 @@ fun CreateDeckScreen(
     val customDeckStore = remember(context) { CustomDeckStore(context) }
 
     var deckTitle by rememberSaveable { mutableStateOf("") }
-    var selectedIcon by rememberSaveable { mutableStateOf("chatbubble") }
     var cardsList by remember { mutableStateOf<List<CustomCardItem>>(emptyList()) }
     var stage by rememberSaveable { mutableStateOf(CreateDeckStage.Overview) }
 
@@ -110,7 +117,6 @@ fun CreateDeckScreen(
             val deckEntity = allDecks.find { it.id == deckIdToEdit }
             if (deckEntity != null) {
                 deckTitle = deckEntity.title
-                selectedIcon = deckEntity.icon
                 cardsList = existingCards
             }
         }
@@ -180,8 +186,6 @@ fun CreateDeckScreen(
                     CreateDeckOverviewView(
                         deckTitle = deckTitle,
                         onTitleChange = { deckTitle = it },
-                        selectedIcon = selectedIcon,
-                        onIconSelect = { selectedIcon = it },
                         cards = cardsList,
                         quickKana = quickKana,
                         onQuickKanaChange = { quickKana = it },
@@ -215,6 +219,12 @@ fun CreateDeckScreen(
                         onImportCsvCards = { importedCards ->
                             cardsList = cardsList + importedCards
                         },
+                        onAddNewCard = {
+                            editingCardId = null
+                            editorKana = ""
+                            editorEnglish = ""
+                            stage = CreateDeckStage.CardDetail
+                        },
                         onBack = handleBackPress,
                         onSaveDeck = {
                             val title = deckTitle.trim()
@@ -222,12 +232,13 @@ fun CreateDeckScreen(
                                 val savedDeck = customDeckStore.saveDeck(
                                     deckId = deckIdToEdit,
                                     title = title,
-                                    icon = selectedIcon,
+                                    icon = CustomDeckStore.CUSTOM_DECK_ICON,
                                     cards = cardsList,
                                 )
                                 onDeckSaved(savedDeck)
                             }
                         },
+                        isEditing = !deckIdToEdit.isNullOrBlank(),
                     )
                 }
                 CreateDeckStage.CardDetail -> {
@@ -376,12 +387,20 @@ fun CreateDeckScreen(
 /**
  * Screen 1: Create / Edit Deck Overview (Clean Main View)
  */
+sealed class ImportState {
+    object Idle : ImportState()
+    object Validating : ImportState()
+    data class Summary(
+        val validCards: List<CustomCardItem>,
+        val skippedRows: List<SkippedRow>,
+    ) : ImportState()
+    data class Error(val reason: String) : ImportState()
+}
+
 @Composable
 private fun CreateDeckOverviewView(
     deckTitle: String,
     onTitleChange: (String) -> Unit,
-    selectedIcon: String,
-    onIconSelect: (String) -> Unit,
     cards: List<CustomCardItem>,
     quickKana: String,
     onQuickKanaChange: (String) -> Unit,
@@ -391,41 +410,70 @@ private fun CreateDeckOverviewView(
     onEditCard: (CustomCardItem) -> Unit,
     onDeleteCard: (String) -> Unit,
     onImportCsvCards: (List<CustomCardItem>) -> Unit,
+    onAddNewCard: () -> Unit = {},
     onBack: () -> Unit,
     onSaveDeck: () -> Unit,
+    isEditing: Boolean = false,
 ) {
     val context = LocalContext.current
     val canSave = deckTitle.trim().isNotBlank() && cards.isNotEmpty()
     val quickAddValid = quickKana.trim().isNotBlank() && quickEnglish.trim().isNotBlank()
 
-    // Native CSV document picker launcher
+    var importState by remember { mutableStateOf<ImportState>(ImportState.Idle) }
+    var showTemplateDialog by rememberSaveable { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Native Spreadsheet / CSV document picker launcher (Dispatchers.IO parsing)
     val openDocumentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri: Uri? ->
         if (uri != null) {
-            runCatching {
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    val result = DeckCsvEngine.parseImportStream(context, stream)
-                    if (result.cards.isNotEmpty()) {
-                        onImportCsvCards(result.cards)
-                        val summary = if (result.skippedRows > 0) {
-                            "Imported ${result.cards.size} cards (${result.skippedRows} skipped)"
-                        } else {
-                            "Imported ${result.cards.size} cards"
+            coroutineScope.launch(Dispatchers.IO) {
+                withContext(Dispatchers.Main) {
+                    importState = ImportState.Validating
+                }
+                try {
+                    context.contentResolver.openInputStream(uri)?.use { stream ->
+                        val result = SpreadsheetEngine.parseSpreadsheet(stream)
+                        withContext(Dispatchers.Main) {
+                            when (result) {
+                                is SpreadsheetValidationResult.CriticalError -> {
+                                    importState = ImportState.Error(result.message)
+                                }
+                                is SpreadsheetValidationResult.Success -> {
+                                    val validCardItems = result.validCards.map { it.toCustomCardItem() }
+                                    if (result.skippedRows.isEmpty()) {
+                                        // Scenario A (100% Valid): Insert cards directly into deck database, show snackbar
+                                        onImportCsvCards(validCardItems)
+                                        importState = ImportState.Idle
+                                        coroutineScope.launch {
+                                            snackbarHostState.showSnackbar("Imported ${validCardItems.size} cards successfully.")
+                                        }
+                                        Toast.makeText(context, "Imported ${validCardItems.size} cards successfully.", Toast.LENGTH_SHORT).show()
+                                    } else if (validCardItems.isNotEmpty()) {
+                                        // Scenario B (Partial Valid): Show ImportSummaryDialog
+                                        importState = ImportState.Summary(validCardItems, result.skippedRows)
+                                    } else {
+                                        // All rows were invalid
+                                        importState = ImportState.Error("No valid cards found in file. All rows were missing required columns.")
+                                    }
+                                }
+                            }
                         }
-                        Toast.makeText(context, summary, Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(context, "No valid cards found in file", Toast.LENGTH_SHORT).show()
+                    } ?: withContext(Dispatchers.Main) {
+                        importState = ImportState.Error("Could not open selected file.")
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        importState = ImportState.Error("Failed to read file: ${e.message}")
                     }
                 }
-            }.onFailure {
-                Toast.makeText(context, "Failed to read file: ${it.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    val translationEngine = remember(context) { MlKitTranslationEngine.getInstance(context) }
-    val coroutineScope = rememberCoroutineScope()
+    val translationEngine = remember(context) { HybridTranslationEngine.getInstance(context) }
 
     Column(
         Modifier
@@ -474,7 +522,7 @@ private fun CreateDeckOverviewView(
 
             // Center: Screen Title
             Text(
-                text = "Create Deck",
+                text = if (isEditing) "Edit Deck" else "Create Deck",
                 color = CardsColors.Ink,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
@@ -482,36 +530,74 @@ private fun CreateDeckOverviewView(
                 modifier = Modifier.align(Alignment.Center),
             )
 
-            // Right: Import Deck Icon Button
-            TactileButton(
-                onClick = {
-                    openDocumentLauncher.launch(
-                        arrayOf(
-                            "text/*",
-                            "text/comma-separated-values",
-                            "text/csv",
-                            "application/vnd.ms-excel",
-                            "application/zip",
-                            "application/octet-stream",
-                            "application/x-apkg",
-                            "*/*",
-                        ),
-                    )
-                },
-                modifier = Modifier
-                    .size(48.dp, 52.dp)
-                    .align(Alignment.CenterEnd)
-                    .testTag("create_deck_import_button"),
-                tone = TactileTone.Quiet,
-                description = "Import Deck",
-                padding = PaddingValues(12.dp),
+            // Right: Actions Row containing [ 📄↓ ], [ + Add Card ], and [ 📥 Import ]
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_import),
-                    contentDescription = "Import Deck",
-                    tint = KotoColors.Navy,
-                    modifier = Modifier.size(24.dp),
-                )
+                // Outlined document-download icon button [ 📄↓ ]
+                TactileButton(
+                    onClick = { showTemplateDialog = true },
+                    modifier = Modifier
+                        .size(44.dp, 48.dp)
+                        .testTag("create_deck_template_download_button"),
+                    tone = TactileTone.Quiet,
+                    description = "Download Template",
+                    padding = PaddingValues(10.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_template_download),
+                        contentDescription = "Download Template",
+                        tint = KotoColors.Navy,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+
+                // [ + Add Card ] button
+                TactileButton(
+                    onClick = onAddNewCard,
+                    modifier = Modifier
+                        .size(44.dp, 48.dp)
+                        .testTag("create_deck_add_card_button"),
+                    tone = TactileTone.Quiet,
+                    description = "Add Card",
+                    padding = PaddingValues(10.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_plus),
+                        contentDescription = "Add Card",
+                        tint = KotoColors.Navy,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+
+                // Import Deck Icon Button
+                TactileButton(
+                    onClick = {
+                        openDocumentLauncher.launch(
+                            arrayOf(
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                "text/csv",
+                                "text/comma-separated-values",
+                                "*/*",
+                            ),
+                        )
+                    },
+                    modifier = Modifier
+                        .size(44.dp, 48.dp)
+                        .testTag("create_deck_import_button"),
+                    tone = TactileTone.Quiet,
+                    description = "Import Deck",
+                    padding = PaddingValues(10.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_import),
+                        contentDescription = "Import Deck",
+                        tint = KotoColors.Navy,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
 
@@ -542,44 +628,6 @@ private fun CreateDeckOverviewView(
                             .fillMaxWidth()
                             .testTag("input_deck_title"),
                     )
-                }
-            }
-
-            // Category Icon Selector Carousel
-            item(key = "section_icons") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "CHOOSE ICON",
-                        color = CardsColors.Ink,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                    )
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        contentPadding = PaddingValues(vertical = 4.dp),
-                        modifier = Modifier.testTag("deck_icon_carousel"),
-                    ) {
-                        items(CANON_DECK_ICONS) { iconKey ->
-                            val isSelected = iconKey == selectedIcon
-                            Box(
-                                modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.White)
-                                    .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) CardsColors.Blue else CardsColors.Edge,
-                                        shape = RoundedCornerShape(8.dp),
-                                    )
-                                    .clickable { onIconSelect(iconKey) }
-                                    .testTag("icon_select_$iconKey"),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                CanonIconArtwork(iconKey, Modifier.size(32.dp))
-                            }
-                        }
-                    }
                 }
             }
 
@@ -765,87 +813,12 @@ private fun CreateDeckOverviewView(
                     if (index > 0) {
                         HorizontalDivider(color = CardsColors.Edge.copy(alpha = 0.6f), thickness = 0.8.dp)
                     }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp)
-                            .testTag("deck_card_row_${card.id}"),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // Left Column: Japanese + Romaji strictly underneath
-                        Column(
-                            modifier = Modifier.weight(1.2f),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                        ) {
-                            Text(
-                                text = card.japanese,
-                                color = CardsColors.Ink,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            if (card.romaji.isNotBlank()) {
-                                Text(
-                                    text = card.romaji,
-                                    color = CardsColors.Blue,
-                                    fontSize = 12.sp,
-                                )
-                            }
-                        }
-
-                        // Center: English
-                        Text(
-                            text = card.english,
-                            color = CardsColors.Ink,
-                            fontSize = 14.sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1.2f)
-                                .padding(horizontal = 8.dp),
-                        )
-
-                        // Row Actions: Edit and Delete
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            // Edit button
-                            TactileButton(
-                                onClick = { onEditCard(card) },
-                                modifier = Modifier
-                                    .size(38.dp, 40.dp)
-                                    .testTag("btn_edit_card_${card.id}"),
-                                tone = TactileTone.Quiet,
-                                description = "Edit Card",
-                                padding = PaddingValues(8.dp),
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_edit),
-                                    contentDescription = null,
-                                    tint = CardsColors.Blue,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-
-                            // Delete button
-                            TactileButton(
-                                onClick = { onDeleteCard(card.id) },
-                                modifier = Modifier
-                                    .size(38.dp, 40.dp)
-                                    .testTag("btn_delete_card_${card.id}"),
-                                tone = TactileTone.Quiet,
-                                description = "Delete Card",
-                                padding = PaddingValues(8.dp),
-                            ) {
-                                Icon(
-                                    painter = painterResource(R.drawable.ic_trash),
-                                    contentDescription = null,
-                                    tint = CardsColors.Coral,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        }
-                    }
+                    DeckEditorCardItem(
+                        index = index + 1,
+                        card = card,
+                        onEdit = { onEditCard(card) },
+                        onDelete = { onDeleteCard(card.id) },
+                    )
                 }
             }
         }
@@ -873,6 +846,70 @@ private fun CreateDeckOverviewView(
                 depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
             )
         }
+
+        // Snackbar Host for import notifications
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.padding(bottom = 80.dp),
+            )
+        }
+    }
+
+    // Template Download Dialog
+    if (showTemplateDialog) {
+        TemplateDownloadDialog(
+            onDismiss = { showTemplateDialog = false },
+        )
+    }
+
+    // Import Dialogs
+    when (val currentImport = importState) {
+        is ImportState.Summary -> {
+            ImportSummaryDialog(
+                validCount = currentImport.validCards.size,
+                skippedRows = currentImport.skippedRows,
+                onImportValid = {
+                    onImportCsvCards(currentImport.validCards)
+                    val count = currentImport.validCards.size
+                    importState = ImportState.Idle
+                    coroutineScope.launch {
+                        snackbarHostState.showSnackbar("Imported $count cards successfully.")
+                    }
+                    Toast.makeText(context, "Imported $count cards successfully.", Toast.LENGTH_SHORT).show()
+                },
+                onCancel = {
+                    importState = ImportState.Idle
+                },
+            )
+        }
+        is ImportState.Error -> {
+            ImportErrorDialog(
+                reason = currentImport.reason,
+                onDownloadTemplate = {
+                    importState = ImportState.Idle
+                    showTemplateDialog = true
+                },
+                onTryAgain = {
+                    importState = ImportState.Idle
+                    openDocumentLauncher.launch(
+                        arrayOf(
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            "text/csv",
+                            "text/comma-separated-values",
+                            "*/*",
+                        ),
+                    )
+                },
+                onDismiss = {
+                    importState = ImportState.Idle
+                },
+            )
+        }
+        else -> Unit
     }
 }
 
@@ -890,7 +927,7 @@ private fun CardEditorDetailView(
 ) {
     val canSave = kana.trim().isNotBlank() && english.trim().isNotBlank()
     val context = LocalContext.current
-    val translationEngine = remember(context) { MlKitTranslationEngine.getInstance(context) }
+    val translationEngine = remember(context) { HybridTranslationEngine.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
     var isTranslatingEditor by remember { mutableStateOf(false) }
     val canTranslateEditor = kana.isNotBlank() || english.isNotBlank()

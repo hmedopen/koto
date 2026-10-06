@@ -54,12 +54,13 @@ internal object CardsColors {
 private val CardsShape = RoundedCornerShape(16.dp)
 private val IconStroke = Stroke(1.8f, cap = StrokeCap.Round)
 
-internal val FlashcardDeck.accent: Color get() = when (icon) {
-    "chatbubble" -> CardsColors.Green
-    "hashtag" -> CardsColors.Yellow
-    "home" -> CardsColors.Coral
-    "utensils" -> Color(0xFFAD4676)
-    "train" -> CardsColors.Blue
+internal val FlashcardDeck.accent: Color get() = when {
+    category == "Custom" || id.startsWith("custom_") || icon == "custom" -> CardsColors.Blue
+    icon == "chatbubble" -> CardsColors.Green
+    icon == "hashtag" -> CardsColors.Yellow
+    icon == "home" -> CardsColors.Coral
+    icon == "utensils" -> Color(0xFFAD4676)
+    icon == "train" -> CardsColors.Blue
     else -> Color(0xFF7854A3)
 }
 

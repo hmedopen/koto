@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.dp
+import com.koto.app.feature.cards.data.CustomDeckStore
 import com.koto.app.ui.screens.cards.loadFlashcardDecks
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -94,6 +95,10 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("tab_cards").performClick()
         compose.onNodeWithTag("cards_create_deck").performClick()
         compose.onNodeWithTag("create_deck_save").assertIsNotEnabled()
+
+        // Verify icon selection option is removed
+        compose.onNodeWithTag("deck_icon_carousel").assertDoesNotExist()
+        compose.onNodeWithText("CHOOSE ICON").assertDoesNotExist()
 
         // Input title
         compose.onNodeWithTag("input_deck_title").performTextInput("Custom Colors")
@@ -270,7 +275,7 @@ class FlashcardFlowTest {
         assertTrue("Audio should sit below the card", audio.top > card.bottom)
         compose.onNodeWithTag("cards_settings").performClick()
         compose.onNodeWithTag("settings_sheet").assertIsDisplayed()
-        compose.onNodeWithTag("settings_done").performClick()
+        compose.onNodeWithTag("settings_close").performClick()
         compose.onNodeWithTag("settings_sheet").assertDoesNotExist()
         val firstWord = compose.onNodeWithTag("card_word", useUnmergedTree = true).fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.Text].first().text
         compose.onNodeWithTag("study_card").performClick()
@@ -532,6 +537,46 @@ class FlashcardFlowTest {
 
         compose.onNodeWithText("Delete Quick Translations?").assertDoesNotExist()
         compose.onNodeWithText("Quick Translations").assertIsDisplayed()
+    }
+
+    @Test fun editCustomDeckDoesNotShowIconSelector() {
+        val context = compose.activity
+        val customStore = CustomDeckStore(context)
+        val deck = customStore.saveDeck(
+            deckId = null,
+            title = "Test Edit Deck",
+            cards = listOf(
+                com.koto.app.feature.cards.data.CustomCardItem(
+                    japanese = "いぬ",
+                    english = "Dog",
+                ),
+            ),
+        )
+
+        compose.onNodeWithTag("tab_cards").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Test Edit Deck").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("edit_custom_deck").performClick()
+        compose.waitForIdle()
+
+        // Verify icon selection carousel is NOT shown when modifying custom deck
+        compose.onNodeWithTag("deck_icon_carousel").assertDoesNotExist()
+        compose.onNodeWithText("CHOOSE ICON").assertDoesNotExist()
+
+        // Modify title
+        compose.onNodeWithTag("input_deck_title").performTextClearance()
+        compose.onNodeWithTag("input_deck_title").performTextInput("Updated Custom Deck")
+        compose.onNodeWithTag("create_deck_save").performClick()
+        compose.waitForIdle()
+
+        // Verify updated deck in list
+        compose.onNodeWithText("Updated Custom Deck").assertIsDisplayed()
+
+        // Clean up
+        customStore.deleteDeck(deck.id)
     }
 
     private fun detailNode(tag: String): SemanticsNodeInteraction {

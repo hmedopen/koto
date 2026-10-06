@@ -17,9 +17,10 @@ import kotlinx.coroutines.flow.map
 
 data class CustomCardItem(
     val id: String = "",
-    val japanese: String, // Strictly pure Kana
+    val japanese: String, // Strictly pure Kana or Kanji
     val romaji: String = "",
     val english: String,
+    val furigana: String = "",
     val exampleKana: String = "",
     val exampleRomaji: String = "",
     val exampleEnglish: String = "",
@@ -27,6 +28,10 @@ data class CustomCardItem(
 )
 
 class CustomDeckStore(context: Context) {
+    companion object {
+        const val CUSTOM_DECK_ICON = "custom"
+    }
+
     private val db = KotoDatabase.getInstance(context.applicationContext)
     private val dao: CustomDeckDao = db.customDeckDao()
 
@@ -53,6 +58,7 @@ class CustomDeckStore(context: Context) {
                 japanese = entity.japanese,
                 romaji = entity.romaji,
                 english = entity.english,
+                furigana = entity.furigana,
                 exampleKana = entity.exampleKana,
                 exampleRomaji = entity.exampleRomaji,
                 exampleEnglish = entity.exampleEnglish,
@@ -64,12 +70,12 @@ class CustomDeckStore(context: Context) {
     fun saveDeck(
         deckId: String?,
         title: String,
-        icon: String,
+        icon: String = CUSTOM_DECK_ICON,
         cards: List<CustomCardItem>,
     ): FlashcardDeck {
         val effectiveDeckId = if (!deckId.isNullOrBlank()) deckId else "custom_deck_${System.currentTimeMillis()}"
         val cleanTitle = title.trim()
-        val cleanIcon = if (icon.isNotBlank()) icon.trim() else "chatbubble"
+        val cleanIcon = CUSTOM_DECK_ICON
         val now = System.currentTimeMillis()
 
         val deckEntity = CustomDeckEntity(
@@ -99,32 +105,34 @@ class CustomDeckStore(context: Context) {
                 ""
             }
 
-            CustomCardEntity(
-                id = cardId,
-                deckId = effectiveDeckId,
-                japanese = cleanJapanese,
-                romaji = romaji,
-                english = item.english.trim(),
-                exampleKana = pureExampleKana,
-                exampleRomaji = exampleRomaji,
-                exampleEnglish = item.exampleEnglish.trim(),
-                notes = item.notes.trim(),
-                orderIndex = index,
-                createdAt = now,
-            )
-        }
+                CustomCardEntity(
+                    id = cardId,
+                    deckId = effectiveDeckId,
+                    japanese = cleanJapanese,
+                    romaji = romaji,
+                    english = item.english.trim(),
+                    furigana = item.furigana.trim(),
+                    exampleKana = pureExampleKana,
+                    exampleRomaji = exampleRomaji,
+                    exampleEnglish = item.exampleEnglish.trim(),
+                    notes = item.notes.trim(),
+                    orderIndex = index,
+                    createdAt = now,
+                )
+            }
 
-        dao.saveDeckWithCards(deckEntity, cardEntities)
-        registerCardsContext(cardEntities)
+            dao.saveDeckWithCards(deckEntity, cardEntities)
+            registerCardsContext(cardEntities)
 
-        val flashcards = cardEntities.map { entity ->
-            Flashcard(
-                id = entity.id,
-                japanese = entity.japanese,
-                romaji = entity.romaji,
-                english = entity.english,
-            )
-        }
+            val flashcards = cardEntities.map { entity ->
+                Flashcard(
+                    id = entity.id,
+                    japanese = entity.japanese,
+                    romaji = entity.romaji,
+                    english = entity.english,
+                    furigana = entity.furigana.takeIf { it.isNotBlank() },
+                )
+            }
 
         return FlashcardDeck(
             id = effectiveDeckId,
@@ -144,7 +152,7 @@ class CustomDeckStore(context: Context) {
         return saveDeck(
             deckId = deckId,
             title = withCards.deck.title,
-            icon = withCards.deck.icon,
+            icon = CUSTOM_DECK_ICON,
             cards = combined,
         )
     }
@@ -192,13 +200,14 @@ class CustomDeckStore(context: Context) {
         return FlashcardDeck(
             id = deck.id,
             title = deck.title,
-            icon = deck.icon.ifBlank { "chatbubble" },
+            icon = CUSTOM_DECK_ICON,
             cards = sortedCards.map { entity ->
                 Flashcard(
                     id = entity.id,
                     japanese = entity.japanese,
                     romaji = entity.romaji,
                     english = entity.english,
+                    furigana = entity.furigana.takeIf { it.isNotBlank() },
                 )
             },
             number = deck.number,

@@ -24,6 +24,7 @@ data class CustomCardEntity(
     val japanese: String, // Strictly pure Kana (Hiragana/Katakana)
     val romaji: String,
     val english: String,
+    val furigana: String = "",
     val exampleKana: String = "",
     val exampleRomaji: String = "",
     val exampleEnglish: String = "",

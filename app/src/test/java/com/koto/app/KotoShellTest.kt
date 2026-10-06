@@ -126,7 +126,7 @@ class KotoShellTest {
             assertTrue(settings.boundsInRoot.width >= minPixels)
             assertTrue(settings.boundsInRoot.height >= minPixels)
             compose.onNodeWithTag("map_settings").performClick()
-            compose.onNodeWithTag("settings_done").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("settings_close").assertIsDisplayed().performClick()
         }
     }
 

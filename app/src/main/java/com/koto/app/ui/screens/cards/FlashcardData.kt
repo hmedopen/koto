@@ -11,7 +11,11 @@ data class Flashcard(
     val dueTimestamp: Long = 0L,
     val intervalDays: Int = 0,
     val state: String = "NEW",
-)
+    val kanji: String? = null,
+    val furigana: String? = null,
+) {
+    val displayKanji: String get() = kanji?.takeIf { it.isNotBlank() } ?: japanese
+}
 
 data class FlashcardDeck(
     val id: String,
@@ -44,6 +48,8 @@ fun loadFlashcardDecks(jsonString: String): List<FlashcardDeck> {
                         dueTimestamp = card.optLong("dueTimestamp", 0L),
                         intervalDays = card.optInt("intervalDays", 0),
                         state = card.optString("state", "NEW"),
+                        kanji = card.optString("kanji", "").takeIf { it.isNotBlank() },
+                        furigana = card.optString("furigana", "").takeIf { it.isNotBlank() },
                     )
                 },
                 number = deck.optInt("number", index + 1),
@@ -77,6 +83,8 @@ internal fun loadFlashcardDecksFallback(jsonString: String): List<FlashcardDeck>
     var currentDue = 0L
     var currentInterval = 0
     var currentState = "NEW"
+    var currentKanji: String? = null
+    var currentFurigana: String? = null
 
     fun unescape(str: String): String = str.replace("\\\"", "\"")
         .replace("\\n", "\n")
@@ -108,6 +116,10 @@ internal fun loadFlashcardDecksFallback(jsonString: String): List<FlashcardDeck>
             currentCards = mutableListOf()
         } else if (trimmed.startsWith("\"japanese\":")) {
             currentJapanese = unescape(trimmed.substringAfter(":").trim().removeSurrounding("\""))
+        } else if (trimmed.startsWith("\"kanji\":")) {
+            currentKanji = unescape(trimmed.substringAfter(":").trim().removeSurrounding("\"")).takeIf { it.isNotBlank() }
+        } else if (trimmed.startsWith("\"furigana\":")) {
+            currentFurigana = unescape(trimmed.substringAfter(":").trim().removeSurrounding("\"")).takeIf { it.isNotBlank() }
         } else if (trimmed.startsWith("\"romaji\":")) {
             currentRomaji = unescape(trimmed.substringAfter(":").trim().removeSurrounding("\""))
         } else if (trimmed.startsWith("\"english\":")) {
@@ -119,7 +131,19 @@ internal fun loadFlashcardDecksFallback(jsonString: String): List<FlashcardDeck>
         } else if (trimmed.startsWith("\"state\":")) {
             currentState = unescape(trimmed.substringAfter(":").trim().removeSurrounding("\""))
         } else if (trimmed == "}" && inCards && currentCardId.isNotEmpty()) {
-            currentCards.add(Flashcard(currentCardId, currentJapanese, currentRomaji, currentEnglish, currentDue, currentInterval, currentState))
+            currentCards.add(
+                Flashcard(
+                    id = currentCardId,
+                    japanese = currentJapanese,
+                    romaji = currentRomaji,
+                    english = currentEnglish,
+                    dueTimestamp = currentDue,
+                    intervalDays = currentInterval,
+                    state = currentState,
+                    kanji = currentKanji,
+                    furigana = currentFurigana,
+                ),
+            )
             currentCardId = ""
             currentJapanese = ""
             currentRomaji = ""
@@ -127,6 +151,8 @@ internal fun loadFlashcardDecksFallback(jsonString: String): List<FlashcardDeck>
             currentDue = 0L
             currentInterval = 0
             currentState = "NEW"
+            currentKanji = null
+            currentFurigana = null
         } else if (trimmed == "]") {
             inCards = false
         } else if (trimmed == "}" && !inCards && currentDeckId.isNotEmpty()) {
@@ -144,11 +170,12 @@ fun loadFlashcardDecks(context: Context): List<FlashcardDeck> {
     return loadFlashcardDecks(jsonString)
 }
 
-val FlashcardDeck.description: String get() = when (icon) {
-    "chatbubble" -> "Small words to start a conversation."
-    "hashtag" -> "Build confidence with everyday numbers."
-    "home" -> "Get to know the things around you."
-    "utensils" -> "Everyday words for the table."
-    "train" -> "Find your way, one word at a time."
+val FlashcardDeck.description: String get() = when {
+    category == "Custom" || id.startsWith("custom_") || icon == "custom" -> "Personal custom flashcard deck."
+    icon == "chatbubble" -> "Small words to start a conversation."
+    icon == "hashtag" -> "Build confidence with everyday numbers."
+    icon == "home" -> "Get to know the things around you."
+    icon == "utensils" -> "Everyday words for the table."
+    icon == "train" -> "Find your way, one word at a time."
     else -> "Useful actions for everyday life."
 }

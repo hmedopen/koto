@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.sp
 import com.koto.app.feature.lesson.LessonSession
 import com.koto.app.feature.lesson.model.*
 import com.koto.app.ui.components.*
+import com.koto.app.ui.screens.cards.CardsColors
+import com.koto.app.ui.screens.settings.DisplayMode
+import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
+import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 import com.koto.app.ui.theme.KotoColors
 
 @Composable
@@ -111,8 +115,15 @@ internal fun ColumnScope.ClozeQuestion(q: Question.Cloze, session: LessonSession
 }
 
 @Composable
-private fun ClozePrompt(q: Question.Cloze, selectedId: String?, speechReady: Boolean, isSpeaking: Boolean,
-    speak: (JapaneseText) -> Unit) {
+private fun ClozePrompt(
+    q: Question.Cloze,
+    selectedId: String?,
+    speechReady: Boolean,
+    isSpeaking: Boolean,
+    speak: (JapaneseText) -> Unit,
+    mode: DisplayMode = LocalJapaneseDisplayMode.current,
+    showRomaji: Boolean = LocalRomajiVisibility.current,
+) {
     val selected = (q.options.firstOrNull { it.id == selectedId }?.text as? LessonText.Japanese)?.value
     fun underlined(source: String, replacement: String?) = buildAnnotatedString {
         val pieces = source.split("___")
@@ -120,12 +131,23 @@ private fun ClozePrompt(q: Question.Cloze, selectedId: String?, speechReady: Boo
         pushStyle(androidx.compose.ui.text.SpanStyle(textDecoration = TextDecoration.Underline))
         append(replacement ?: "     ")
         pop()
-        append(pieces[1])
+        if (pieces.size > 1) append(pieces[1])
     }
+    val japaneseSource = when (mode) {
+        DisplayMode.KANA -> q.sentence.kana
+        DisplayMode.KANJI_ONLY, DisplayMode.KANJI_FURIGANA -> q.sentence.displayKanji
+    }
+    val japaneseReplacement = when (mode) {
+        DisplayMode.KANA -> selected?.kana
+        DisplayMode.KANJI_ONLY, DisplayMode.KANJI_FURIGANA -> selected?.displayKanji
+    }
+
     Surface(Modifier.fillMaxWidth(), color = KotoColors.Background, shape = RoundedCornerShape(22.dp), border = BorderStroke(1.dp, KotoColors.Hairline)) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(underlined(q.sentence.romaji, selected?.romaji), fontSize = 16.sp, color = KotoColors.QuietInk, textAlign = TextAlign.Center)
-            Text(underlined(q.sentence.kana, selected?.kana), fontSize = 24.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Text(underlined(japaneseSource, japaneseReplacement), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CardsColors.Ink, textAlign = TextAlign.Center)
+            if (showRomaji) {
+                Text(underlined(q.sentence.romaji, selected?.romaji), fontSize = 16.sp, color = KotoColors.QuietInk, textAlign = TextAlign.Center)
+            }
             SpeakerButton(q.filled(selectedId), speechReady, isSpeaking, speak)
         }
     }

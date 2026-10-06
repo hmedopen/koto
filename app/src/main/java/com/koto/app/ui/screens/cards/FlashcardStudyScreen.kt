@@ -71,10 +71,14 @@ import com.koto.app.feature.lesson.audio.SpeechStatus
 import com.koto.app.feature.lesson.ui.SpeakerButton
 import com.koto.app.feature.lesson.model.JapaneseText
 import com.koto.app.ui.components.SessionControlBar
+import com.koto.app.ui.components.JapaneseWordDisplay
 import com.koto.app.ui.components.TactileButton
 import com.koto.app.ui.components.TactileTone
 import com.koto.app.ui.theme.KotoColors
 import com.koto.app.ui.screens.map.SettingsSheet
+import com.koto.app.ui.screens.settings.DisplayMode
+import com.koto.app.ui.screens.settings.DisplayPreferences
+import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
 
 private enum class StudyStage {
     Active,
@@ -652,12 +656,15 @@ private fun CardContextScreen(
     audio: JapaneseTtsController,
     onBack: () -> Unit,
 ) {
+    val currentContext = LocalContext.current
     val context = remember(card) {
-        CardContextLoader.getContext(card.japanese, card.romaji)
+        CardContextLoader.getContext(card, currentContext)
     }
     val examples = context?.examples ?: emptyList()
     val pagerState = rememberPagerState(pageCount = { examples.size })
     val coroutineScope = rememberCoroutineScope()
+    val preferences = remember(currentContext) { DisplayPreferences.get(currentContext) }
+    val currentMode = LocalJapaneseDisplayMode.current
 
     BackHandler { onBack() }
 
@@ -669,7 +676,7 @@ private fun CardContextScreen(
             .navigationBarsPadding()
             .testTag("card_context_dialog"),
     ) {
-        // 1. Top Bar: Crisp Back button, Screen Title, and Main Word Pronunciation
+        // 1. Top Bar: Crisp Back button, Screen Title, Display Mode Toggle, and Main Word Pronunciation
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -701,43 +708,62 @@ private fun CardContextScreen(
                 fontWeight = FontWeight.Bold,
             )
 
-            SpeakerButton(
-                text = JapaneseText(card.japanese, card.romaji),
-                speechReady = audio.enabled && audio.status == SpeechStatus.Ready,
-                isPlaying = audio.isSpeaking,
-                speak = { audio.speak(it) },
-                modifier = Modifier.size(44.dp, 48.dp),
-                description = "Play pronunciation: ${card.romaji}",
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TactileButton(
+                    onClick = {
+                        val nextMode = if (currentMode.isKanji) DisplayMode.KANA else DisplayMode.KANJI_FURIGANA
+                        preferences.setDisplayMode(nextMode)
+                    },
+                    modifier = Modifier.size(44.dp, 48.dp).testTag("card_context_display_mode_toggle"),
+                    tone = TactileTone.Quiet,
+                    description = if (currentMode.isKanji) "Switch to Kana mode" else "Switch to Kanji mode",
+                    padding = PaddingValues(0.dp),
+                ) {
+                    Text(
+                        text = if (currentMode.isKanji) "あ" else "漢",
+                        color = CardsColors.Blue,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+
+                SpeakerButton(
+                    text = JapaneseText(card.japanese, card.romaji),
+                    speechReady = audio.enabled && audio.status == SpeechStatus.Ready,
+                    isPlaying = audio.isSpeaking,
+                    speak = { audio.speak(it) },
+                    modifier = Modifier.size(44.dp, 48.dp),
+                    description = "Play pronunciation: ${card.romaji}",
+                )
+            }
         }
         HorizontalDivider(color = CardsColors.Edge, thickness = 1.dp)
 
         // 2. Top Context Section: Organized, Editorial Japanese Hierarchy (No bubble curves)
+        val effectiveKanji = card.kanji?.takeIf { it.isNotBlank() }
+            ?: context?.kanji?.takeIf { it.isNotBlank() }
+            ?: card.displayKanji
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Kana and Romaji: Romaji ALWAYS directly under Kana in a Column
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = card.japanese,
-                    color = CardsColors.Ink,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    lineHeight = 38.sp,
-                )
-                Text(
-                    text = card.romaji,
-                    color = CardsColors.Blue,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
+            JapaneseWordDisplay(
+                kanji = effectiveKanji,
+                kana = card.japanese,
+                romaji = card.romaji,
+                fontSize = 32.sp,
+                fontColor = CardsColors.Ink,
+                furiganaColor = CardsColors.Blue,
+                romajiColor = CardsColors.Blue,
+                horizontalAlignment = Alignment.Start,
+            )
 
             Text(
                 text = card.english,
@@ -873,26 +899,19 @@ private fun CardContextScreen(
                             )
                         }
 
-                        Column(
+                        JapaneseWordDisplay(
+                            kanji = ex.displayKanji,
+                            kana = ex.kana,
+                            romaji = ex.romaji,
+                            fontSize = 19.sp,
+                            fontColor = CardsColors.Ink,
+                            furiganaColor = CardsColors.Blue,
+                            romajiColor = CardsColors.Blue,
+                            horizontalAlignment = Alignment.Start,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Text(
-                                text = ex.kana,
-                                color = CardsColors.Ink,
-                                fontSize = 19.sp,
-                                lineHeight = 27.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                text = ex.romaji,
-                                color = CardsColors.Blue,
-                                fontSize = 13.sp,
-                                lineHeight = 18.sp,
-                            )
-                        }
+                        )
 
                         Column(
                             modifier = Modifier.fillMaxWidth(),
@@ -1159,22 +1178,29 @@ private fun StudyCard(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(
-                        text = primaryText,
-                        color = CardsColors.Ink,
-                        fontSize = computedFontSize,
-                        lineHeight = (computedFontSize.value * 1.32f).sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.testTag("card_word"),
-                    )
-                    if (japaneseVisible && state.showRomaji) {
+                    if (japaneseVisible) {
+                        JapaneseWordDisplay(
+                            kanji = card.displayKanji,
+                            kana = card.japanese,
+                            romaji = card.romaji,
+                            wordModifier = Modifier.testTag("card_word"),
+                            romajiModifier = Modifier.testTag("card_romaji"),
+                            showRomaji = state.showRomaji,
+                            fontSize = computedFontSize,
+                            fontColor = CardsColors.Ink,
+                            furiganaColor = CardsColors.Blue,
+                            romajiColor = CardsColors.Muted,
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        )
+                    } else {
                         Text(
-                            text = card.romaji,
-                            color = CardsColors.Muted,
-                            fontSize = 16.sp,
+                            text = card.english,
+                            color = CardsColors.Ink,
+                            fontSize = computedFontSize,
+                            lineHeight = (computedFontSize.value * 1.32f).sp,
+                            fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
-                            modifier = Modifier.testTag("card_romaji"),
+                            modifier = Modifier.testTag("card_word"),
                         )
                     }
                 }

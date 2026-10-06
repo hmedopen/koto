@@ -25,64 +25,65 @@ import androidx.compose.ui.unit.sp
 import com.koto.app.feature.lesson.model.*
 import com.koto.app.ui.components.*
 import com.koto.app.ui.theme.KotoColors
+import com.koto.app.ui.screens.cards.CardsColors
+import com.koto.app.ui.screens.settings.DisplayMode
+import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
+import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 import kotlin.math.PI
 import kotlin.math.cos
 
 @Composable
-fun JapaneseTextBlock(text: JapaneseText, modifier: Modifier = Modifier, size: TextUnit = 22.sp,
-    alignReading: Boolean = true) {
+fun JapaneseTextBlock(
+    text: JapaneseText,
+    modifier: Modifier = Modifier,
+    size: TextUnit = 22.sp,
+    alignReading: Boolean = true,
+    mode: DisplayMode = LocalJapaneseDisplayMode.current,
+    showRomaji: Boolean = LocalRomajiVisibility.current,
+) {
     val ink = LocalContentColor.current
-    if (!alignReading) {
-        Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text.romaji, fontSize = size * .7f, lineHeight = size * .9f,
-                color = if (ink == androidx.compose.ui.graphics.Color.White) androidx.compose.ui.graphics.Color(0xFFE3E8EE) else KotoColors.QuietInk,
-                textAlign = TextAlign.Center, fontWeight = FontWeight.Normal)
-            Text(text.kana, fontSize = size, lineHeight = size * 1.35f,
-                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        }
-        return
-    }
-    val units = remember(text.kana, text.romaji) { kanaReadingUnits(text) }
-    val groups = remember(units) {
-        buildList {
-            var current = mutableListOf<KanaReadingUnit>()
-            units.forEach { unit ->
-                if (unit.breakBefore && current.isNotEmpty()) {
-                    add(current)
-                    current = mutableListOf()
-                }
-                current += unit
-            }
-            if (current.isNotEmpty()) add(current)
-        }
-    }
-    FlowRow(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        groups.forEach { group ->
-            Row(horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-                group.forEach { unit ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(unit.romaji.ifEmpty { " " }, fontSize = size * .7f, lineHeight = size * .7f,
-                            color = if (ink == androidx.compose.ui.graphics.Color.White) androidx.compose.ui.graphics.Color(0xFFE3E8EE) else KotoColors.QuietInk,
-                            textAlign = TextAlign.Center, fontWeight = FontWeight.Normal, maxLines = 1)
-                        Text(unit.kana, fontSize = size, lineHeight = size * 1.1f,
-                            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, maxLines = 1)
-                    }
-                }
-            }
-        }
-    }
+    val isWhite = ink == androidx.compose.ui.graphics.Color.White
+    val fontColor = if (isWhite) androidx.compose.ui.graphics.Color.White else CardsColors.Ink
+    val furiganaColor = if (isWhite) androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f) else CardsColors.Blue
+    val romajiColor = if (isWhite) androidx.compose.ui.graphics.Color(0xFFE3E8EE) else KotoColors.QuietInk
+
+    JapaneseWordDisplay(
+        kanji = text.displayKanji,
+        kana = text.kana,
+        romaji = text.romaji,
+        modifier = modifier,
+        mode = mode,
+        showRomaji = showRomaji,
+        fontSize = size,
+        fontColor = fontColor,
+        furiganaColor = furiganaColor,
+        romajiColor = romajiColor,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    )
 }
 
 @Composable
-internal fun ContentText(text: LessonText, size: TextUnit = 22.sp, alignReading: Boolean = true) {
+internal fun ContentText(
+    text: LessonText,
+    size: TextUnit = 22.sp,
+    alignReading: Boolean = true,
+    mode: DisplayMode = LocalJapaneseDisplayMode.current,
+    showRomaji: Boolean = LocalRomajiVisibility.current,
+) {
     when (text) {
-        is LessonText.Japanese -> JapaneseTextBlock(text.value, size = size, alignReading = alignReading)
-        is LessonText.English -> Text(text.value, fontSize = size, fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center)
+        is LessonText.Japanese -> JapaneseTextBlock(
+            text = text.value,
+            size = size,
+            alignReading = alignReading,
+            mode = mode,
+            showRomaji = showRomaji,
+        )
+        is LessonText.English -> Text(
+            text = text.value,
+            fontSize = size,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

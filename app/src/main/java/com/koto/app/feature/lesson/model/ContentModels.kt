@@ -6,7 +6,8 @@ package com.koto.app.feature.lesson.model
 data class Choice(
     val id: String,
     val text: String,
-    val correct: Boolean
+    val correct: Boolean,
+    val kanji: String? = null
 )
 
 /**
@@ -34,7 +35,8 @@ data class QuestionData(
     val choices: List<Choice> = emptyList(),
     val explanation: String = "",
     val audio: AudioConfig = AudioConfig(),
-    val reviewTags: List<String> = emptyList()
+    val reviewTags: List<String> = emptyList(),
+    val kanji: String? = null
 )
 
 /**

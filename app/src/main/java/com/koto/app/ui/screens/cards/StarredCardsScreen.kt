@@ -24,6 +24,7 @@ import com.koto.app.feature.lesson.audio.JapaneseTtsController
 import com.koto.app.feature.lesson.audio.SpeechStatus
 import com.koto.app.feature.lesson.model.JapaneseText
 import com.koto.app.feature.lesson.ui.SpeakerButton
+import com.koto.app.ui.components.JapaneseWordDisplay
 import com.koto.app.ui.components.TactileButton
 import com.koto.app.ui.components.TactileTone
 
@@ -118,13 +119,19 @@ internal fun StarredCardsScreen(
                             .testTag("starred_row_${card.id}"),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Left: Kana + Romaji (Romaji directly under Kana, Rule 2)
-                        Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(card.japanese, color = CardsColors.Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                            if (state.showRomaji) {
-                                Text(card.romaji, color = CardsColors.Blue, fontSize = 12.sp)
-                            }
-                        }
+                        // Left: Japanese word (respecting display mode & romaji setting)
+                        JapaneseWordDisplay(
+                            kanji = card.displayKanji,
+                            kana = card.japanese,
+                            romaji = card.romaji,
+                            showRomaji = state.showRomaji,
+                            fontSize = 17.sp,
+                            fontColor = CardsColors.Ink,
+                            furiganaColor = CardsColors.Blue,
+                            romajiColor = CardsColors.Blue,
+                            horizontalAlignment = Alignment.Start,
+                            modifier = Modifier.weight(1.2f),
+                        )
 
                         // Right: English meaning
                         Text(

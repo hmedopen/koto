@@ -18,6 +18,8 @@ class JapaneseTtsController private constructor(context: Context) {
     private val preferences = context.getSharedPreferences("koto_lesson_settings", Context.MODE_PRIVATE)
     var enabled by mutableStateOf(preferences.getBoolean("speech", true))
         private set
+    private val _speechRate = mutableStateOf(preferences.getFloat("speech_rate", 1.0f))
+    val speechRate: Float get() = _speechRate.value
     var status by mutableStateOf(SpeechStatus.Loading)
         private set
     var isSpeaking by mutableStateOf(false)
@@ -48,6 +50,7 @@ class JapaneseTtsController private constructor(context: Context) {
                             // entry, so do not reject a successful language selection.
                             if (language >= TextToSpeech.LANG_AVAILABLE) {
                                 observePlayback(tts)
+                                try { tts.setSpeechRate(speechRate) } catch (_: RuntimeException) {}
                                 SpeechStatus.Ready
                             } else SpeechStatus.Unavailable
                         } catch (_: RuntimeException) { SpeechStatus.Unavailable }
@@ -62,6 +65,12 @@ class JapaneseTtsController private constructor(context: Context) {
         enabled = value
         preferences.edit().putBoolean("speech", value).apply()
         if (!value) stop()
+    }
+
+    fun setSpeechRate(rate: Float) {
+        _speechRate.value = rate
+        preferences.edit().putFloat("speech_rate", rate).apply()
+        try { engine?.setSpeechRate(rate) } catch (_: RuntimeException) {}
     }
     fun speak(text: JapaneseText) {
         if (!enabled || status != SpeechStatus.Ready || !canSpeak(text)) return

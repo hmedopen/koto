@@ -41,6 +41,11 @@ import org.robolectric.annotation.GraphicsMode
 class KotoAccessibilityLayoutTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @org.junit.After
+    fun tearDown() {
+        org.robolectric.RuntimeEnvironment.setFontScale(1f)
+    }
+
     @Test
     fun mapPopupSupportsDoubleFontScale() {
         org.robolectric.RuntimeEnvironment.setFontScale(2f)

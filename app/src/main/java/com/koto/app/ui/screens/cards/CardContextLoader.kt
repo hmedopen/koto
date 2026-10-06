@@ -8,7 +8,10 @@ data class CardExample(
     val kana: String,
     val romaji: String,
     val english: String,
-)
+    val kanji: String? = null,
+) {
+    val displayKanji: String get() = kanji?.takeIf { it.isNotBlank() } ?: kana
+}
 
 data class CardContext(
     val cardId: String = "",
@@ -17,7 +20,10 @@ data class CardContext(
     val english: String,
     val usageNote: String,
     val examples: List<CardExample>,
-)
+    val kanji: String? = null,
+) {
+    val displayKanji: String get() = kanji?.takeIf { it.isNotBlank() } ?: kana
+}
 
 /**
  * Data pipeline for card context and usage notes.
@@ -128,6 +134,7 @@ object CardContextLoader {
                 val obj = root.getJSONObject(key)
                 val cardId = obj.optString("cardId", "")
                 val kana = obj.optString("kana")
+                val kanji = obj.optString("kanji", "").takeIf { it.isNotBlank() }
                 val romaji = obj.optString("romaji")
                 val english = obj.optString("english")
                 val usageNote = obj.optString("usageNote")
@@ -141,6 +148,7 @@ object CardContextLoader {
                                 kana = ex.optString("kana"),
                                 romaji = ex.optString("romaji"),
                                 english = ex.optString("english"),
+                                kanji = ex.optString("kanji", "").takeIf { it.isNotBlank() },
                             ),
                         )
                     }
@@ -152,6 +160,7 @@ object CardContextLoader {
                     english = english,
                     usageNote = usageNote,
                     examples = examples,
+                    kanji = kanji,
                 )
             }
             result
@@ -178,6 +187,7 @@ object CardContextLoader {
 
             val cardId = extractJsonString(body, "cardId")
             val kana = extractJsonString(body, "kana")
+            val kanji = extractJsonString(body, "kanji").takeIf { it.isNotBlank() }
             val romaji = extractJsonString(body, "romaji")
             val english = extractJsonString(body, "english")
             val usageNote = extractJsonString(body, "usageNote")
@@ -198,13 +208,14 @@ object CardContextLoader {
                             kana = extractJsonString(exStr, "kana"),
                             romaji = extractJsonString(exStr, "romaji"),
                             english = extractJsonString(exStr, "english"),
+                            kanji = extractJsonString(exStr, "kanji").takeIf { it.isNotBlank() },
                         ),
                     )
                     searchFrom = objEnd + 1
                 }
             }
 
-            result[key] = CardContext(cardId, kana, romaji, english, usageNote, examples)
+            result[key] = CardContext(cardId, kana, romaji, english, usageNote, examples, kanji)
         }
         return result
     }

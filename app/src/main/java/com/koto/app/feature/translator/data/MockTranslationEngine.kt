@@ -85,7 +85,7 @@ object MockTranslationEngine {
             return TranslationResult(
                 sourceText = clean,
                 translatedText = clean,
-                romaji = if (sourceLanguage == TranslationLanguage.Japanese) toRomaji(clean) else "",
+                romaji = if (sourceLanguage == TranslationLanguage.Japanese) KanaConverter.toSpacedRomaji(clean) else "",
                 sourceLanguage = sourceLanguage,
                 targetLanguage = targetLanguage,
             )
@@ -158,7 +158,7 @@ object MockTranslationEngine {
             )
         }
 
-        val romaji = toRomaji(cleanJp)
+        val romaji = KanaConverter.toSpacedRomaji(cleanJp).ifBlank { toRomaji(cleanJp) }
         val fallbackEn = "Translation for $cleanJp"
         return TranslationResult(japanese, fallbackEn, romaji, sourceLanguage, targetLanguage)
     }

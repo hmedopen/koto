@@ -25,7 +25,9 @@ import androidx.compose.ui.unit.sp
 import com.koto.app.R
 import com.koto.app.feature.translator.model.SavedTranslationCard
 import com.koto.app.feature.translator.model.TranslationLanguage
+import com.koto.app.ui.components.RubyText
 import com.koto.app.ui.screens.cards.CardsColors
+import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 import com.koto.app.ui.theme.KotoType
 
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -176,13 +178,14 @@ fun SavedTranslationsDialog(
                             modifier = Modifier.weight(1.3f),
                             verticalArrangement = Arrangement.spacedBy(3.dp),
                         ) {
-                            Text(
+                            RubyText(
                                 text = jpText,
-                                color = CardsColors.Ink,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
+                                baseFontSize = 16.sp,
+                                baseColor = CardsColors.Ink,
+                                furiganaColor = CardsColors.Blue,
                             )
-                            if (romajiText.isNotBlank()) {
+                            val showRomaji = LocalRomajiVisibility.current
+                            if (showRomaji && romajiText.isNotBlank()) {
                                 Text(
                                     text = romajiText,
                                     color = CardsColors.Blue,

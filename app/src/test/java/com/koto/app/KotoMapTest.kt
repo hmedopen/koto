@@ -84,7 +84,7 @@ class KotoMapTest {
         openMap()
         compose.onNodeWithTag("map_settings").performClick()
         compose.onNodeWithTag("settings_sound").assertIsSelected().performClick().assertIsNotSelected()
-        compose.onNodeWithTag("settings_done").performClick()
+        compose.onNodeWithTag("settings_close").performClick()
         compose.onNodeWithTag("map_settings").performClick()
         compose.onNodeWithTag("settings_sound").assertIsNotSelected()
     }

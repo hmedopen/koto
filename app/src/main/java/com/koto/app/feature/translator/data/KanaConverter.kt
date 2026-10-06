@@ -1,6 +1,7 @@
 package com.koto.app.feature.translator.data
 
 import com.atilika.kuromoji.ipadic.Tokenizer
+import com.koto.app.ui.screens.settings.RubyToken
 
 object KanaConverter {
 
@@ -49,11 +50,166 @@ object KanaConverter {
     }
 
     /**
+     * Extracts structured RubyTokens for Japanese text.
+     * Segments with Kanji are assigned their phonetic Hiragana reading.
+     * Segments without Kanji (pure Kana, spaces, punctuation) have reading = null.
+     */
+    fun extractRubyTokens(text: String): List<RubyToken> {
+        if (text.isBlank()) return emptyList()
+        val trimmed = text.trim()
+
+        val tokens = runCatching { tokenizer.tokenize(trimmed) }.getOrNull()
+        if (tokens.isNullOrEmpty()) {
+            return if (containsKanji(trimmed)) {
+                listOf(RubyToken(surface = trimmed, reading = toPureKana(trimmed)))
+            } else {
+                listOf(RubyToken(surface = trimmed, reading = null))
+            }
+        }
+
+        val result = mutableListOf<RubyToken>()
+        for (token in tokens) {
+            val surface = token.surface
+            val reading = token.reading
+            if (containsKanji(surface)) {
+                val hiraganaReading = if (!reading.isNullOrBlank() && reading != "*") {
+                    katakanaToHiragana(reading)
+                } else {
+                    convertKanjiWithFallback(surface)
+                }
+                result.addAll(splitRubyToken(surface, hiraganaReading))
+            } else {
+                result.add(RubyToken(surface = surface, reading = null))
+            }
+        }
+        return mergeAdjacentPlainTokens(result)
+    }
+
+    private fun mergeAdjacentPlainTokens(tokens: List<RubyToken>): List<RubyToken> {
+        if (tokens.size <= 1) return tokens
+        val result = mutableListOf<RubyToken>()
+        for (token in tokens) {
+            val last = result.lastOrNull()
+            if (last != null && last.reading == null && token.reading == null) {
+                result[result.size - 1] = RubyToken(surface = last.surface + token.surface, reading = null)
+            } else {
+                result.add(token)
+            }
+        }
+        return result
+    }
+
+    private fun splitRubyToken(surface: String, reading: String): List<RubyToken> {
+        if (!containsKanji(surface)) {
+            return listOf(RubyToken(surface = surface, reading = null))
+        }
+        if (surface == reading) {
+            return listOf(RubyToken(surface = surface, reading = null))
+        }
+
+        // Align matching leading Kana
+        var prefixLen = 0
+        while (prefixLen < surface.length && prefixLen < reading.length &&
+            !isKanji(surface[prefixLen]) && surface[prefixLen] == reading[prefixLen]
+        ) {
+            prefixLen++
+        }
+
+        // Align matching trailing Kana
+        var suffixLen = 0
+        while (suffixLen < (surface.length - prefixLen) && suffixLen < (reading.length - prefixLen) &&
+            !isKanji(surface[surface.length - 1 - suffixLen]) &&
+            surface[surface.length - 1 - suffixLen] == reading[reading.length - 1 - suffixLen]
+        ) {
+            suffixLen++
+        }
+
+        val result = mutableListOf<RubyToken>()
+        if (prefixLen > 0) {
+            result.add(RubyToken(surface = surface.substring(0, prefixLen), reading = null))
+        }
+
+        val coreSurface = surface.substring(prefixLen, surface.length - suffixLen)
+        val coreReading = reading.substring(prefixLen, reading.length - suffixLen)
+
+        if (coreSurface.isNotEmpty()) {
+            val internalSplit = splitInternalKana(coreSurface, coreReading)
+            result.addAll(internalSplit)
+        }
+
+        if (suffixLen > 0) {
+            result.add(RubyToken(surface = surface.substring(surface.length - suffixLen), reading = null))
+        }
+
+        return if (result.isNotEmpty()) result else listOf(RubyToken(surface = surface, reading = reading))
+    }
+
+    private fun splitInternalKana(surface: String, reading: String): List<RubyToken> {
+        var kanaIdx = -1
+        for (i in surface.indices) {
+            if (!isKanji(surface[i])) {
+                kanaIdx = i
+                break
+            }
+        }
+
+        if (kanaIdx <= 0 || kanaIdx >= surface.length - 1) {
+            return listOf(
+                RubyToken(
+                    surface = surface,
+                    reading = if (reading.isNotBlank() && reading != surface) reading else null,
+                ),
+            )
+        }
+
+        var kanaEnd = kanaIdx
+        while (kanaEnd < surface.length && !isKanji(surface[kanaEnd])) {
+            kanaEnd++
+        }
+        val internalKana = surface.substring(kanaIdx, kanaEnd)
+
+        val readingKanaIdx = reading.indexOf(internalKana, startIndex = 1)
+        if (readingKanaIdx > 0 && readingKanaIdx + internalKana.length < reading.length) {
+            val leftSurface = surface.substring(0, kanaIdx)
+            val leftReading = reading.substring(0, readingKanaIdx)
+
+            val rightSurface = surface.substring(kanaEnd)
+            val rightReading = reading.substring(readingKanaIdx + internalKana.length)
+
+            val leftTokens = splitRubyToken(leftSurface, leftReading)
+            val middleToken = RubyToken(surface = internalKana, reading = null)
+            val rightTokens = splitRubyToken(rightSurface, rightReading)
+
+            return leftTokens + middleToken + rightTokens
+        }
+
+        return listOf(
+            RubyToken(
+                surface = surface,
+                reading = if (reading.isNotBlank() && reading != surface) reading else null,
+            ),
+        )
+    }
+
+    /**
      * Checks if the given text contains any CJK Unified Ideographs (Kanji).
      */
     fun containsKanji(text: String): Boolean {
         for (ch in text) {
             if (isKanji(ch)) return true
+        }
+        return false
+    }
+
+    /**
+     * Checks if the given text contains any Japanese characters (Kanji, Hiragana, or Katakana).
+     */
+    fun containsJapanese(text: String): Boolean {
+        for (ch in text) {
+            val code = ch.code
+            if (isKanji(ch) || (code in 0x3040..0x309F) || (code in 0x30A0..0x30FF) || (code in 0x31F0..0x31FF)) {
+                return true
+            }
         }
         return false
     }
@@ -119,6 +275,111 @@ object KanaConverter {
             }
         }
         return sb.toString()
+    }
+
+    /**
+     * Converts any Japanese text (Kanji, Kana, or mixed) into natural,
+     * word-spaced Latin alphabet (Romaji) using Kuromoji morphological analysis.
+     * Spaces are placed between distinct words/particles, while verb inflections,
+     * auxiliary verbs, and suffixes remain attached to their stems.
+     * Punctuation is properly formatted (e.g. "、" -> ", ", "。" -> ".").
+     */
+    fun toSpacedRomaji(text: String): String {
+        if (text.isBlank() || !containsJapanese(text)) return ""
+        val trimmed = text.trim()
+        val tokens = runCatching { tokenizer.tokenize(trimmed) }.getOrNull()
+        if (tokens.isNullOrEmpty()) {
+            return toRomaji(toPureKana(trimmed))
+        }
+
+        val words = mutableListOf<String>()
+        val currentWordKana = StringBuilder()
+        var wasPrefix = false
+
+        for (token in tokens) {
+            val surface = token.surface
+            val pos1 = token.partOfSpeechLevel1
+            val pos2 = token.partOfSpeechLevel2
+
+            // Handle punctuation and whitespace
+            if (pos1 == "記号") {
+                if (currentWordKana.isNotEmpty()) {
+                    words.add(toRomaji(currentWordKana.toString()))
+                    currentWordKana.clear()
+                    wasPrefix = false
+                }
+                when (surface) {
+                    "、" -> words.add(",")
+                    "。" -> words.add(".")
+                    "！", "!" -> words.add("!")
+                    "？", "?" -> words.add("?")
+                    "〜", "~" -> words.add("~")
+                    "・" -> words.add("/")
+                    "　", " " -> { /* whitespace handled naturally */ }
+                    else -> {
+                        val converted = toRomaji(surface)
+                        if (converted.isNotBlank()) words.add(converted)
+                    }
+                }
+                continue
+            }
+
+            // Determine token's Kana reading
+            val reading = token.reading
+            val tokenKana = if (pos1 == "助詞" && surface == "は") {
+                "わ"
+            } else if (pos1 == "助詞" && surface == "へ") {
+                "え"
+            } else if (pos1 == "助詞" && surface == "を") {
+                "を"
+            } else if (!reading.isNullOrBlank() && reading != "*") {
+                katakanaToHiragana(reading)
+            } else if (containsKanji(surface)) {
+                convertKanjiWithFallback(surface)
+            } else {
+                surface
+            }
+
+            // Check if token should attach to previous word
+            val isCopula = surface == "です" || surface == "だ"
+            val shouldAttach = currentWordKana.isNotEmpty() && (
+                wasPrefix ||
+                (pos1 == "助動詞" && !isCopula) ||
+                pos2 == "接尾" ||
+                pos2 == "非自立" ||
+                (pos1 == "助詞" && (pos2 == "接続助詞" && (surface == "て" || surface == "で" || surface == "ば")))
+            )
+
+            if (shouldAttach) {
+                currentWordKana.append(tokenKana)
+            } else {
+                if (currentWordKana.isNotEmpty()) {
+                    words.add(toRomaji(currentWordKana.toString()))
+                    currentWordKana.clear()
+                }
+                currentWordKana.append(tokenKana)
+            }
+            wasPrefix = (pos1 == "接頭詞")
+        }
+
+        if (currentWordKana.isNotEmpty()) {
+            words.add(toRomaji(currentWordKana.toString()))
+        }
+
+        // Now format words with proper spacing and punctuation
+        val sb = StringBuilder()
+        for (word in words) {
+            if (word == "," || word == "." || word == "!" || word == "?" || word == "~" || word == "/") {
+                sb.append(word)
+            } else {
+                if (sb.isNotEmpty() && !sb.endsWith(" ") && !sb.endsWith("/") && !sb.endsWith("~")) {
+                    sb.append(" ")
+                }
+                sb.append(word)
+            }
+        }
+
+        return sb.toString().trim()
     }
 
     /**

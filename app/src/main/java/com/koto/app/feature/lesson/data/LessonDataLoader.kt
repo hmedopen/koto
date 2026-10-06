@@ -29,6 +29,49 @@ object LessonDataLoader {
         "LEVEL_05" to "First Integration"
     )
 
+    val VOCABULARY_KANJI = mapOf(
+        "みず" to "水",
+        "ねこ" to "猫",
+        "いぬ" to "犬",
+        "ほん" to "本",
+        "わたし" to "私",
+        "がくせい" to "学生",
+        "せんせい" to "先生",
+        "ともだち" to "友達",
+        "パン" to "パン",
+        "ぱん" to "パン",
+        "これ" to "これ",
+        "それ" to "それ",
+        "あれ" to "あれ",
+        "おはよう" to "おはよう",
+        "こんにちは" to "こんにちは",
+        "こんばんは" to "こんばんは",
+        "ありがとう" to "ありがとう",
+        "たべます" to "食べます",
+        "のみます" to "飲みます",
+        "みます" to "見ます",
+        "ききます" to "聞きます",
+        "ねます" to "寝ます",
+        "いきます" to "行きます",
+        "おんがく" to "音楽",
+        "おちゃ" to "お茶",
+        "なに" to "何",
+        "すし" to "寿司",
+    )
+
+    fun kanjiForKana(kana: String): String? {
+        val clean = kana.trim()
+        VOCABULARY_KANJI[clean]?.let { return it }
+        if (" " in clean) {
+            val parts = clean.split(" ")
+            val converted = parts.map { VOCABULARY_KANJI[it] ?: it }
+            if (converted != parts) {
+                return converted.joinToString(" ")
+            }
+        }
+        return null
+    }
+
     private val VOCABULARY_ROMAJI = mapOf(
         "おはよう" to "ohayou",
         "こんにちは" to "konnichiwa",
@@ -171,13 +214,18 @@ object LessonDataLoader {
             val romaji = obj.getString("romaji")
             val english = obj.getString("english")
 
+            val kanji = obj.optString("kanji", "").takeIf { it.isNotBlank() } ?: kanjiForKana(japanese)
+
             val choices = obj.optJSONArray("choices")?.let { choicesArr ->
                 List(choicesArr.length()) { idx ->
                     val c = choicesArr.getJSONObject(idx)
+                    val text = c.getString("text")
+                    val choiceKanji = c.optString("kanji", "").takeIf { it.isNotBlank() } ?: kanjiForKana(text)
                     Choice(
                         id = c.getString("id"),
-                        text = c.getString("text"),
-                        correct = c.optBoolean("correct", false)
+                        text = text,
+                        correct = c.optBoolean("correct", false),
+                        kanji = choiceKanji
                     )
                 }
             }.orEmpty()
@@ -209,7 +257,8 @@ object LessonDataLoader {
                     choices = choices,
                     explanation = explanation,
                     audio = audio,
-                    reviewTags = reviewTags
+                    reviewTags = reviewTags,
+                    kanji = kanji
                 )
             )
         }
@@ -281,13 +330,14 @@ object LessonDataLoader {
         }
 
         return if (isChoiceEnglish) {
-            val prompt = LessonText.Japanese(JapaneseText(data.japanese, data.romaji))
+            val promptKanji = data.kanji ?: kanjiForKana(data.japanese)
+            val prompt = LessonText.Japanese(JapaneseText(data.japanese, data.romaji, kanji = promptKanji))
             val options = data.choices.map { Answer(it.id, LessonText.English(it.text)) }
             val correctId = data.choices.firstOrNull { it.correct }?.id ?: data.choices.first().id
             Question.MeaningChoice(data.questionId, prompt, options, correctId, data.reviewTags, data.explanation)
         } else {
             val prompt = LessonText.English(data.english)
-            val options = data.choices.map { Answer(it.id, LessonText.Japanese(parseJapaneseChoice(it.text))) }
+            val options = data.choices.map { Answer(it.id, LessonText.Japanese(parseJapaneseChoice(it.text, it.kanji))) }
             val correctId = data.choices.firstOrNull { it.correct }?.id ?: data.choices.first().id
             Question.MeaningChoice(data.questionId, prompt, options, correctId, data.reviewTags, data.explanation)
         }
@@ -298,14 +348,16 @@ object LessonDataLoader {
      * English prompt, word tiles assembled into Japanese sentence.
      */
     private fun mapSentenceBuilder(data: QuestionData): Question.SentenceBuilder {
-        val sentence = JapaneseText(data.japanese, data.romaji)
+        val sentenceKanji = data.kanji ?: kanjiForKana(data.japanese)
+        val sentence = JapaneseText(data.japanese, data.romaji, kanji = sentenceKanji)
         val kanaWords = data.japanese.split(" ").filter { it.isNotBlank() }
         val romajiWords = data.romaji.split(" ").filter { it.isNotBlank() }
+        val kanjiWords = sentenceKanji?.split(" ")?.filter { it.isNotBlank() }
 
-        val words: List<JapaneseText> = if (kanaWords.size == romajiWords.size) {
-            kanaWords.mapIndexed { idx, kana -> JapaneseText(kana, romajiWords[idx]) }
-        } else {
-            kanaWords.map { kana -> JapaneseText(kana, kanaToRomaji(kana)) }
+        val words: List<JapaneseText> = kanaWords.mapIndexed { idx, kana ->
+            val rom = romajiWords.getOrNull(idx) ?: kanaToRomaji(kana)
+            val kj = kanjiWords?.getOrNull(idx) ?: VOCABULARY_KANJI[kana]
+            JapaneseText(kana, rom, kanji = kj)
         }
 
         val tiles = words.mapIndexed { idx, word ->
@@ -330,9 +382,10 @@ object LessonDataLoader {
      * Japanese sentence with '___', blank options with Romaji + Kana preserved.
      */
     private fun mapCloze(data: QuestionData): Question.Cloze {
-        val sentence = JapaneseText(data.japanese, data.romaji)
+        val sentenceKanji = data.kanji ?: kanjiForKana(data.japanese)
+        val sentence = JapaneseText(data.japanese, data.romaji, kanji = sentenceKanji)
         val options = data.choices.map { choice ->
-            val japaneseText = parseJapaneseChoice(choice.text)
+            val japaneseText = parseJapaneseChoice(choice.text, choice.kanji)
             Answer(choice.id, LessonText.Japanese(japaneseText))
         }
         val correctId = data.choices.firstOrNull { it.correct }?.id ?: data.choices.first().id
@@ -354,10 +407,11 @@ object LessonDataLoader {
     private fun mapConversationResponse(data: QuestionData): Question.ConversationResponse {
         val cleanKana = data.japanese.replaceFirst(Regex("^A:\\s*"), "").trim()
         val cleanRomaji = data.romaji.replaceFirst(Regex("^A:\\s*"), "").trim()
-        val incoming = JapaneseText(cleanKana, cleanRomaji)
+        val cleanKanji = (data.kanji ?: kanjiForKana(cleanKana))?.replaceFirst(Regex("^A:\\s*"), "")?.trim()
+        val incoming = JapaneseText(cleanKana, cleanRomaji, kanji = cleanKanji)
 
         val responses = data.choices.map { choice ->
-            val japaneseText = parseJapaneseChoice(choice.text)
+            val japaneseText = parseJapaneseChoice(choice.text, choice.kanji)
             Answer(choice.id, LessonText.Japanese(japaneseText))
         }
         val correctId = data.choices.firstOrNull { it.correct }?.id ?: data.choices.first().id
@@ -382,8 +436,9 @@ object LessonDataLoader {
             val kana = split[0].trim()
             val english = if (split.size > 1) split[1].trim() else kana
             val romaji = kanaToRomaji(kana)
+            val kanji = choice.kanji?.split(" - ")?.getOrNull(0)?.trim() ?: VOCABULARY_KANJI[kana]
 
-            MatchPair("${data.questionId}_P$idx", JapaneseText(kana, romaji), english)
+            MatchPair("${data.questionId}_P$idx", JapaneseText(kana, romaji, kanji = kanji), english)
         }
 
         return Question.PairMatch(
@@ -399,9 +454,10 @@ object LessonDataLoader {
      * Audio target to play via TTS/audio file, choice options.
      */
     private fun mapListening(data: QuestionData): Question.Listening {
-        val target = JapaneseText(data.japanese, data.romaji)
+        val targetKanji = data.kanji ?: kanjiForKana(data.japanese)
+        val target = JapaneseText(data.japanese, data.romaji, kanji = targetKanji)
         val options = data.choices.map { choice ->
-            val japaneseText = parseJapaneseChoice(choice.text)
+            val japaneseText = parseJapaneseChoice(choice.text, choice.kanji)
             Answer(choice.id, LessonText.Japanese(japaneseText))
         }
         val correctId = data.choices.firstOrNull { it.correct }?.id ?: data.choices.first().id
@@ -422,17 +478,19 @@ object LessonDataLoader {
      * e.g. "ありがとう (arigatou)", into a proper [JapaneseText].
      * If no parentheses are found, converts kana to romaji accurately.
      */
-    fun parseJapaneseChoice(text: String): JapaneseText {
+    fun parseJapaneseChoice(text: String, kanji: String? = null): JapaneseText {
         val parenthesized = Regex("""^(.+?)\s*\((.+?)\)$""").find(text.trim())
         if (parenthesized != null) {
             val kana = parenthesized.groupValues[1].trim()
             val romaji = parenthesized.groupValues[2].trim()
-            return JapaneseText(kana, romaji)
+            val resolvedKanji = kanji ?: VOCABULARY_KANJI[kana]
+            return JapaneseText(kana, romaji, kanji = resolvedKanji)
         }
 
         val kana = text.trim()
         val romaji = kanaToRomaji(kana)
-        return JapaneseText(kana, romaji)
+        val resolvedKanji = kanji ?: kanjiForKana(kana) ?: VOCABULARY_KANJI[kana]
+        return JapaneseText(kana, romaji, kanji = resolvedKanji)
     }
 
     /**

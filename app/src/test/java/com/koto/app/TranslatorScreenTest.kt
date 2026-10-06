@@ -150,6 +150,7 @@ class TranslatorScreenTest {
         // Source & Target section verification
         compose.onNodeWithTag("translator_source_label").assertTextEquals("ENGLISH")
         compose.onNodeWithTag("translator_target_label").assertTextEquals("JAPANESE")
+        compose.onNodeWithTag("translator_offline_indicator").assertIsDisplayed()
         compose.onNodeWithTag("translator_target_text").assertTextEquals("こんにちは")
         compose.onNodeWithTag("translator_target_romaji").assertTextEquals("konnichiwa")
 
@@ -168,6 +169,7 @@ class TranslatorScreenTest {
         compose.waitForIdle()
         compose.onNodeWithTag("translator_source_lang_text").assertTextEquals("Japanese")
         compose.onNodeWithTag("translator_target_lang_text").assertTextEquals("English")
+        compose.onNodeWithTag("translator_target_romaji").assertDoesNotExist()
 
         // Clear button resets back to State A
         compose.onNodeWithTag("translator_clear_button").performClick()
@@ -271,6 +273,31 @@ class TranslatorScreenTest {
         compose.waitForIdle()
 
         assertFalse(store.isStarred("apple", "りんご"))
+    }
+
+    @Test
+    fun targetEnglishNeverDisplaysRomaji() {
+        compose.onNodeWithTag("tab_learn").performClick()
+        compose.onNodeWithTag("learn_translate_button").performClick()
+        compose.waitForIdle()
+
+        // Swap to Japanese -> English direction
+        compose.onNodeWithTag("translator_swap_languages_button").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("translator_source_lang_text").assertTextEquals("Japanese")
+        compose.onNodeWithTag("translator_target_lang_text").assertTextEquals("English")
+
+        // Enter Japanese input "ありがとう"
+        compose.onNodeWithTag("translator_idle_input_field").performTextInput("ありがとう")
+        compose.mainClock.advanceTimeBy(1200)
+        compose.waitForIdle()
+
+        // Verify target is English
+        compose.onNodeWithTag("translator_target_label").assertTextEquals("ENGLISH")
+        compose.onNodeWithTag("translator_target_text").assertTextEquals("Thanks")
+
+        // Romaji MUST NOT exist when target is English
+        compose.onNodeWithTag("translator_target_romaji").assertDoesNotExist()
     }
 }
 

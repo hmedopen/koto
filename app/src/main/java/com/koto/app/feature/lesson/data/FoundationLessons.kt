@@ -110,7 +110,14 @@ object FoundationLessons : LessonRepository {
         else -> error("Unknown Stage 1–2 source: $source")
     }
 
-    private fun jp(value: String) = value.split('~').let { JapaneseText(it[0], it[1]) }
+    private fun jp(value: String): JapaneseText {
+        val parts = value.split('~')
+        val kana = parts[0]
+        val romaji = parts.getOrNull(1) ?: ""
+        val explicitKanji = parts.getOrNull(2)
+        val resolvedKanji = explicitKanji ?: LessonDataLoader.kanjiForKana(kana) ?: LessonDataLoader.VOCABULARY_KANJI[kana]
+        return JapaneseText(kana, romaji, kanji = resolvedKanji)
+    }
     private fun ja(value: String) = LessonText.Japanese(jp(value))
     private fun options(id: String, values: List<LessonText>) = values.mapIndexed { index, text -> Answer("${id}_A$index", text) }
     private fun <T> arrange(id: String, values: List<T>): List<T> {
@@ -127,8 +134,13 @@ object FoundationLessons : LessonRepository {
         Question.Cloze(id, jp(sentence), arrange(id, options(id, values.map(::ja))), "${id}_A0")
     private fun build(id: String, prompt: String, vararg words: String): Question {
         val tiles = options(id, words.map(::ja))
-        return Question.SentenceBuilder(id, prompt, arrange(id, tiles), tiles.map { it.id },
-            JapaneseText(words.joinToString(" ") { jp(it).kana }, words.joinToString(" ") { jp(it).romaji }))
+        val sentenceKana = words.joinToString(" ") { jp(it).kana }
+        val sentenceRomaji = words.joinToString(" ") { jp(it).romaji }
+        val sentenceKanji = words.joinToString(" ") { jp(it).displayKanji }
+        return Question.SentenceBuilder(
+            id, prompt, arrange(id, tiles), tiles.map { it.id },
+            JapaneseText(sentenceKana, sentenceRomaji, kanji = sentenceKanji)
+        )
     }
     private fun match(id: String, vararg pairs: Pair<String, String>): Question = Question.PairMatch(id,
         pairs.mapIndexed { index, (japanese, english) -> MatchPair("${id}_P$index", jp(japanese), english) })

@@ -78,7 +78,7 @@ class TranslatorCardStore(context: Context) {
         val romaji = if (targetRomaji.isNotBlank()) {
             targetRomaji.trim()
         } else {
-            KanaConverter.toRomaji(pureKana)
+            KanaConverter.toSpacedRomaji(rawJp).ifBlank { KanaConverter.toRomaji(pureKana) }
         }
 
         val currentlyStarred = isStarred(sourceText, targetText) || isStarred(pureKana, enText) || isStarred(rawJp, enText)
@@ -95,7 +95,7 @@ class TranslatorCardStore(context: Context) {
             val isSentence = isSentenceText(sourceText) || isSentenceText(targetText)
             val entity = TranslationCardEntity(
                 id = id,
-                japanese = rawJp,
+                japanese = pureKana,
                 romaji = romaji,
                 english = enText,
                 isSentence = isSentence,
@@ -104,6 +104,7 @@ class TranslatorCardStore(context: Context) {
                 exampleRomaji = if (isSentence) romaji else "",
                 exampleEnglish = if (isSentence) enText else "",
                 timestamp = System.currentTimeMillis(),
+                kanji = rawJp,
             )
             runCatching { dao.insertCard(entity) }
             registerEntityContext(entity)
@@ -121,10 +122,19 @@ class TranslatorCardStore(context: Context) {
     }
 
     private fun registerEntityContext(entity: TranslationCardEntity) {
-        val examples = if (entity.isSentence && entity.exampleKana.isNotBlank()) {
+        val primaryJp = if (entity.kanji.isNotBlank()) entity.kanji else entity.japanese
+        val exampleText = if (entity.exampleKana.isNotBlank()) {
+            entity.exampleKana
+        } else if (entity.kanji.isNotBlank()) {
+            entity.kanji
+        } else {
+            entity.japanese
+        }
+
+        val examples = if (entity.isSentence && exampleText.isNotBlank()) {
             listOf(
                 CardExample(
-                    kana = entity.exampleKana,
+                    kana = exampleText,
                     romaji = entity.exampleRomaji,
                     english = entity.exampleEnglish,
                 )
@@ -137,7 +147,7 @@ class TranslatorCardStore(context: Context) {
             cardId = entity.id,
             context = CardContext(
                 cardId = entity.id,
-                kana = entity.japanese,
+                kana = primaryJp,
                 romaji = entity.romaji,
                 english = entity.english,
                 usageNote = entity.contextNote.ifEmpty { "Saved from Quick Translations." },
@@ -155,11 +165,13 @@ class TranslatorCardStore(context: Context) {
         return SavedTranslationCard(
             id = id,
             sourceText = english,
-            targetText = japanese,
+            targetText = if (kanji.isNotBlank()) kanji else japanese,
             targetRomaji = romaji,
             sourceLanguage = TranslationLanguage.English,
             targetLanguage = TranslationLanguage.Japanese,
             timestamp = timestamp,
+            targetKana = japanese,
+            targetKanji = if (kanji.isNotBlank()) kanji else japanese,
         )
     }
 }

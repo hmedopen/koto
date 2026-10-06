@@ -1,8 +1,20 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    FileInputStream(localPropertiesFile).use { stream ->
+        localProperties.load(stream)
+    }
+}
+val deeplApiKey = localProperties.getProperty("DEEPL_API_KEY") ?: ""
 
 android {
     namespace = "com.koto.app"
@@ -14,6 +26,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
+
+        buildConfigField("String", "DEEPL_API_KEY", "\"$deeplApiKey\"")
     }
 
     buildFeatures { compose = true; buildConfig = true }
@@ -103,4 +117,8 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")
+
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.compose.ui:ui-text-google-fonts")
 }

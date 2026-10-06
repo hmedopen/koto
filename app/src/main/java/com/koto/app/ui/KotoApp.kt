@@ -44,6 +44,12 @@ import com.koto.app.ui.navigation.KotoNavigation
 import com.koto.app.ui.theme.KotoColors
 import com.koto.app.ui.theme.KotoTheme
 import com.koto.app.ui.screens.map.SettingsSheet
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.CompositionLocalProvider
+import com.koto.app.ui.screens.settings.AdvancedSettingsScreen
+import com.koto.app.ui.screens.settings.DisplayPreferences
+import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
+import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 
 @Composable
 fun KotoApp() {
@@ -51,6 +57,7 @@ fun KotoApp() {
     // A new task starts on Learn; only completion and audio preferences persist to disk.
     var selected by rememberSaveable { mutableStateOf(KotoDestination.Learn) }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var advancedSettingsOpen by rememberSaveable { mutableStateOf(false) }
     var lessonId by rememberSaveable { mutableStateOf<Int?>(null) }
     var cardsStudying by rememberSaveable { mutableStateOf(false) }
     var cardsDeckOpen by rememberSaveable { mutableStateOf(false) }
@@ -64,12 +71,17 @@ fun KotoApp() {
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val progress = remember { LessonProgress(context) }
     val audio = remember { JapaneseTtsController.get(context) }
+    val preferences = remember { DisplayPreferences.get(context) }
     val shellState = rememberSaveableStateHolder()
 
-    // Top-level section changes don't accumulate a history of tab taps.
-    BackHandler(enabled = lessonId == null && !translatorOpen && selected != KotoDestination.Learn) {
-        selected = KotoDestination.Learn
-    }
+    CompositionLocalProvider(
+        LocalJapaneseDisplayMode provides preferences.displayMode,
+        LocalRomajiVisibility provides preferences.romajiEnabled,
+    ) {
+        // Top-level section changes don't accumulate a history of tab taps.
+        BackHandler(enabled = !advancedSettingsOpen && lessonId == null && !translatorOpen && selected != KotoDestination.Learn) {
+            selected = KotoDestination.Learn
+        }
 
     val lesson = remember(lessonId) { lessonId?.let(FoundationLessons::lesson) }
     if (lesson != null) {
@@ -156,7 +168,28 @@ fun KotoApp() {
             }
         }
     }
-    if (settingsOpen) SettingsSheet(onDismiss = { settingsOpen = false }, audio = audio)
+        if (settingsOpen) {
+            SettingsSheet(
+                onDismiss = { settingsOpen = false },
+                onOpenAdvanced = {
+                    settingsOpen = false
+                    advancedSettingsOpen = true
+                },
+                audio = audio,
+                preferences = preferences,
+            )
+        }
+
+        AnimatedVisibility(
+            visible = advancedSettingsOpen,
+            enter = slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth } +
+                fadeIn(tween(250, easing = LinearOutSlowInEasing)),
+            exit = slideOutHorizontally(tween(280, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth } +
+                fadeOut(tween(200, easing = FastOutLinearInEasing)),
+        ) {
+            AdvancedSettingsScreen(onBack = { advancedSettingsOpen = false })
+        }
+    }
 }
 
 private val KotoDestination.title: String

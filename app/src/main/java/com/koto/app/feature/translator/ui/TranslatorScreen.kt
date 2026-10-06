@@ -52,13 +52,18 @@ import androidx.compose.ui.unit.sp
 import com.koto.app.R
 import com.koto.app.feature.lesson.audio.JapaneseTtsController
 import com.koto.app.feature.translator.audio.TranslatorTtsController
+import com.koto.app.feature.translator.data.HybridTranslationEngine
+import com.koto.app.feature.translator.data.KanaConverter
 import com.koto.app.feature.translator.data.MlKitTranslationEngine
 import com.koto.app.feature.translator.data.TranslationHistoryStore
 import com.koto.app.feature.translator.data.TranslatorCardStore
 import com.koto.app.feature.translator.model.TranslationLanguage
+import com.koto.app.ui.components.RubyText
 import com.koto.app.ui.screens.cards.CardsColors
 import com.koto.app.ui.screens.cards.CardsPressable
 import com.koto.app.ui.screens.map.SettingsSheet
+import com.koto.app.ui.screens.settings.AdvancedSettingsScreen
+import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 import com.koto.app.ui.theme.KotoType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -75,7 +80,7 @@ fun TranslatorScreen(
     val cardStore = remember(context) { TranslatorCardStore(context) }
     val historyStore = remember(context) { TranslationHistoryStore(context) }
     val tts = remember(context) { TranslatorTtsController.get(context) }
-    val translationEngine = remember(context) { MlKitTranslationEngine.getInstance(context) }
+    val translationEngine = remember(context) { HybridTranslationEngine.getInstance(context) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -84,6 +89,7 @@ fun TranslatorScreen(
     var inputText by rememberSaveable { mutableStateOf("") }
     var translatedText by rememberSaveable { mutableStateOf("") }
     var translatedRomaji by rememberSaveable { mutableStateOf("") }
+    var isOfflineResult by rememberSaveable { mutableStateOf(false) }
     var isStarred by rememberSaveable { mutableStateOf(false) }
     var isTranslating by rememberSaveable { mutableStateOf(false) }
     var skipDebounceNext by rememberSaveable { mutableStateOf(false) }
@@ -91,6 +97,7 @@ fun TranslatorScreen(
     var showSavedDialog by rememberSaveable { mutableStateOf(false) }
     var showHistoryDialog by rememberSaveable { mutableStateOf(false) }
     var showInternalSettings by rememberSaveable { mutableStateOf(false) }
+    var showInternalAdvanced by rememberSaveable { mutableStateOf(false) }
     var savedCards by remember { mutableStateOf(cardStore.loadStarredCards()) }
     var historyItems by remember { mutableStateOf(historyStore.getHistory()) }
     var playingSpeakerTag by remember { mutableStateOf<String?>(null) }
@@ -113,6 +120,7 @@ fun TranslatorScreen(
             translatedRomaji = ""
             isStarred = false
             isTranslating = false
+            isOfflineResult = false
             return@LaunchedEffect
         }
 
@@ -126,7 +134,12 @@ fun TranslatorScreen(
 
         val result = translationEngine.translate(query, sourceLang, targetLang)
         translatedText = result.translatedText
-        translatedRomaji = result.romaji
+        translatedRomaji = if (targetLang == TranslationLanguage.Japanese) {
+            result.romaji.ifBlank { KanaConverter.toSpacedRomaji(result.translatedText) }
+        } else {
+            ""
+        }
+        isOfflineResult = result.isOffline
         isStarred = cardStore.isStarred(query, result.translatedText)
         isTranslating = false
 
@@ -134,7 +147,7 @@ fun TranslatorScreen(
             historyStore.recordQuery(
                 sourceText = query,
                 targetText = result.translatedText,
-                targetRomaji = result.romaji,
+                targetRomaji = if (targetLang == TranslationLanguage.Japanese) result.romaji else "",
                 sourceLang = sourceLang,
                 targetLang = targetLang,
             )
@@ -167,6 +180,8 @@ fun TranslatorScreen(
             val oldTranslated = translatedText
             skipDebounceNext = true
             inputText = oldTranslated
+            translatedText = ""
+            translatedRomaji = ""
         }
     }
 
@@ -188,6 +203,7 @@ fun TranslatorScreen(
         inputText = ""
         translatedText = ""
         translatedRomaji = ""
+        isOfflineResult = false
         isStarred = false
         isTranslating = false
         focusManager.clearFocus()
@@ -199,6 +215,7 @@ fun TranslatorScreen(
     // Back button behavior
     BackHandler {
         when {
+            showInternalAdvanced -> showInternalAdvanced = false
             showHistoryDialog -> showHistoryDialog = false
             showSavedDialog -> showSavedDialog = false
             showInternalSettings -> showInternalSettings = false
@@ -518,14 +535,41 @@ fun TranslatorScreen(
                             .padding(horizontal = 24.dp, vertical = 18.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text(
-                            text = targetLang.displayName.uppercase(),
-                            color = CardsColors.Blue,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier.testTag("translator_target_label"),
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = targetLang.displayName.uppercase(),
+                                color = CardsColors.Blue,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                modifier = Modifier.testTag("translator_target_label"),
+                            )
+
+                            if (isOfflineResult) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.testTag("translator_offline_indicator"),
+                                ) {
+                                    Icon(
+                                        painter = painterResource(R.drawable.ic_offline),
+                                        contentDescription = "Offline mode (ML Kit)",
+                                        tint = CardsColors.Muted,
+                                        modifier = Modifier.size(12.dp),
+                                    )
+                                    Text(
+                                        text = "Offline",
+                                        color = CardsColors.Muted,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                    )
+                                }
+                            }
+                        }
 
                         // Output Block: Skeleton Shimmer vs Translation Output
                         if (isTranslating) {
@@ -541,22 +585,33 @@ fun TranslatorScreen(
                                     .testTag("translator_target_block"),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
-                                Text(
-                                    text = translatedText,
-                                    color = CardsColors.Ink,
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    lineHeight = 32.sp,
-                                    modifier = Modifier.testTag("translator_target_text"),
-                                )
+                                if (targetLang == TranslationLanguage.Japanese) {
+                                    RubyText(
+                                        text = translatedText,
+                                        baseFontSize = 24.sp,
+                                        baseColor = CardsColors.Ink,
+                                        furiganaColor = CardsColors.Blue,
+                                        modifier = Modifier.testTag("translator_target_text"),
+                                    )
 
-                                if (translatedRomaji.isNotBlank()) {
+                                    val showRomaji = LocalRomajiVisibility.current
+                                    if (showRomaji && translatedRomaji.isNotBlank()) {
+                                        Text(
+                                            text = translatedRomaji,
+                                            color = CardsColors.Blue,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Normal,
+                                            modifier = Modifier.testTag("translator_target_romaji"),
+                                        )
+                                    }
+                                } else {
                                     Text(
-                                        text = translatedRomaji,
-                                        color = CardsColors.Blue,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Normal,
-                                        modifier = Modifier.testTag("translator_target_romaji"),
+                                        text = translatedText,
+                                        color = CardsColors.Ink,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        lineHeight = 32.sp,
+                                        modifier = Modifier.testTag("translator_target_text"),
                                     )
                                 }
                             }
@@ -637,9 +692,6 @@ fun TranslatorScreen(
                         onClick = { swapLanguages() },
                         modifier = Modifier
                             .size(48.dp)
-                            .graphicsLayer {
-                                rotationZ = animatedSwapRotation
-                            }
                             .testTag("translator_swap_languages_button"),
                         face = CardsColors.Surface,
                         depth = CardsColors.Edge,
@@ -649,7 +701,11 @@ fun TranslatorScreen(
                             painter = painterResource(R.drawable.ic_swap),
                             contentDescription = "Swap Languages",
                             tint = CardsColors.Blue,
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier
+                                .size(22.dp)
+                                .graphicsLayer {
+                                    rotationZ = animatedSwapRotation
+                                },
                         )
                     }
 
@@ -715,7 +771,7 @@ fun TranslatorScreen(
                     skipDebounceNext = true
                     inputText = item.sourceText
                     translatedText = item.targetText
-                    translatedRomaji = item.targetRomaji
+                    translatedRomaji = if (item.targetLang == TranslationLanguage.Japanese) item.targetRomaji else ""
                     isStarred = cardStore.isStarred(item.sourceText, item.targetText, savedCards)
                     showHistoryDialog = false
                 },
@@ -748,8 +804,20 @@ fun TranslatorScreen(
         if (showInternalSettings) {
             SettingsSheet(
                 onDismiss = { showInternalSettings = false },
+                onOpenAdvanced = {
+                    showInternalSettings = false
+                    showInternalAdvanced = true
+                },
                 audio = remember(context) { JapaneseTtsController.get(context) },
             )
+        }
+
+        AnimatedVisibility(
+            visible = showInternalAdvanced,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(150)),
+        ) {
+            AdvancedSettingsScreen(onBack = { showInternalAdvanced = false })
         }
 
         // Feedback Toasts

@@ -59,7 +59,7 @@ class CustomDeckStoreTest {
 
         assertNotNull(savedDeck)
         assertEquals("Morning Greetings", savedDeck.title)
-        assertEquals("chatbubble", savedDeck.icon)
+        assertEquals(CustomDeckStore.CUSTOM_DECK_ICON, savedDeck.icon)
         assertEquals(2, savedDeck.cards.size)
 
         // Check Room persistence
@@ -68,6 +68,7 @@ class CustomDeckStoreTest {
         val loadedDeck = loadedDecks[0]
         assertEquals(savedDeck.id, loadedDeck.id)
         assertEquals("Morning Greetings", loadedDeck.title)
+        assertEquals(CustomDeckStore.CUSTOM_DECK_ICON, loadedDeck.icon)
         assertEquals(2, loadedDeck.cards.size)
 
         // Verify initial counts: 2 words, 2 Due, 0 Weak, 0 Mastered
@@ -153,11 +154,13 @@ class CustomDeckStoreTest {
 
         assertEquals(originalDeck.id, updatedDeck.id)
         assertEquals("Hot & Cold Drinks", updatedDeck.title)
+        assertEquals(CustomDeckStore.CUSTOM_DECK_ICON, updatedDeck.icon)
         assertEquals(2, updatedDeck.cards.size)
 
         val loadedDecks = store.loadCustomDecks()
         assertEquals(1, loadedDecks.size)
         assertEquals("Hot & Cold Drinks", loadedDecks[0].title)
+        assertEquals(CustomDeckStore.CUSTOM_DECK_ICON, loadedDecks[0].icon)
         assertEquals(2, loadedDecks[0].cards.size)
     }
 
@@ -178,9 +181,30 @@ class CustomDeckStoreTest {
         )
 
         assertEquals(1, store.loadCustomDecks().size)
+        assertEquals(CustomDeckStore.CUSTOM_DECK_ICON, deck.icon)
 
         store.deleteDeck(deck.id)
 
         assertEquals(0, store.loadCustomDecks().size)
+    }
+
+    @Test
+    fun testAllCustomDecksHaveUnifiedIcon() {
+        val cards = listOf(
+            CustomCardItem(
+                japanese = "ほん",
+                english = "Book",
+            ),
+        )
+
+        val deck1 = store.saveDeck(deckId = null, title = "Custom Deck 1", cards = cards)
+        val deck2 = store.saveDeck(deckId = null, title = "Custom Deck 2", cards = cards)
+
+        assertEquals(CustomDeckStore.CUSTOM_DECK_ICON, deck1.icon)
+        assertEquals(CustomDeckStore.CUSTOM_DECK_ICON, deck2.icon)
+
+        val loaded = store.loadCustomDecks()
+        assertTrue(loaded.isNotEmpty())
+        assertTrue(loaded.all { it.icon == CustomDeckStore.CUSTOM_DECK_ICON })
     }
 }
