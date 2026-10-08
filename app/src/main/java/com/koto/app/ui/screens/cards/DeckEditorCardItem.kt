@@ -57,10 +57,11 @@ fun DeckEditorCardItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // 2. Dynamic Center Content
+        // 2. Dynamic Center Content: Vertically centered within row
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.Start,
         ) {
             // Furigana: Rendered directly above Kanji text in a small font scale (0.55x). Collapses if empty.
             if (!card.furigana.isNullOrBlank()) {

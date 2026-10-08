@@ -13,7 +13,7 @@ data class FlashcardState(
     val deckId: String? = null,
     val studying: Boolean = false,
     val showRomaji: Boolean = true,
-    val shuffle: Boolean = false,
+    val shuffle: Boolean = true,
     val japaneseFirst: Boolean = true,
     val order: List<String> = emptyList(),
     val index: Int = 0,
@@ -68,11 +68,21 @@ data class FlashcardState(
         rating: CardRating,
         now: Long = System.currentTimeMillis(),
         requeueAgain: Boolean = false,
+        requeueSoon: Boolean = false,
     ): FlashcardState {
         if (!studying || !hasBeenRevealed || currentId != expectedId || deckId == null) return this
         val currentSrs = srsRecords[expectedId]
         val nextSrs = FlashcardSrsScheduler.scheduleNext(currentSrs, expectedId, deckId, rating, now)
-        val nextOrder = if (requeueAgain && rating == CardRating.Again) order + expectedId else order
+        val nextOrder = when {
+            rating == CardRating.Again && requeueSoon -> {
+                val list = order.toMutableList()
+                val targetIndex = (index + 4).coerceAtMost(list.size)
+                list.add(targetIndex, expectedId)
+                list
+            }
+            rating == CardRating.Again && requeueAgain -> order + expectedId
+            else -> order
+        }
         return copy(
             ratings = ratings + (expectedId to rating),
             srsRecords = srsRecords + (expectedId to nextSrs),

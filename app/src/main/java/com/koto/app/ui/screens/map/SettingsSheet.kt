@@ -46,6 +46,7 @@ internal fun SettingsSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetGesturesEnabled = false,
         containerColor = Color.White,
         tonalElevation = 0.dp,
         dragHandle = null,
@@ -100,7 +101,7 @@ internal fun SettingsSheet(
 
             HorizontalDivider(color = CardsColors.Edge, thickness = 1.dp)
 
-            // Scrollable Content
+            // Content Container
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -166,10 +167,13 @@ internal fun SettingsSheet(
 
                 HorizontalDivider(color = CardsColors.Edge.copy(alpha = 0.6f), thickness = 1.dp)
 
-                // 3. Romaji Toggle Button (Custom App Style)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                // 3. Romaji Toggle Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
                         text = "Romaji Pronunciation",
@@ -178,58 +182,34 @@ internal fun SettingsSheet(
                         color = CardsColors.Ink,
                     )
 
-                    SettingsCustomToggleButton(
-                        label = if (preferences.romajiEnabled) "Romaji: On" else "Romaji: Off",
+                    QuickSettingsRowToggle(
                         checked = preferences.romajiEnabled,
-                        onToggle = { preferences.setRomajiEnabled(!preferences.romajiEnabled) },
-                        tag = "settings_romaji",
-                    )
-
-                    Text(
-                        text = "Show Latin alphabet pronunciation guides below Japanese text.",
-                        fontSize = 12.sp,
-                        color = CardsColors.Muted,
-                        lineHeight = 17.sp,
+                        onCheckedChange = { preferences.setRomajiEnabled(it) },
+                        testTag = "settings_romaji",
                     )
                 }
 
                 HorizontalDivider(color = CardsColors.Edge.copy(alpha = 0.6f), thickness = 1.dp)
 
-                // Japanese Audio Toggle (Styled consistently with Romaji pattern)
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                // 4. Text to Speech Toggle Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Japanese Audio",
+                        text = "Text to Speech",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
                         color = CardsColors.Ink,
                     )
 
-                    SettingsCustomToggleButton(
-                        label = if (audio.enabled) "Japanese audio: On" else "Japanese audio: Off",
+                    QuickSettingsRowToggle(
                         checked = audio.enabled,
-                        onToggle = { audio.setSpeechEnabled(!audio.enabled) },
-                        tag = "settings_sound",
-                    )
-
-                    Text(
-                        text = "Speak Japanese when you select a word or response. English stays silent.",
-                        fontSize = 12.sp,
-                        color = CardsColors.Muted,
-                        lineHeight = 17.sp,
-                    )
-
-                    Text(
-                        text = when (audio.status) {
-                            SpeechStatus.Loading -> "Preparing Japanese voice…"
-                            SpeechStatus.Ready -> "Japanese voice ready on this device."
-                            SpeechStatus.Unavailable -> "Japanese voice unavailable. Lessons still work without audio."
-                        },
-                        fontSize = 11.sp,
-                        color = CardsColors.Muted,
-                        lineHeight = 16.sp,
+                        onCheckedChange = { audio.setSpeechEnabled(it) },
+                        testTag = "settings_sound",
                     )
                 }
 
@@ -367,54 +347,47 @@ private fun DisplayPreferenceSquareCard(
     }
 }
 
-/**
- * Custom full-width toggle button matching Koto app style:
- * When ON: Solid Blue background, White text.
- * When OFF: Pure White background, Dark text, hairline border.
- */
 @Composable
-private fun SettingsCustomToggleButton(
-    label: String,
+private fun QuickSettingsRowToggle(
     checked: Boolean,
-    onToggle: () -> Unit,
-    tag: String,
+    onCheckedChange: (Boolean) -> Unit,
+    testTag: String,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(8.dp)
     val interaction = remember { MutableInteractionSource() }
     val isPressed by interaction.collectIsPressedAsState()
-    val displacement = if (isPressed) 3.dp else 0.dp
+    val displacement = if (isPressed) 2.dp else 0.dp
 
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = 4.dp)
+            .padding(bottom = 2.dp)
             .clickable(
                 interactionSource = interaction,
                 indication = null,
                 role = Role.Switch,
-                onClick = onToggle,
+                onClick = { onCheckedChange(!checked) },
             )
-            .testTag(tag)
+            .testTag(testTag)
             .semantics {
                 role = Role.Switch
                 selected = checked
                 toggleableState = if (checked) ToggleableState.On else ToggleableState.Off
             },
     ) {
-        // Depth layer
+        // 3D Depth layer
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .graphicsLayer { translationY = 4.dp.toPx() }
+                .graphicsLayer { translationY = 3.dp.toPx() }
                 .background(if (checked) CardsColors.BlueDepth else CardsColors.Edge, shape),
         )
 
         // Face layer
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
+                .widthIn(min = 68.dp)
+                .heightIn(min = 34.dp)
                 .graphicsLayer { translationY = displacement.toPx() }
                 .clip(shape)
                 .background(if (checked) CardsColors.Blue else CardsColors.Surface)
@@ -423,14 +396,14 @@ private fun SettingsCustomToggleButton(
                     color = if (checked) CardsColors.BlueDepth else CardsColors.Edge,
                     shape = shape,
                 )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = label,
+                text = if (checked) "ON" else "OFF",
                 color = if (checked) Color.White else CardsColors.Ink,
-                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
                 textAlign = TextAlign.Center,
             )
         }

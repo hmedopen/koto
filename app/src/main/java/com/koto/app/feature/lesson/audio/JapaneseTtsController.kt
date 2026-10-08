@@ -20,6 +20,8 @@ class JapaneseTtsController private constructor(context: Context) {
         private set
     private val _speechRate = mutableStateOf(preferences.getFloat("speech_rate", 1.0f))
     val speechRate: Float get() = _speechRate.value
+    private val _englishSpeechRate = mutableStateOf(preferences.getFloat("english_speech_rate", 1.0f))
+    val englishSpeechRate: Float get() = _englishSpeechRate.value
     var status by mutableStateOf(SpeechStatus.Loading)
         private set
     var isSpeaking by mutableStateOf(false)
@@ -72,22 +74,33 @@ class JapaneseTtsController private constructor(context: Context) {
         preferences.edit().putFloat("speech_rate", rate).apply()
         try { engine?.setSpeechRate(rate) } catch (_: RuntimeException) {}
     }
+
+    fun setEnglishSpeechRate(rate: Float) {
+        _englishSpeechRate.value = rate
+        preferences.edit().putFloat("english_speech_rate", rate).apply()
+        try { engine?.setSpeechRate(rate) } catch (_: RuntimeException) {}
+    }
+
     fun speak(text: JapaneseText) {
         if (!enabled || status != SpeechStatus.Ready || !canSpeak(text)) return
         try {
             engine?.language = Locale.JAPAN
+            try { engine?.setSpeechRate(speechRate) } catch (_: RuntimeException) {}
             val utteranceId = "koto-${++utterance}"
             activeUtteranceId = utteranceId
-            if (engine?.speak(text.tts.replace("___", "、"), TextToSpeech.QUEUE_FLUSH, null, utteranceId) == TextToSpeech.ERROR) {
+            val speechString = text.furigana?.takeIf { it.isNotBlank() } ?: text.tts
+            if (engine?.speak(speechString.replace("___", "、"), TextToSpeech.QUEUE_FLUSH, null, utteranceId) == TextToSpeech.ERROR) {
                 status = SpeechStatus.Unavailable
                 clearPlayback(utteranceId)
             }
         } catch (_: RuntimeException) { status = SpeechStatus.Unavailable; clearPlayback() }
     }
+
     fun speakEnglish(text: String) {
         if (!enabled || status != SpeechStatus.Ready || text.isBlank()) return
         try {
             engine?.language = Locale.US
+            try { engine?.setSpeechRate(englishSpeechRate) } catch (_: RuntimeException) {}
             val utteranceId = "koto-en-${++utterance}"
             activeUtteranceId = utteranceId
             if (engine?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId) == TextToSpeech.ERROR) {
@@ -135,7 +148,14 @@ class JapaneseTtsController private constructor(context: Context) {
         fun get(context: Context): JapaneseTtsController = instance ?: synchronized(this) {
             instance ?: JapaneseTtsController(context.applicationContext).also { instance = it }
         }
-        internal fun canSpeak(text: JapaneseText): Boolean = text.tts.any { it in '\u3040'..'\u30ff' } &&
-            text.tts.none { it in 'a'..'z' || it in 'A'..'Z' || Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }
+        internal fun canSpeak(text: JapaneseText): Boolean {
+            val tts = (text.furigana?.takeIf { it.isNotBlank() } ?: text.tts).trim()
+            if (tts.isBlank()) return false
+            val hasJapanese = tts.any {
+                it in '\u3040'..'\u30ff' || Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN
+            }
+            val hasLatin = tts.any { it in 'a'..'z' || it in 'A'..'Z' }
+            return hasJapanese && !hasLatin
+        }
     }
 }

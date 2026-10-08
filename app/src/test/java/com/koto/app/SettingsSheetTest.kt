@@ -101,22 +101,20 @@ class SettingsSheetTest {
             )
         }
 
-        // Initially Romaji: On
-        compose.onNodeWithTag("settings_romaji").assertIsDisplayed().assertTextContains("Romaji: On")
+        // Initially Romaji is enabled
+        compose.onNodeWithTag("settings_romaji").assertIsDisplayed()
         assertTrue(preferences.romajiEnabled)
 
         // Toggle to Off
         compose.onNodeWithTag("settings_romaji").performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithTag("settings_romaji").assertTextContains("Romaji: Off")
         assertFalse(preferences.romajiEnabled)
 
         // Toggle back to On
         compose.onNodeWithTag("settings_romaji").performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithTag("settings_romaji").assertTextContains("Romaji: On")
         assertTrue(preferences.romajiEnabled)
     }
 

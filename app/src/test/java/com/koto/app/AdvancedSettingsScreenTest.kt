@@ -124,8 +124,7 @@ class AdvancedSettingsScreenTest {
         }
 
         // Toggle furigana to OFF
-        compose.onNodeWithTag("toggle_furigana_display").performScrollTo().assertIsDisplayed()
-        compose.onNode(hasAnyAncestor(hasTestTag("toggle_furigana_display")) and hasText("OFF")).performClick()
+        compose.onNodeWithTag("toggle_furigana_display").performScrollTo().assertIsDisplayed().performClick()
         assertFalse(furiganaState)
 
         // Open Japanese font picker dialog
@@ -241,7 +240,7 @@ class AdvancedSettingsScreenTest {
         }
 
         compose.onNodeWithTag("toggle_retry_failed").performScrollTo().assertIsDisplayed()
-        compose.onNode(hasAnyAncestor(hasTestTag("toggle_retry_failed")) and hasText("END")).performClick()
+        compose.onNode(hasAnyAncestor(hasTestTag("toggle_retry_failed")) and hasText("LATER")).performClick()
         assertEquals(RetryFailedCardsPolicy.END, currentPolicy)
 
         compose.onNode(hasAnyAncestor(hasTestTag("toggle_retry_failed")) and hasText("SOON")).performClick()

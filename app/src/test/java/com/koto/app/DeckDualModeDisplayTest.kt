@@ -143,7 +143,7 @@ class DeckDualModeDisplayTest {
                     decks = listOf(sampleDeck),
                     state = state,
                     onToggleFavorite = {},
-                    onStartReview = {},
+                    onViewDeck = {},
                     onBack = {},
                 )
             }

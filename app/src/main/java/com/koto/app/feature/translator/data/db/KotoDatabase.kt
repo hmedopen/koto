@@ -15,7 +15,7 @@ import com.koto.app.feature.cards.data.db.CustomDeckEntity
         CustomDeckEntity::class,
         CustomCardEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class KotoDatabase : RoomDatabase() {

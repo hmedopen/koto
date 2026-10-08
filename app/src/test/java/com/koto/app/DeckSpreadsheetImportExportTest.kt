@@ -193,29 +193,15 @@ class DeckSpreadsheetImportExportTest {
     }
 
     @Test
-    fun deckDetailScreenDisplaysExportButtonAndOpensDialog() {
-        val testDeck = FlashcardDeck(
-            id = "custom_test_1",
-            title = "Travel Words",
-            icon = "custom",
-            cards = listOf(
-                Flashcard(id = "1", japanese = "空港", romaji = "kuukou", english = "Airport"),
-                Flashcard(id = "2", japanese = "切符", romaji = "kippu", english = "Ticket"),
-            ),
-            category = "Custom",
-        )
-
+    fun createDeckScreenDisplaysExportButtonAndOpensDialog() {
         compose.setContent {
-            DeckDetailScreen(
-                deck = testDeck,
-                state = FlashcardState(),
-                update = {},
-                favorite = {},
-                onShowContent = {},
+            CreateDeckScreen(
+                onBack = {},
+                onDeckSaved = {},
             )
         }
 
-        compose.onNodeWithTag("btn_export_deck").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("create_deck_export_button").assertIsDisplayed().performClick()
         compose.onNodeWithTag("export_deck_dialog").assertIsDisplayed()
         compose.onNodeWithTag("btn_export_xlsx").assertIsDisplayed()
         compose.onNodeWithTag("btn_export_csv").assertIsDisplayed()

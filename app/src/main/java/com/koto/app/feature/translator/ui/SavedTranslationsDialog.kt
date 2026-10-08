@@ -36,6 +36,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.pointerInput
+import com.koto.app.ui.screens.cards.CardsButton
 import com.koto.app.ui.screens.cards.CardsPressable
 
 @Composable
@@ -45,6 +46,7 @@ fun SavedTranslationsDialog(
     onSpeak: (String, TranslationLanguage) -> Unit,
     onCopy: (String) -> Unit,
     onRemove: (String) -> Unit,
+    onViewDeck: (() -> Unit)? = null,
     isSpeaking: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -244,6 +246,26 @@ fun SavedTranslationsDialog(
                             description = if (isItemStarred) "Remove bookmark" else "Restore bookmark",
                         )
                     }
+                }
+            }
+
+            val activeCards = cards.filter { it.id !in stagedRemovedIds }
+            if (activeCards.isNotEmpty() && onViewDeck != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                ) {
+                    CardsButton(
+                        label = "VIEW DECK",
+                        onClick = {
+                            stagedRemovedIds.forEach { onRemove(it) }
+                            onViewDeck()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("view_translations_deck"),
+                    )
                 }
             }
         }

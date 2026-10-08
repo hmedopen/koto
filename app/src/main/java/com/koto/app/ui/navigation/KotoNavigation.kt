@@ -36,6 +36,8 @@ fun KotoNavigation(
     onCreateDeckHandled: () -> Unit = {},
     onOpenTranslator: () -> Unit = {},
     onCardsContentOpenChanged: (Boolean) -> Unit = {},
+    targetDeckId: String? = null,
+    onTargetDeckIdHandled: () -> Unit = {},
 ) {
     val stateHolder = rememberSaveableStateHolder()
     val distance = with(LocalDensity.current) { KotoDimens.ContentDisplacement.roundToPx() }
@@ -69,6 +71,8 @@ fun KotoNavigation(
                     createDeckTrigger = createDeckTrigger,
                     onCreateDeckHandled = onCreateDeckHandled,
                     onContentOpenChanged = onCardsContentOpenChanged,
+                    targetDeckId = targetDeckId,
+                    onTargetDeckIdHandled = onTargetDeckIdHandled,
                 )
             }
         }

@@ -5,12 +5,14 @@ import android.content.Intent
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -32,7 +35,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -75,6 +81,7 @@ fun AdvancedSettingsScreen(
         onEnglishFontChange = viewModel::setEnglishFont,
         onTtsChange = viewModel::setTextToSpeech,
         onSpeechSpeedChange = viewModel::setSpeechSpeed,
+        onEnglishSpeechSpeedChange = viewModel::setEnglishSpeechSpeed,
         onInstallVoicePack = { launchVoicePackInstaller(context) },
         onRevealFuriganaChange = viewModel::setRevealFuriganaOnTap,
         onKanjiLookupChange = viewModel::setKanjiLookupOnHold,
@@ -110,6 +117,7 @@ fun AdvancedSettingsContent(
     onEnglishFontChange: (String) -> Unit,
     onTtsChange: (Boolean) -> Unit,
     onSpeechSpeedChange: (Float) -> Unit,
+    onEnglishSpeechSpeedChange: (Float) -> Unit = {},
     onInstallVoicePack: () -> Unit,
     onRevealFuriganaChange: (Boolean) -> Unit,
     onKanjiLookupChange: (Boolean) -> Unit,
@@ -122,6 +130,7 @@ fun AdvancedSettingsContent(
     modifier: Modifier = Modifier,
 ) {
     BackHandler { onBack() }
+    val context = LocalContext.current
 
     var fontPickerTarget by remember { mutableStateOf<FontPickerType?>(null) }
     var displayedCacheBytes by remember { mutableFloatStateOf(state.cacheSizeBytes.toFloat()) }
@@ -290,8 +299,35 @@ fun AdvancedSettingsContent(
             }
 
             SpeechSpeedControl(
+                title = "Japanese TTS Speed",
                 speed = state.speechSpeed,
                 onSpeedChange = onSpeechSpeedChange,
+                onTestAudio = {
+                    val tts = com.koto.app.feature.lesson.audio.JapaneseTtsController.get(context)
+                    tts.setSpeechRate(state.speechSpeed)
+                    tts.speak(com.koto.app.feature.lesson.model.JapaneseText("こんにちは", "konnichiwa"))
+                },
+                rowTag = "row_speech_speed",
+                testButtonTag = "button_test_audio",
+                valueTag = "text_speech_speed_value",
+                sliderTag = "slider_speech_speed",
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            SpeechSpeedControl(
+                title = "English TTS Speed",
+                speed = state.englishSpeechSpeed,
+                onSpeedChange = onEnglishSpeechSpeedChange,
+                onTestAudio = {
+                    val tts = com.koto.app.feature.lesson.audio.JapaneseTtsController.get(context)
+                    tts.setEnglishSpeechRate(state.englishSpeechSpeed)
+                    tts.speakEnglish("Hello, welcome to Koto")
+                },
+                rowTag = "row_english_speech_speed",
+                testButtonTag = "button_test_english_audio",
+                valueTag = "text_english_speech_speed_value",
+                sliderTag = "slider_english_speech_speed",
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -343,7 +379,7 @@ fun AdvancedSettingsContent(
                 testTag = "row_retry_failed",
             ) {
                 SegmentedChoiceToggle(
-                    options = listOf("SOON", "END"),
+                    options = listOf("SOON", "LATER"),
                     selectedIndex = if (state.retryFailedCards == RetryFailedCardsPolicy.SOON) 0 else 1,
                     onSelect = { index ->
                         onRetryPolicyChange(if (index == 0) RetryFailedCardsPolicy.SOON else RetryFailedCardsPolicy.END)
@@ -557,14 +593,76 @@ private fun BinaryToggleControl(
     onCheckedChange: (Boolean) -> Unit,
     testTag: String,
     modifier: Modifier = Modifier,
+    onLabel: String = "On",
+    offLabel: String = "Off",
 ) {
-    SegmentedChoiceToggle(
-        options = listOf("OFF", "ON"),
-        selectedIndex = if (checked) 1 else 0,
-        onSelect = { index -> onCheckedChange(index == 1) },
-        testTag = testTag,
-        modifier = modifier,
+    val interaction = remember { MutableInteractionSource() }
+    val isPressed by interaction.collectIsPressedAsState()
+    val displacement = if (isPressed) 2.dp else 0.dp
+
+    val animatedBg by animateColorAsState(
+        targetValue = if (checked) CardsColors.Blue else CardsColors.Surface,
+        animationSpec = tween(200),
+        label = "toggle_bg",
     )
+    val animatedText by animateColorAsState(
+        targetValue = if (checked) Color.White else CardsColors.Ink,
+        animationSpec = tween(200),
+        label = "toggle_text",
+    )
+    val animatedBorder by animateColorAsState(
+        targetValue = if (checked) CardsColors.BlueDepth else CardsColors.Edge,
+        animationSpec = tween(200),
+        label = "toggle_border",
+    )
+
+    Box(
+        modifier = modifier
+            .padding(bottom = 3.dp)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Switch,
+                onClick = { onCheckedChange(!checked) },
+            )
+            .testTag(testTag)
+            .semantics {
+                role = Role.Switch
+                selected = checked
+                toggleableState = if (checked) ToggleableState.On else ToggleableState.Off
+            },
+    ) {
+        // 3D Depth layer
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer { translationY = 3.dp.toPx() }
+                .background(if (checked) CardsColors.BlueDepth else CardsColors.Edge, SquircleShape),
+        )
+
+        // Face layer
+        Box(
+            modifier = Modifier
+                .widthIn(min = 64.dp)
+                .heightIn(min = 34.dp)
+                .graphicsLayer { translationY = displacement.toPx() }
+                .clip(SquircleShape)
+                .background(animatedBg)
+                .border(1.dp, animatedBorder, SquircleShape)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = if (checked) onLabel else offLabel,
+                style = TextStyle(
+                    fontFamily = KotoFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = animatedText,
+                ),
+            )
+        }
+    }
 }
 
 @Composable
@@ -640,19 +738,49 @@ private fun FontBadgePill(
 
 @Composable
 private fun SpeechSpeedControl(
+    title: String,
     speed: Float,
     onSpeedChange: (Float) -> Unit,
+    onTestAudio: () -> Unit,
+    rowTag: String,
+    testButtonTag: String,
+    valueTag: String,
+    sliderTag: String,
     modifier: Modifier = Modifier,
 ) {
     val haptic = LocalHapticFeedback.current
     var lastSnappedAnchor by remember { mutableStateOf<Float?>(null) }
-    val anchors = remember { listOf(0.75f, 1.0f, 1.25f) }
-    val snapThreshold = 0.04f
+    val anchors = remember { listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f) }
+    val maxIndex = (anchors.size - 1).toFloat()
+
+    fun speedToNormalized(s: Float): Float {
+        if (s <= anchors.first()) return 0f
+        if (s >= anchors.last()) return maxIndex
+        for (i in 0 until anchors.size - 1) {
+            val a1 = anchors[i]
+            val a2 = anchors[i + 1]
+            if (s in a1..a2) {
+                val frac = if (a2 > a1) (s - a1) / (a2 - a1) else 0f
+                return i + frac
+            }
+        }
+        return 2f
+    }
+
+    fun normalizedToSpeed(pos: Float): Float {
+        if (pos <= 0f) return anchors.first()
+        if (pos >= maxIndex) return anchors.last()
+        val idx = pos.toInt().coerceIn(0, anchors.size - 2)
+        val frac = pos - idx
+        return anchors[idx] + frac * (anchors[idx + 1] - anchors[idx])
+    }
+
+    val currentNormalized = remember(speed) { speedToNormalized(speed) }
 
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .testTag("row_speech_speed"),
+            .testTag(rowTag),
     ) {
         Row(
             modifier = Modifier
@@ -662,7 +790,7 @@ private fun SpeechSpeedControl(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = "Speech Speed",
+                text = title,
                 style = TextStyle(
                     fontFamily = KotoFont,
                     fontWeight = FontWeight.Medium,
@@ -671,42 +799,78 @@ private fun SpeechSpeedControl(
                 ),
             )
 
-            Text(
-                text = String.format(Locale.US, "%.2fx", speed),
-                style = TextStyle(
-                    fontFamily = KotoFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = CardsColors.Ink,
-                ),
-                modifier = Modifier.testTag("text_speech_speed_value"),
-            )
-        }
+            // Right-aligned pair: Speed Readout + Test Button forming a clean vertical column
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    text = String.format(Locale.US, "%.2fx", speed),
+                    style = TextStyle(
+                        fontFamily = KotoFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = CardsColors.Ink,
+                        textAlign = TextAlign.End,
+                    ),
+                    modifier = Modifier
+                        .widthIn(min = 44.dp)
+                        .testTag(valueTag),
+                )
 
-        // Continuous slider from 0.5f to 2.0f with magnetic snapping
-        Slider(
-            value = speed,
-            onValueChange = { rawValue ->
-                var resolved = rawValue
-                var isSnapped = false
-                for (anchor in anchors) {
-                    if (abs(rawValue - anchor) <= snapThreshold) {
-                        resolved = anchor
-                        isSnapped = true
-                        break
+                CardsPressable(
+                    onClick = onTestAudio,
+                    modifier = Modifier.testTag(testButtonTag),
+                    face = CardsColors.Surface,
+                    depth = CardsColors.Edge,
+                    padding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_speaker),
+                            contentDescription = "Test Audio",
+                            tint = CardsColors.Blue,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = "Test",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = CardsColors.Blue,
+                            ),
+                        )
                     }
                 }
+            }
+        }
 
-                if (isSnapped && lastSnappedAnchor != resolved) {
+        // Uniform slider across [0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x]
+        Slider(
+            value = currentNormalized,
+            onValueChange = { rawNorm ->
+                val nearestIdx = kotlin.math.round(rawNorm).toInt().coerceIn(0, anchors.size - 1)
+                val isSnapped = kotlin.math.abs(rawNorm - nearestIdx) <= 0.15f
+                val resolvedSpeed = if (isSnapped) {
+                    anchors[nearestIdx]
+                } else {
+                    normalizedToSpeed(rawNorm)
+                }
+
+                if (isSnapped && lastSnappedAnchor != anchors[nearestIdx]) {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    lastSnappedAnchor = resolved
+                    lastSnappedAnchor = anchors[nearestIdx]
                 } else if (!isSnapped) {
                     lastSnappedAnchor = null
                 }
 
-                onSpeedChange(resolved)
+                onSpeedChange(resolvedSpeed)
             },
-            valueRange = 0.5f..2.0f,
+            valueRange = 0f..maxIndex,
             colors = SliderDefaults.colors(
                 thumbColor = CardsColors.Blue,
                 activeTrackColor = CardsColors.Blue,
@@ -714,43 +878,53 @@ private fun SpeechSpeedControl(
             ),
             modifier = Modifier
                 .fillMaxWidth()
-                .testTag("slider_speech_speed"),
+                .testTag(sliderTag),
         )
 
-        // Fixed tick anchors: 0.75x, 1.0x, 1.25x
-        Row(
+        // Uniformly distributed tick anchors across the track
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .height(28.dp),
         ) {
-            Text(
-                text = "0.75x",
-                style = TextStyle(
-                    fontFamily = KotoFont,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 11.sp,
-                    color = if (abs(speed - 0.75f) < 0.02f) CardsColors.Blue else CardsColors.Muted,
-                ),
-            )
-            Text(
-                text = "1.0x",
-                style = TextStyle(
-                    fontFamily = KotoFont,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 11.sp,
-                    color = if (abs(speed - 1.0f) < 0.02f) CardsColors.Blue else CardsColors.Muted,
-                ),
-            )
-            Text(
-                text = "1.25x",
-                style = TextStyle(
-                    fontFamily = KotoFont,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 11.sp,
-                    color = if (abs(speed - 1.25f) < 0.02f) CardsColors.Blue else CardsColors.Muted,
-                ),
-            )
+            val thumbPadding = 10.dp
+            val availableWidth = maxWidth - (thumbPadding * 2)
+
+            anchors.forEachIndexed { index, anchor ->
+                val fraction = index.toFloat() / maxIndex
+                val labelX = thumbPadding + (availableWidth * fraction)
+                val isSelected = kotlin.math.abs(speed - anchor) <= 0.03f
+                val labelText = String.format(Locale.US, "%.2fx", anchor)
+                    .replace(".00x", ".0x")
+                    .replace(".50x", ".5x")
+
+                Box(
+                    modifier = Modifier
+                        .offset(x = labelX - 20.dp)
+                        .width(40.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .height(5.dp)
+                                .background(if (isSelected) CardsColors.Blue else CardsColors.Edge),
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = labelText,
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Bold.takeIf { isSelected } ?: FontWeight.Normal,
+                                fontSize = 10.sp,
+                                color = if (isSelected) CardsColors.Blue else CardsColors.Muted,
+                            ),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+            }
         }
     }
 }

@@ -20,7 +20,7 @@ enum class RetryFailedCardsPolicy {
     companion object {
         fun fromString(value: String?): RetryFailedCardsPolicy =
             when (value?.uppercase()) {
-                "END" -> END
+                "END", "LATER" -> END
                 else -> SOON
             }
     }
@@ -36,6 +36,7 @@ data class AdvancedSettingsState(
     // AUDIO & SPEECH
     val textToSpeech: Boolean = true,
     val speechSpeed: Float = 1.0f,
+    val englishSpeechSpeed: Float = 1.0f,
     val isJapaneseVoiceAvailable: Boolean = true,
 
     // STUDY & CARD INTERACTION
@@ -60,6 +61,7 @@ object AdvancedSettingsKeys {
 
     val TTS_ENABLED = booleanPreferencesKey("tts_enabled")
     val SPEECH_SPEED = floatPreferencesKey("speech_speed")
+    val ENGLISH_SPEECH_SPEED = floatPreferencesKey("english_speech_speed")
 
     val REVEAL_FURIGANA_ON_TAP = booleanPreferencesKey("reveal_furigana_on_tap")
     val KANJI_LOOKUP_ON_HOLD = booleanPreferencesKey("kanji_lookup_on_hold")
@@ -81,6 +83,7 @@ fun Preferences.toAdvancedSettingsState(
         englishFontId = this[AdvancedSettingsKeys.ENGLISH_FONT_ID] ?: "inter_roboto",
         textToSpeech = this[AdvancedSettingsKeys.TTS_ENABLED] ?: true,
         speechSpeed = this[AdvancedSettingsKeys.SPEECH_SPEED] ?: 1.0f,
+        englishSpeechSpeed = this[AdvancedSettingsKeys.ENGLISH_SPEECH_SPEED] ?: 1.0f,
         isJapaneseVoiceAvailable = isJapaneseVoiceAvailable,
         revealFuriganaOnTap = this[AdvancedSettingsKeys.REVEAL_FURIGANA_ON_TAP] ?: false,
         kanjiLookupOnHold = this[AdvancedSettingsKeys.KANJI_LOOKUP_ON_HOLD] ?: true,

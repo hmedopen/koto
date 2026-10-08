@@ -80,7 +80,7 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
         tone == TactileTone.Wrong -> KotoColors.WrongButtonFace
         tone == TactileTone.Warning -> KotoColors.WarningWash
         tone == TactileTone.Quiet -> Color.White
-        else -> KotoColors.BlueWash
+        else -> Color.White
     }, tween(180), label = "Answer feedback")
     val edge = when (tone) {
         TactileTone.Correct -> KotoColors.CorrectButtonDepth

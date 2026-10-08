@@ -73,6 +73,8 @@ fun CardsScreen(
     createDeckTrigger: Boolean = false,
     onCreateDeckHandled: () -> Unit = {},
     onContentOpenChanged: (Boolean) -> Unit = {},
+    targetDeckId: String? = null,
+    onTargetDeckIdHandled: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val decks = remember(context) { loadFlashcardDecks(context) }
@@ -116,9 +118,9 @@ fun CardsScreen(
         )
     }
 
-    val allDecks = remember(decks, quickTranslationsDeck, customDecks) {
+    // Decoupled: Quick Translations belongs exclusively to Translation Bookmarks, not the main grid
+    val allDecks = remember(decks, customDecks) {
         val list = mutableListOf<FlashcardDeck>()
-        if (quickTranslationsDeck != null) list.add(quickTranslationsDeck)
         list.addAll(customDecks)
         list.addAll(decks)
         list
@@ -171,7 +173,13 @@ fun CardsScreen(
         }
     }
 
-    val deck = if (state.deckId == "starred_review") dynamicStarredDeck else allDecks.find { it.id == state.deckId }
+    val deck = if (state.deckId == "starred_review") {
+        dynamicStarredDeck
+    } else if (state.deckId == "deck_quick_translations") {
+        quickTranslationsDeck
+    } else {
+        allDecks.find { it.id == state.deckId }
+    }
     var lastActiveDeck by remember { mutableStateOf<FlashcardDeck?>(null) }
     if (deck != null) {
         lastActiveDeck = deck
@@ -192,6 +200,20 @@ fun CardsScreen(
         showContent = false
         state = state.open(it)
     } }
+
+    LaunchedEffect(targetDeckId, quickTranslationsDeck) {
+        if (targetDeckId != null) {
+            val target = if (targetDeckId == "deck_quick_translations") {
+                quickTranslationsDeck
+            } else {
+                allDecks.find { it.id == targetDeckId }
+            }
+            if (target != null) {
+                openDeck(target)
+            }
+            onTargetDeckIdHandled()
+        }
+    }
     val pinDeck: (String) -> Unit = remember { { state = state.pin(it) } }
     val favoriteCard: (String) -> Unit = remember { { state = state.favorite(it) } }
 
@@ -289,7 +311,7 @@ fun CardsScreen(
                         decks = allDecks,
                         state = state,
                         onToggleFavorite = favoriteCard,
-                        onStartReview = { starredCards ->
+                        onViewDeck = { starredCards ->
                             val dynamicDeck = FlashcardDeck(
                                 id = "starred_review",
                                 title = "Starred Words",
@@ -299,7 +321,7 @@ fun CardsScreen(
                             )
                             dynamicStarredDeck = dynamicDeck
                             showStarred = false
-                            state = state.start(dynamicDeck, size = null)
+                            openDeck(dynamicDeck)
                         },
                         onBack = { showStarred = false },
                     )
@@ -315,6 +337,14 @@ fun CardsScreen(
                             showCreateDeck = false
                             editingCustomDeckId = null
                             openDeck(savedDeck)
+                        },
+                        onDeleteDeck = { deckId ->
+                            coroutineScope.launch {
+                                customDeckStore.deleteDeck(deckId)
+                                showCreateDeck = false
+                                editingCustomDeckId = null
+                                state = state.back()
+                            }
                         },
                     )
                 }

@@ -49,6 +49,7 @@ class AdvancedSettingsViewModel @JvmOverloads constructor(
             romajiDisplay = DisplayPreferences.get(application).romajiEnabled,
             textToSpeech = JapaneseTtsController.get(application).enabled,
             speechSpeed = JapaneseTtsController.get(application).speechRate,
+            englishSpeechSpeed = JapaneseTtsController.get(application).englishSpeechRate,
         ),
     )
 
@@ -98,6 +99,9 @@ class AdvancedSettingsViewModel @JvmOverloads constructor(
     }
 
     fun setJapaneseFont(fontId: String) {
+        val app = getApplication<Application>()
+        DisplayPreferences.get(app).setJapaneseFont(fontId)
+
         viewModelScope.launch {
             dataStore.edit { prefs ->
                 prefs[AdvancedSettingsKeys.JAPANESE_FONT_ID] = fontId
@@ -106,6 +110,9 @@ class AdvancedSettingsViewModel @JvmOverloads constructor(
     }
 
     fun setEnglishFont(fontId: String) {
+        val app = getApplication<Application>()
+        DisplayPreferences.get(app).setEnglishFont(fontId)
+
         viewModelScope.launch {
             dataStore.edit { prefs ->
                 prefs[AdvancedSettingsKeys.ENGLISH_FONT_ID] = fontId
@@ -131,6 +138,17 @@ class AdvancedSettingsViewModel @JvmOverloads constructor(
         viewModelScope.launch {
             dataStore.edit { prefs ->
                 prefs[AdvancedSettingsKeys.SPEECH_SPEED] = speed
+            }
+        }
+    }
+
+    fun setEnglishSpeechSpeed(speed: Float) {
+        val app = getApplication<Application>()
+        JapaneseTtsController.get(app).setEnglishSpeechRate(speed)
+
+        viewModelScope.launch {
+            dataStore.edit { prefs ->
+                prefs[AdvancedSettingsKeys.ENGLISH_SPEECH_SPEED] = speed
             }
         }
     }

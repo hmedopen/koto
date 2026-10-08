@@ -29,19 +29,48 @@ data class SpreadsheetCard(
     val furigana: String? = null,
     val romaji: String? = null,
     val notes: String? = null,
+    val example1: String? = null,
+    val example2: String? = null,
+    val example3: String? = null,
 ) {
     fun toCustomCardItem(idPrefix: String = "import"): CustomCardItem {
         val calculatedRomaji = romaji?.takeIf { it.isNotBlank() }
             ?: KanaConverter.toRomaji(KanaConverter.toPureKana(japanese))
+
+        fun parseExample(raw: String?): Triple<String, String, String> {
+            if (raw.isNullOrBlank()) return Triple("", "", "")
+            val parts = if (raw.contains("/")) {
+                raw.split("/", limit = 2).map { it.trim() }
+            } else if (raw.contains(" - ")) {
+                raw.split(" - ", limit = 2).map { it.trim() }
+            } else {
+                listOf(raw.trim(), "")
+            }
+            val jp = parts.getOrNull(0) ?: ""
+            val en = parts.getOrNull(1) ?: ""
+            val rom = if (jp.isNotBlank()) KanaConverter.toRomaji(KanaConverter.toPureKana(jp)) else ""
+            return Triple(jp, rom, en)
+        }
+
+        val (ex1Jp, ex1Rom, ex1En) = parseExample(example1)
+        val (ex2Jp, ex2Rom, ex2En) = parseExample(example2)
+        val (ex3Jp, ex3Rom, ex3En) = parseExample(example3)
+
         return CustomCardItem(
             id = "${idPrefix}_${System.currentTimeMillis()}_${(1000..9999).random()}",
             japanese = japanese,
             romaji = calculatedRomaji,
             english = english,
             furigana = furigana ?: "",
-            exampleKana = "",
-            exampleRomaji = "",
-            exampleEnglish = "",
+            exampleKana = ex1Jp,
+            exampleRomaji = ex1Rom,
+            exampleEnglish = ex1En,
+            example2Kana = ex2Jp,
+            example2Romaji = ex2Rom,
+            example2English = ex2En,
+            example3Kana = ex3Jp,
+            example3Romaji = ex3Rom,
+            example3English = ex3En,
             notes = notes ?: "",
         )
     }
@@ -70,7 +99,16 @@ enum class ExportFormat(val extension: String, val mimeType: String) {
 
 object SpreadsheetEngine {
 
-    val REQUIRED_HEADERS = listOf("Japanese", "English", "Furigana", "Romaji", "Notes")
+    val REQUIRED_HEADERS = listOf(
+        "Japanese / Kana",
+        "English",
+        "Furigana",
+        "Romaji",
+        "Context / Notes",
+        "Example 1 (JP & EN)",
+        "Example 2 (JP & EN)",
+        "Example 3 (JP & EN)",
+    )
 
     val SEED_ROWS = listOf(
         SpreadsheetCard(
@@ -78,21 +116,30 @@ object SpreadsheetEngine {
             english = "Hospital",
             furigana = "びょういん",
             romaji = "byouin",
-            notes = "Healthcare / Facilities",
+            notes = "Essential healthcare vocabulary; used when visiting medical facilities.",
+            example1 = "明日、病院に行きます。 / I will go to the hospital tomorrow.",
+            example2 = "病院の前に薬局があります。 / There is a pharmacy in front of the hospital.",
+            example3 = "近くに大きな病院がありますか？ / Is there a large hospital nearby?",
         ),
         SpreadsheetCard(
             japanese = "食べる",
             english = "To eat",
             furigana = "たべる",
             romaji = "taberu",
-            notes = "Group 2 verb",
+            notes = "Group 2 (ichidan) verb; versatile base verb for dining and meals.",
+            example1 = "朝ごはんを食べましたか？ / Did you eat breakfast?",
+            example2 = "日本料理を美味しく食べる。 / To eat Japanese food deliciously.",
+            example3 = "一緒にお昼ご飯を食べましょう。 / Let's eat lunch together.",
         ),
         SpreadsheetCard(
             japanese = "ありがとう",
             english = "Thank you",
             furigana = null, // Blank in template architecture
             romaji = "arigatou",
-            notes = "Casual expression",
+            notes = "Everyday polite gratitude expression; often expanded to 'ありがとうございます'.",
+            example1 = "手伝ってくれてありがとう。 / Thank you for helping me.",
+            example2 = "プレゼントを本当にありがとう。 / Thank you so much for the present.",
+            example3 = "いつも温かい言葉をありがとう。 / Thank you always for your warm words.",
         ),
     )
 
@@ -111,6 +158,9 @@ object SpreadsheetEngine {
                     seed.furigana ?: "",
                     seed.romaji ?: "",
                     seed.notes ?: "",
+                    seed.example1 ?: "",
+                    seed.example2 ?: "",
+                    seed.example3 ?: "",
                 ),
             )
         }
@@ -153,7 +203,7 @@ object SpreadsheetEngine {
         val colA = headerRow.getOrNull(0)?.trim() ?: ""
         val colB = headerRow.getOrNull(1)?.trim() ?: ""
 
-        if (!colA.equals("Japanese", ignoreCase = true) || !colB.equals("English", ignoreCase = true)) {
+        if (!colA.contains("Japanese", ignoreCase = true) || !colB.contains("English", ignoreCase = true)) {
             return SpreadsheetValidationResult.CriticalError("Missing required header columns 'Japanese' and 'English' in Row 1.")
         }
 
@@ -177,6 +227,9 @@ object SpreadsheetEngine {
             val furigana = row.getOrNull(2)?.trim()?.ifEmpty { null }
             val romaji = row.getOrNull(3)?.trim()?.ifEmpty { null }
             val notes = row.getOrNull(4)?.trim()?.ifEmpty { null }
+            val example1 = row.getOrNull(5)?.trim()?.ifEmpty { null }
+            val example2 = row.getOrNull(6)?.trim()?.ifEmpty { null }
+            val example3 = row.getOrNull(7)?.trim()?.ifEmpty { null }
 
             when {
                 japanese.isNotEmpty() && english.isNotEmpty() -> {
@@ -187,6 +240,9 @@ object SpreadsheetEngine {
                             furigana = furigana,
                             romaji = romaji,
                             notes = notes,
+                            example1 = example1,
+                            example2 = example2,
+                            example3 = example3,
                         ),
                     )
                 }
@@ -224,6 +280,21 @@ object SpreadsheetEngine {
         val rows = mutableListOf<List<String>>()
         rows.add(REQUIRED_HEADERS)
         for (card in cards) {
+            val ex1Str = when {
+                card.exampleKana.isNotBlank() && card.exampleEnglish.isNotBlank() -> "${card.exampleKana} / ${card.exampleEnglish}"
+                card.exampleKana.isNotBlank() -> card.exampleKana
+                else -> ""
+            }
+            val ex2Str = when {
+                card.example2Kana.isNotBlank() && card.example2English.isNotBlank() -> "${card.example2Kana} / ${card.example2English}"
+                card.example2Kana.isNotBlank() -> card.example2Kana
+                else -> ""
+            }
+            val ex3Str = when {
+                card.example3Kana.isNotBlank() && card.example3English.isNotBlank() -> "${card.example3Kana} / ${card.example3English}"
+                card.example3Kana.isNotBlank() -> card.example3Kana
+                else -> ""
+            }
             rows.add(
                 listOf(
                     card.japanese,
@@ -231,6 +302,9 @@ object SpreadsheetEngine {
                     card.furigana,
                     card.romaji,
                     card.notes,
+                    ex1Str,
+                    ex2Str,
+                    ex3Str,
                 ),
             )
         }
@@ -290,7 +364,7 @@ object SpreadsheetEngine {
         }
         val dateStr = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
         val cleanName = deck.title.replace("[^a-zA-Z0-9_-]".toRegex(), "_").ifEmpty { "Deck" }
-        val filename = "${cleanName}_KotobaExport_${dateStr}.${format.extension}"
+        val filename = "${cleanName}_KotoExport_${dateStr}.${format.extension}"
 
         val bytes = exportDeck(deck.title, cards, format)
         val uri = saveToDownloads(context, filename, format.mimeType, bytes) ?: return null
@@ -358,7 +432,7 @@ object SpreadsheetEngine {
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = mimeType
             putExtra(Intent.EXTRA_STREAM, uri)
-            putExtra(Intent.EXTRA_SUBJECT, "$title - Kotoba Export")
+            putExtra(Intent.EXTRA_SUBJECT, "$title - Koto Export")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -414,7 +488,7 @@ object SpreadsheetEngine {
                 """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
-    <sheet name="Kotoba Deck" sheetId="1" r:id="rId1"/>
+    <sheet name="Koto Deck" sheetId="1" r:id="rId1"/>
   </sheets>
 </workbook>""".toByteArray(StandardCharsets.UTF_8),
             )

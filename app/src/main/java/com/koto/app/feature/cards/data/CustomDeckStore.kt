@@ -24,8 +24,18 @@ data class CustomCardItem(
     val exampleKana: String = "",
     val exampleRomaji: String = "",
     val exampleEnglish: String = "",
+    val example2Kana: String = "",
+    val example2Romaji: String = "",
+    val example2English: String = "",
+    val example3Kana: String = "",
+    val example3Romaji: String = "",
+    val example3English: String = "",
     val notes: String = "",
-)
+) {
+    val example1Kana: String get() = exampleKana
+    val example1Romaji: String get() = exampleRomaji
+    val example1English: String get() = exampleEnglish
+}
 
 class CustomDeckStore(context: Context) {
     companion object {
@@ -62,6 +72,12 @@ class CustomDeckStore(context: Context) {
                 exampleKana = entity.exampleKana,
                 exampleRomaji = entity.exampleRomaji,
                 exampleEnglish = entity.exampleEnglish,
+                example2Kana = entity.example2Kana,
+                example2Romaji = entity.example2Romaji,
+                example2English = entity.example2English,
+                example3Kana = entity.example3Kana,
+                example3Romaji = entity.example3Romaji,
+                example3English = entity.example3English,
                 notes = entity.notes,
             )
         }
@@ -96,30 +112,52 @@ class CustomDeckStore(context: Context) {
             } else {
                 KanaConverter.toRomaji(KanaConverter.toPureKana(cleanJapanese))
             }
-            val pureExampleKana = item.exampleKana.trim()
-            val exampleRomaji = if (item.exampleRomaji.isNotBlank()) {
+            val pureEx1Kana = item.exampleKana.trim()
+            val ex1Romaji = if (item.exampleRomaji.isNotBlank()) {
                 item.exampleRomaji.trim()
-            } else if (pureExampleKana.isNotBlank()) {
-                KanaConverter.toRomaji(KanaConverter.toPureKana(pureExampleKana))
+            } else if (pureEx1Kana.isNotBlank()) {
+                KanaConverter.toRomaji(KanaConverter.toPureKana(pureEx1Kana))
+            } else {
+                ""
+            }
+            val pureEx2Kana = item.example2Kana.trim()
+            val ex2Romaji = if (item.example2Romaji.isNotBlank()) {
+                item.example2Romaji.trim()
+            } else if (pureEx2Kana.isNotBlank()) {
+                KanaConverter.toRomaji(KanaConverter.toPureKana(pureEx2Kana))
+            } else {
+                ""
+            }
+            val pureEx3Kana = item.example3Kana.trim()
+            val ex3Romaji = if (item.example3Romaji.isNotBlank()) {
+                item.example3Romaji.trim()
+            } else if (pureEx3Kana.isNotBlank()) {
+                KanaConverter.toRomaji(KanaConverter.toPureKana(pureEx3Kana))
             } else {
                 ""
             }
 
-                CustomCardEntity(
-                    id = cardId,
-                    deckId = effectiveDeckId,
-                    japanese = cleanJapanese,
-                    romaji = romaji,
-                    english = item.english.trim(),
-                    furigana = item.furigana.trim(),
-                    exampleKana = pureExampleKana,
-                    exampleRomaji = exampleRomaji,
-                    exampleEnglish = item.exampleEnglish.trim(),
-                    notes = item.notes.trim(),
-                    orderIndex = index,
-                    createdAt = now,
-                )
-            }
+            CustomCardEntity(
+                id = cardId,
+                deckId = effectiveDeckId,
+                japanese = cleanJapanese,
+                romaji = romaji,
+                english = item.english.trim(),
+                furigana = item.furigana.trim(),
+                exampleKana = pureEx1Kana,
+                exampleRomaji = ex1Romaji,
+                exampleEnglish = item.exampleEnglish.trim(),
+                example2Kana = pureEx2Kana,
+                example2Romaji = ex2Romaji,
+                example2English = item.example2English.trim(),
+                example3Kana = pureEx3Kana,
+                example3Romaji = ex3Romaji,
+                example3English = item.example3English.trim(),
+                notes = item.notes.trim(),
+                orderIndex = index,
+                createdAt = now,
+            )
+        }
 
             dao.saveDeckWithCards(deckEntity, cardEntities)
             registerCardsContext(cardEntities)
@@ -169,16 +207,33 @@ class CustomDeckStore(context: Context) {
 
     private fun registerCardsContext(cards: List<CustomCardEntity>) {
         for (card in cards) {
-            val examples = if (card.exampleKana.isNotBlank()) {
-                listOf(
+            val examples = mutableListOf<CardExample>()
+            if (card.exampleKana.isNotBlank() || card.exampleEnglish.isNotBlank()) {
+                examples.add(
                     CardExample(
                         kana = card.exampleKana,
                         romaji = card.exampleRomaji,
                         english = card.exampleEnglish,
-                    ),
+                    )
                 )
-            } else {
-                emptyList()
+            }
+            if (card.example2Kana.isNotBlank() || card.example2English.isNotBlank()) {
+                examples.add(
+                    CardExample(
+                        kana = card.example2Kana,
+                        romaji = card.example2Romaji,
+                        english = card.example2English,
+                    )
+                )
+            }
+            if (card.example3Kana.isNotBlank() || card.example3English.isNotBlank()) {
+                examples.add(
+                    CardExample(
+                        kana = card.example3Kana,
+                        romaji = card.example3Romaji,
+                        english = card.example3English,
+                    )
+                )
             }
 
             CardContextLoader.registerContext(

@@ -1,10 +1,8 @@
 package com.koto.app.ui.screens.settings
 
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
 import com.koto.app.R
-import com.koto.app.ui.theme.KotoFont
 
 data class AppFont(
     val id: String,
@@ -15,44 +13,28 @@ data class AppFont(
 )
 
 object FontCatalog {
-    private val fontProvider = GoogleFont.Provider(
-        providerAuthority = "com.google.android.gms.fonts",
-        providerPackage = "com.google.android.gms",
-        certificates = R.array.com_google_android_gms_fonts_certs,
-    )
-
-    private fun googleFontFamily(fontName: String, fallback: FontFamily = FontFamily.SansSerif): FontFamily {
-        return try {
-            FontFamily(
-                Font(googleFont = GoogleFont(fontName), fontProvider = fontProvider),
-            )
-        } catch (_: Throwable) {
-            fallback
-        }
-    }
-
     val englishFonts: List<AppFont> = listOf(
-        AppFont("inter_roboto", "Inter / Roboto", "a", googleFontFamily("Inter", FontFamily.SansSerif)),
-        AppFont("plus_jakarta_sans", "Plus Jakarta Sans", "a", googleFontFamily("Plus Jakarta Sans", FontFamily.SansSerif)),
-        AppFont("outfit", "Outfit", "a", googleFontFamily("Outfit", FontFamily.SansSerif)),
-        AppFont("nunito", "Nunito", "a", googleFontFamily("Nunito", FontFamily.SansSerif)),
-        AppFont("manrope", "Manrope", "a", googleFontFamily("Manrope", FontFamily.SansSerif)),
-        AppFont("dm_sans", "DM Sans", "a", googleFontFamily("DM Sans", FontFamily.SansSerif)),
-        AppFont("lexend_deca", "Lexend Deca", "a", googleFontFamily("Lexend Deca", FontFamily.SansSerif)),
-        AppFont("rubik", "Rubik", "a", googleFontFamily("Rubik", FontFamily.SansSerif)),
-        AppFont("urbanist", "Urbanist", "a", googleFontFamily("Urbanist", FontFamily.SansSerif)),
+        AppFont("inter_roboto", "Inter / Roboto", "a", FontFamily(Font(R.font.font_inter))),
+        AppFont("plus_jakarta_sans", "Plus Jakarta Sans", "a", FontFamily(Font(R.font.font_plus_jakarta_sans))),
+        AppFont("outfit", "Outfit", "a", FontFamily(Font(R.font.font_outfit))),
+        AppFont("nunito", "Nunito", "a", FontFamily(Font(R.font.font_nunito))),
+        AppFont("manrope", "Manrope", "a", FontFamily(Font(R.font.font_manrope))),
+        AppFont("dm_sans", "DM Sans", "a", FontFamily(Font(R.font.font_dm_sans))),
+        AppFont("lexend_deca", "Lexend Deca", "a", FontFamily(Font(R.font.font_lexend_deca))),
+        AppFont("rubik", "Rubik", "a", FontFamily(Font(R.font.font_rubik))),
+        AppFont("urbanist", "Urbanist", "a", FontFamily(Font(R.font.font_urbanist))),
     )
 
     val japaneseFonts: List<AppFont> = listOf(
-        AppFont("noto_sans_jp", "Noto Sans JP", "あ", googleFontFamily("Noto Sans JP", KotoFont), isJapanese = true),
-        AppFont("m_plus_1p", "M PLUS 1p", "あ", KotoFont, isJapanese = true),
-        AppFont("zen_kaku_gothic", "Zen Kaku Gothic New", "あ", googleFontFamily("Zen Kaku Gothic New", KotoFont), isJapanese = true),
-        AppFont("zen_maru_gothic", "Zen Maru Gothic", "あ", googleFontFamily("Zen Maru Gothic", KotoFont), isJapanese = true),
-        AppFont("kosugi_maru", "Kosugi Maru", "あ", googleFontFamily("Kosugi Maru", KotoFont), isJapanese = true),
-        AppFont("noto_serif_jp", "Noto Serif JP", "あ", googleFontFamily("Noto Serif JP", FontFamily.Serif), isJapanese = true),
-        AppFont("shippori_mincho", "Shippori Mincho", "あ", googleFontFamily("Shippori Mincho", FontFamily.Serif), isJapanese = true),
-        AppFont("klee_one", "Klee One", "あ", googleFontFamily("Klee One", KotoFont), isJapanese = true),
-        AppFont("kaisei_decol", "Kaisei Decol", "あ", googleFontFamily("Kaisei Decol", FontFamily.Serif), isJapanese = true),
+        AppFont("noto_sans_jp", "Noto Sans JP", "あ", FontFamily(Font(R.font.font_noto_sans_jp)), isJapanese = true),
+        AppFont("m_plus_1p", "M PLUS 1p", "あ", FontFamily(Font(R.font.font_m_plus_1p)), isJapanese = true),
+        AppFont("zen_kaku_gothic", "Zen Kaku Gothic New", "あ", FontFamily(Font(R.font.font_zen_kaku_gothic)), isJapanese = true),
+        AppFont("zen_maru_gothic", "Zen Maru Gothic", "あ", FontFamily(Font(R.font.font_zen_maru_gothic)), isJapanese = true),
+        AppFont("kosugi_maru", "Kosugi Maru", "あ", FontFamily(Font(R.font.font_kosugi_maru)), isJapanese = true),
+        AppFont("noto_serif_jp", "Noto Serif JP", "あ", FontFamily(Font(R.font.font_noto_serif_jp)), isJapanese = true),
+        AppFont("shippori_mincho", "Shippori Mincho", "あ", FontFamily(Font(R.font.font_shippori_mincho)), isJapanese = true),
+        AppFont("klee_one", "Klee One", "あ", FontFamily(Font(R.font.font_klee_one)), isJapanese = true),
+        AppFont("kaisei_decol", "Kaisei Decol", "あ", FontFamily(Font(R.font.font_kaisei_decol)), isJapanese = true),
     )
 
     fun findEnglishFont(id: String): AppFont =

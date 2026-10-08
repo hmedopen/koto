@@ -17,6 +17,8 @@ import com.koto.app.feature.translator.data.KanaConverter
 import com.koto.app.ui.screens.cards.CardsColors
 import com.koto.app.ui.screens.settings.DisplayMode
 import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
+import com.koto.app.ui.screens.settings.LocalEnglishFont
 import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 import com.koto.app.ui.screens.settings.RubyToken
 
@@ -37,6 +39,7 @@ fun RubyText(
     baseColor: Color = CardsColors.Ink,
     furiganaColor: Color = CardsColors.Blue,
     fontWeight: FontWeight = FontWeight.Bold,
+    fontFamily: androidx.compose.ui.text.font.FontFamily = LocalJapaneseFont.current,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
 ) {
     if (tokens.isEmpty()) return
@@ -59,6 +62,7 @@ fun RubyText(
                         fontSize = baseFontSize,
                         color = baseColor,
                         fontWeight = fontWeight,
+                        fontFamily = fontFamily,
                         lineHeight = (baseFontSize.value * 1.3f).sp,
                     )
                 }
@@ -70,6 +74,7 @@ fun RubyText(
                         fontSize = baseFontSize,
                         color = baseColor,
                         fontWeight = fontWeight,
+                        fontFamily = fontFamily,
                         lineHeight = (baseFontSize.value * 1.3f).sp,
                     )
                 }
@@ -87,6 +92,7 @@ fun RubyText(
                                 fontSize = (baseFontSize.value * 0.48f).coerceAtLeast(10f).sp,
                                 color = furiganaColor,
                                 fontWeight = FontWeight.Bold,
+                                fontFamily = fontFamily,
                                 maxLines = 1,
                                 lineHeight = (baseFontSize.value * 0.55f).sp,
                             )
@@ -95,6 +101,7 @@ fun RubyText(
                                 fontSize = baseFontSize,
                                 color = baseColor,
                                 fontWeight = fontWeight,
+                                fontFamily = fontFamily,
                                 lineHeight = (baseFontSize.value * 1.2f).sp,
                             )
                         }
@@ -112,6 +119,7 @@ fun RubyText(
                                 fontSize = baseFontSize,
                                 color = baseColor,
                                 fontWeight = fontWeight,
+                                fontFamily = fontFamily,
                                 lineHeight = (baseFontSize.value * 1.2f).sp,
                             )
                         }
@@ -167,10 +175,13 @@ fun JapaneseWordDisplay(
     romajiModifier: Modifier = Modifier,
     mode: DisplayMode = LocalJapaneseDisplayMode.current,
     showRomaji: Boolean = LocalRomajiVisibility.current,
+    revealFuriganaOnTap: Boolean = false,
+    furiganaRevealed: Boolean = true,
     fontSize: TextUnit = 24.sp,
     fontColor: Color = CardsColors.Ink,
     furiganaColor: Color = CardsColors.Blue,
     romajiColor: Color = CardsColors.Blue,
+    fontFamily: androidx.compose.ui.text.font.FontFamily = LocalJapaneseFont.current,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
 ) {
     val effectiveKanji = kanji.ifBlank { kana }
@@ -190,6 +201,7 @@ fun JapaneseWordDisplay(
                     fontSize = fontSize,
                     color = fontColor,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = fontFamily,
                     textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start,
                 )
             }
@@ -201,11 +213,13 @@ fun JapaneseWordDisplay(
                     fontSize = fontSize,
                     color = fontColor,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = fontFamily,
                     textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start,
                 )
             }
 
             DisplayMode.KANJI_FURIGANA -> {
+                val effectiveFuriganaColor = if (revealFuriganaOnTap && !furiganaRevealed) Color.Transparent else furiganaColor
                 if (KanaConverter.containsKanji(effectiveKanji)) {
                     val tokens = KanaConverter.extractRubyTokens(effectiveKanji)
                     RubyText(
@@ -214,7 +228,8 @@ fun JapaneseWordDisplay(
                         mode = DisplayMode.KANJI_FURIGANA,
                         baseFontSize = fontSize,
                         baseColor = fontColor,
-                        furiganaColor = furiganaColor,
+                        furiganaColor = effectiveFuriganaColor,
+                        fontFamily = fontFamily,
                         horizontalArrangement = if (horizontalAlignment == Alignment.CenterHorizontally) Arrangement.Center else Arrangement.Start,
                     )
                 } else {
@@ -224,6 +239,7 @@ fun JapaneseWordDisplay(
                         fontSize = fontSize,
                         color = fontColor,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = fontFamily,
                         textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start,
                     )
                 }
@@ -238,6 +254,7 @@ fun JapaneseWordDisplay(
                 fontSize = (fontSize.value * 0.52f).coerceAtLeast(12f).sp,
                 color = romajiColor,
                 fontWeight = FontWeight.Normal,
+                fontFamily = LocalEnglishFont.current,
                 textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) TextAlign.Center else TextAlign.Start,
             )
         }

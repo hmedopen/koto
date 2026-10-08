@@ -23,6 +23,7 @@ data class CardContext(
     val kanji: String? = null,
 ) {
     val displayKanji: String get() = kanji?.takeIf { it.isNotBlank() } ?: kana
+    val notes: String get() = usageNote
 }
 
 /**

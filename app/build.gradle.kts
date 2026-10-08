@@ -35,9 +35,14 @@ android {
     // Release-like timing without replacing the installed app or its data.
     buildTypes {
         getByName("release") {
+            applicationIdSuffix = ".release"
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
         create("benchmark") {
             initWith(getByName("release"))

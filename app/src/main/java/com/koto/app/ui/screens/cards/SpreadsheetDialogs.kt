@@ -139,26 +139,17 @@ fun TemplateDownloadDialog(
                         )
                     }
 
-                    // Explicit Disclaimer
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(BoxShape)
-                            .border(1.dp, CardsColors.Edge, BoxShape)
-                            .background(CardsColors.Background)
-                            .padding(12.dp),
-                    ) {
-                        Text(
-                            text = "Cards imported via spreadsheet bypass live auto-furigana generation and automatic dictionary lookups. Content renders exactly as entered.",
-                            style = TextStyle(
-                                fontFamily = KotoFont,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 12.sp,
-                                color = CardsColors.Muted,
-                                lineHeight = 17.sp,
-                            ),
-                        )
-                    }
+                    // Explicit Disclaimer (Rendered cleanly on white per Anti-Bubble & Task 4.4)
+                    Text(
+                        text = "Cards imported via spreadsheet bypass live auto-furigana generation and automatic dictionary lookups. Content renders exactly as entered.",
+                        style = TextStyle(
+                            fontFamily = KotoFont,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp,
+                            color = CardsColors.Muted,
+                            lineHeight = 17.sp,
+                        ),
+                    )
 
                     // Action Button: Download Template (.xlsx)
                     CardsButton(
@@ -451,16 +442,16 @@ fun ImportErrorDialog(
     }
 }
 
-private fun downloadTemplateFile(context: Context) {
+internal fun downloadTemplateFile(context: Context) {
     val templateBytes = try {
-        context.assets.open("kotoba_deck_template.xlsx").use { it.readBytes() }
+        context.assets.open("koto_deck_template.xlsx").use { it.readBytes() }
     } catch (_: Exception) {
         SpreadsheetEngine.generateTemplateXlsx()
     }
 
     val uri = SpreadsheetEngine.saveToDownloads(
         context = context,
-        filename = "kotoba_deck_template.xlsx",
+        filename = "koto_deck_template.xlsx",
         mimeType = ExportFormat.XLSX.mimeType,
         bytes = templateBytes,
     )
@@ -469,6 +460,144 @@ private fun downloadTemplateFile(context: Context) {
         Toast.makeText(context, "Template downloaded to Downloads", Toast.LENGTH_SHORT).show()
     } else {
         Toast.makeText(context, "Saved template successfully", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Composable
+fun ImportOptionsDialog(
+    onSelectFile: () -> Unit,
+    onDownloadTemplate: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(DialogShape)
+                    .border(1.dp, CardsColors.Edge, DialogShape)
+                    .background(Color.White)
+                    .testTag("import_deck_dialog"),
+            ) {
+                // Top Bar with centered title and top-right [X] dismiss button (Rule 6 & 10)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .padding(horizontal = 16.dp),
+                ) {
+                    Spacer(modifier = Modifier.size(40.dp).align(Alignment.CenterStart))
+
+                    Text(
+                        text = "Import Deck",
+                        style = KotoType.Brand,
+                        fontSize = 18.sp,
+                        color = CardsColors.Ink,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.align(Alignment.Center),
+                    )
+
+                    CardsPressable(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .align(Alignment.CenterEnd)
+                            .testTag("btn_close_import_dialog"),
+                        face = CardsColors.Surface,
+                        depth = CardsColors.Edge,
+                        padding = PaddingValues(8.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_close),
+                            contentDescription = "Close dialog",
+                            tint = CardsColors.Ink,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = CardsColors.Edge, thickness = 1.dp)
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "IMPORT GUIDELINES & RULES",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                letterSpacing = 1.sp,
+                                color = CardsColors.Muted,
+                            ),
+                        )
+                        Text(
+                            text = "• Supported formats: Excel (.xlsx) and CSV (.csv).\n" +
+                                "• Required columns: Japanese (Kana/Kanji) and English.\n" +
+                                "• Optional columns: Furigana, Romaji, and Notes.\n" +
+                                "• Imported cards will be added to your current deck.",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 13.sp,
+                                color = CardsColors.Ink,
+                                lineHeight = 19.sp,
+                            ),
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(BoxShape)
+                            .border(1.dp, CardsColors.Edge, BoxShape)
+                            .background(CardsColors.Background)
+                            .padding(12.dp),
+                    ) {
+                        Text(
+                            text = "Tip: Download the pre-formatted spreadsheet template to ensure your column headers match.",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 12.sp,
+                                color = CardsColors.Muted,
+                                lineHeight = 17.sp,
+                            ),
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        CardsButton(
+                            label = "Select File (.xlsx / .csv)",
+                            onClick = onSelectFile,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("btn_select_import_file"),
+                            background = CardsColors.Blue,
+                            ink = Color.White,
+                            depth = CardsColors.BlueDepth,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -543,16 +672,31 @@ fun ExportDeckDialog(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text(
-                        text = "Choose format to export \"$deckTitle\" ($cardCount cards):",
-                        style = TextStyle(
-                            fontFamily = KotoFont,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp,
-                            color = CardsColors.Ink,
-                            lineHeight = 20.sp,
-                        ),
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "EXPORT GUIDELINES & RULES",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                letterSpacing = 1.sp,
+                                color = CardsColors.Muted,
+                            ),
+                        )
+                        Text(
+                            text = "• Exports all cards in \"$deckTitle\" ($cardCount cards).\n" +
+                                "• Columns included: Japanese, English, Furigana, Romaji, and Notes.\n" +
+                                "• Files are saved directly to your device Downloads folder.\n" +
+                                "• Fully compatible with Excel, Google Sheets, Anki, and Koto.",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 13.sp,
+                                color = CardsColors.Ink,
+                                lineHeight = 19.sp,
+                            ),
+                        )
+                    }
 
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -561,22 +705,24 @@ fun ExportDeckDialog(
                         CardsButton(
                             label = "Export as Excel (.xlsx)",
                             onClick = { onExport(ExportFormat.XLSX) },
+                            enabled = cardCount > 0,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("btn_export_xlsx"),
-                            background = CardsColors.Surface,
-                            ink = CardsColors.Ink,
+                            background = if (cardCount > 0) CardsColors.Surface else CardsColors.Ice,
+                            ink = if (cardCount > 0) CardsColors.Ink else CardsColors.Muted,
                             depth = CardsColors.Edge,
                         )
 
                         CardsButton(
                             label = "Export as CSV (.csv)",
                             onClick = { onExport(ExportFormat.CSV) },
+                            enabled = cardCount > 0,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("btn_export_csv"),
-                            background = CardsColors.Surface,
-                            ink = CardsColors.Ink,
+                            background = if (cardCount > 0) CardsColors.Surface else CardsColors.Ice,
+                            ink = if (cardCount > 0) CardsColors.Ink else CardsColors.Muted,
                             depth = CardsColors.Edge,
                         )
                     }

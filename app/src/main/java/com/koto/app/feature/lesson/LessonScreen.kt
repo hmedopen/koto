@@ -37,6 +37,7 @@ import kotlinx.coroutines.delay
 fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onComplete: (Int) -> Unit, onExit: () -> Unit) {
     val session = rememberSaveable(lesson.id, saver = LessonSession.saver(lesson)) { LessonSession(lesson) }
     var settings by rememberSaveable { mutableStateOf(false) }
+    var advancedSettings by rememberSaveable { mutableStateOf(false) }
     var exitRequested by rememberSaveable { mutableStateOf(false) }
     val snackbar = remember { SnackbarHostState() }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -96,7 +97,24 @@ fun LessonScreen(lesson: LessonDefinition, audio: JapaneseTtsController, onCompl
         }
         SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
-    if (settings) SettingsSheet(onDismiss = { settings = false }, audio = audio)
+    if (settings) {
+        SettingsSheet(
+            onDismiss = { settings = false },
+            onOpenAdvanced = {
+                settings = false
+                advancedSettings = true
+            },
+            audio = audio,
+        )
+    }
+
+    androidx.compose.animation.AnimatedVisibility(
+        visible = advancedSettings,
+        enter = androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(300)) { fullWidth -> fullWidth } + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(250)),
+        exit = androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(280)) { fullWidth -> fullWidth } + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200)),
+    ) {
+        com.koto.app.ui.screens.settings.AdvancedSettingsScreen(onBack = { advancedSettings = false })
+    }
     if (exitRequested) AlertDialog(onDismissRequest = { exitRequested = false },
         title = { Text("Leave this lesson?") },
         text = { Text("This attempt will be discarded. Completed levels stay saved.") },

@@ -44,7 +44,7 @@ class SpreadsheetEngineTest {
         assertEquals("Hospital", card1.english)
         assertEquals("びょういん", card1.furigana)
         assertEquals("byouin", card1.romaji)
-        assertEquals("Healthcare / Facilities", card1.notes)
+        assertEquals("Essential healthcare vocabulary; used when visiting medical facilities.", card1.notes)
 
         // Seed 2
         val card2 = success.validCards[1]
@@ -52,7 +52,7 @@ class SpreadsheetEngineTest {
         assertEquals("To eat", card2.english)
         assertEquals("たべる", card2.furigana)
         assertEquals("taberu", card2.romaji)
-        assertEquals("Group 2 verb", card2.notes)
+        assertEquals("Group 2 (ichidan) verb; versatile base verb for dining and meals.", card2.notes)
 
         // Seed 3 (blank furigana in seed specification)
         val card3 = success.validCards[2]
@@ -60,7 +60,7 @@ class SpreadsheetEngineTest {
         assertEquals("Thank you", card3.english)
         assertNull(card3.furigana)
         assertEquals("arigatou", card3.romaji)
-        assertEquals("Casual expression", card3.notes)
+        assertEquals("Everyday polite gratitude expression; often expanded to 'ありがとうございます'.", card3.notes)
     }
 
     @Test

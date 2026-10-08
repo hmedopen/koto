@@ -33,7 +33,7 @@ internal fun StarredCardsScreen(
     decks: List<FlashcardDeck>,
     state: FlashcardState,
     onToggleFavorite: (String) -> Unit,
-    onStartReview: (List<Flashcard>) -> Unit,
+    onViewDeck: (List<Flashcard>) -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -143,8 +143,15 @@ internal fun StarredCardsScreen(
                         )
 
                         // Audio button
+                        val cardTts = card.furigana?.takeIf { it.isNotBlank() } ?: card.displayKanji
                         SpeakerButton(
-                            text = JapaneseText(card.japanese, card.romaji),
+                            text = JapaneseText(
+                                kana = card.japanese,
+                                romaji = card.romaji,
+                                tts = cardTts,
+                                kanji = card.displayKanji,
+                                furigana = card.furigana,
+                            ),
                             speechReady = audio.enabled && audio.status == SpeechStatus.Ready,
                             isPlaying = (playingCardId == card.id) && audio.isSpeaking,
                             speak = {
@@ -179,10 +186,10 @@ internal fun StarredCardsScreen(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
             ) {
                 CardsButton(
-                    label = "START REVIEW (${activeStarredCards.size})",
-                    onClick = { onStartReview(activeStarredCards) },
+                    label = "VIEW DECK",
+                    onClick = { onViewDeck(activeStarredCards) },
                     enabled = activeStarredCards.isNotEmpty(),
-                    modifier = Modifier.fillMaxWidth().testTag("start_starred_review"),
+                    modifier = Modifier.fillMaxWidth().testTag("view_starred_deck"),
                 )
             }
         }

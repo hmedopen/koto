@@ -73,6 +73,7 @@ fun TranslatorScreen(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     onSettings: (() -> Unit)? = null,
+    onViewDeck: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
@@ -750,6 +751,12 @@ fun TranslatorScreen(
                 onCopy = { copyToClipboard(it, "Translation") },
                 onRemove = { id ->
                     cardStore.removeCard(id)
+                },
+                onViewDeck = onViewDeck?.let { callback ->
+                    {
+                        showSavedDialog = false
+                        callback()
+                    }
                 },
                 isSpeaking = tts.isSpeaking,
             )

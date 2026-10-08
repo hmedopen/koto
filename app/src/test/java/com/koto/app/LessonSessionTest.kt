@@ -182,10 +182,10 @@ class LessonSessionTest {
         rejected(pairs.copy(pairs = pairs.pairs + pairs.pairs.first()))
     }
 
-    @Test fun speechBoundaryRejectsEnglishAndKanjiEvenInMalformedJapaneseObjects() {
+    @Test fun speechBoundaryRejectsEnglishWhileSupportingKanjiAndKana() {
         assertTrue(JapaneseTtsController.canSpeak(JapaneseText("ねこ", "neko")))
         assertFalse(JapaneseTtsController.canSpeak(JapaneseText("Cat", "cat")))
         assertFalse(JapaneseTtsController.canSpeak(JapaneseText("ねこ", "neko", "Cat")))
-        assertFalse(JapaneseTtsController.canSpeak(JapaneseText("猫です", "neko desu")))
+        assertTrue(JapaneseTtsController.canSpeak(JapaneseText("猫です", "neko desu")))
     }
 }

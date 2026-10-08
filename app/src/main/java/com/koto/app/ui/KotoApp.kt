@@ -67,6 +67,7 @@ fun KotoApp() {
     var starredWordsTrigger by rememberSaveable { mutableStateOf(false) }
     var createDeckTrigger by rememberSaveable { mutableStateOf(false) }
     var translatorOpen by rememberSaveable { mutableStateOf(false) }
+    var targetDeckId by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     val progress = remember { LessonProgress(context) }
@@ -74,9 +75,18 @@ fun KotoApp() {
     val preferences = remember { DisplayPreferences.get(context) }
     val shellState = rememberSaveableStateHolder()
 
+    val currentEnglishFont = remember(preferences.englishFontId) {
+        com.koto.app.ui.screens.settings.FontCatalog.findEnglishFont(preferences.englishFontId).fontFamily
+    }
+    val currentJapaneseFont = remember(preferences.japaneseFontId) {
+        com.koto.app.ui.screens.settings.FontCatalog.findJapaneseFont(preferences.japaneseFontId).fontFamily
+    }
+
     CompositionLocalProvider(
         LocalJapaneseDisplayMode provides preferences.displayMode,
         LocalRomajiVisibility provides preferences.romajiEnabled,
+        com.koto.app.ui.screens.settings.LocalJapaneseFont provides currentJapaneseFont,
+        com.koto.app.ui.screens.settings.LocalEnglishFont provides currentEnglishFont,
     ) {
         // Top-level section changes don't accumulate a history of tab taps.
         BackHandler(enabled = !advancedSettingsOpen && lessonId == null && !translatorOpen && selected != KotoDestination.Learn) {
@@ -110,7 +120,15 @@ fun KotoApp() {
             label = "Translator dedicated screen transition",
         ) { isTranslator ->
             if (isTranslator) {
-                TranslatorScreen(onDismiss = { translatorOpen = false }, onSettings = { settingsOpen = true })
+                TranslatorScreen(
+                    onDismiss = { translatorOpen = false },
+                    onSettings = { settingsOpen = true },
+                    onViewDeck = {
+                        translatorOpen = false
+                        selected = KotoDestination.Cards
+                        targetDeckId = "deck_quick_translations"
+                    },
+                )
             } else {
                 shellState.SaveableStateProvider("main_shell") {
                     Column(Modifier.fillMaxSize().background(KotoColors.Background)) {
@@ -158,6 +176,8 @@ fun KotoApp() {
                                 createDeckTrigger = createDeckTrigger,
                                 onCreateDeckHandled = { createDeckTrigger = false },
                                 onOpenTranslator = { translatorOpen = true },
+                                targetDeckId = targetDeckId,
+                                onTargetDeckIdHandled = { targetDeckId = null },
                             )
                         }
                         if (!cardsStudying && !cardsCreateDeckOpen && !(selected == KotoDestination.Cards && cardsDeckOpen)) {

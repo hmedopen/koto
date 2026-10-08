@@ -237,24 +237,13 @@ private fun DeckDetailContent(
                 depth = CardsColors.Edge,
             )
 
-            // Export Deck Trigger Button (White fill & edge depth)
-            Spacer(Modifier.height(8.dp))
-            CardsButton(
-                label = "Export Deck",
-                onClick = { showExportDialog = true },
-                modifier = Modifier.fillMaxWidth().testTag("btn_export_deck"),
-                background = CardsColors.Surface,
-                ink = CardsColors.Ink,
-                depth = CardsColors.Edge,
-            )
-
-            // Custom Deck Management Actions (Add Card, Edit Deck, Delete Deck)
+            // Custom Deck Management Actions (Edit Deck)
             var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
             val isCustomDeck = deck.category == "Custom" || deck.id.startsWith("custom_")
             val isQuickTranslations = deck.id == "deck_quick_translations"
             if (isCustomDeck || isQuickTranslations) {
-                Spacer(Modifier.height(8.dp))
                 if (onEditDeck != null && isCustomDeck) {
+                    Spacer(Modifier.height(8.dp))
                     CardsButton(
                         label = "Edit Deck",
                         onClick = { onEditDeck(deck.id) },
@@ -265,10 +254,11 @@ private fun DeckDetailContent(
                     )
                 }
 
-                if (onDeleteDeck != null) {
-                    if (isCustomDeck) Spacer(Modifier.height(8.dp))
+                // Delete Translations Deck for system auto-synced translations only
+                if (onDeleteDeck != null && isQuickTranslations) {
+                    Spacer(Modifier.height(8.dp))
                     CardsButton(
-                        label = if (isQuickTranslations) "Delete Translations Deck" else "Delete Deck",
+                        label = "Delete Translations Deck",
                         onClick = { showDeleteDialog = true },
                         modifier = Modifier.fillMaxWidth().testTag("btn_delete_deck"),
                         background = CardsColors.Surface,

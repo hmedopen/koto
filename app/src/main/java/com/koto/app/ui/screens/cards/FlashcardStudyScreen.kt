@@ -79,6 +79,16 @@ import com.koto.app.ui.screens.map.SettingsSheet
 import com.koto.app.ui.screens.settings.DisplayMode
 import com.koto.app.ui.screens.settings.DisplayPreferences
 import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
+import androidx.compose.animation.core.snap
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import com.koto.app.ui.screens.settings.advancedSettingsDataStore
+import com.koto.app.ui.screens.settings.toAdvancedSettingsState
+import com.koto.app.ui.screens.settings.RetryFailedCardsPolicy
+import com.koto.app.ui.screens.settings.AdvancedSettingsState
+import kotlinx.coroutines.flow.map
 
 private enum class StudyStage {
     Active,
@@ -99,9 +109,14 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
 
     val context = LocalContext.current
     val audio = remember(context) { JapaneseTtsController.get(context) }
+    val advancedSettingsState by remember(context) {
+        context.advancedSettingsDataStore.data.map { it.toAdvancedSettingsState() }
+    }.collectAsState(initial = AdvancedSettingsState())
     var settings by rememberSaveable { mutableStateOf(false) }
+    var advancedSettings by rememberSaveable { mutableStateOf(false) }
     var exitRequested by rememberSaveable { mutableStateOf(false) }
     var contextCard by remember { mutableStateOf<Flashcard?>(null) }
+    var lookupKanjiTerm by rememberSaveable { mutableStateOf<String?>(null) }
     var lastRatedCardId by rememberSaveable { mutableStateOf<String?>(null) }
     var lastRatingName by rememberSaveable { mutableStateOf<String?>(null) }
     val lastRating = lastRatingName?.let { name -> CardRating.entries.firstOrNull { it.name == name } }
@@ -211,12 +226,16 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
                         onRate = { rating ->
                             lastRatedCardId = card.id
                             lastRatingName = rating.name
-                            update(state.rate(card.id, rating))
+                            val requeueSoon = advancedSettingsState.retryFailedCards == RetryFailedCardsPolicy.SOON
+                            val requeueAgain = advancedSettingsState.retryFailedCards == RetryFailedCardsPolicy.END
+                            update(state.rate(card.id, rating, requeueSoon = requeueSoon, requeueAgain = requeueAgain))
                         },
                         onOpenContext = { contextCard = card },
                         onOpenSettings = { settings = true },
                         onRequestExit = { exitRequested = true },
                         isCustomDeck = isCustomOrImported,
+                        advancedSettingsState = advancedSettingsState,
+                        onLookupKanji = { lookupKanjiTerm = it },
                     )
                 }
             }
@@ -240,7 +259,36 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
         }
     }
 
-    if (settings) SettingsSheet(onDismiss = { settings = false }, audio = audio)
+    if (lookupKanjiTerm != null) {
+        val targetCard = deck.cards.firstOrNull { it.displayKanji == lookupKanjiTerm || it.japanese == lookupKanjiTerm } ?: card
+        val termMeaning = targetCard?.english
+        val termContext = targetCard?.let { CardContextLoader.getContext(it, context)?.notes }
+        KanjiLookupModal(
+            term = lookupKanjiTerm!!,
+            meaning = termMeaning,
+            contextNotes = termContext,
+            onDismiss = { lookupKanjiTerm = null },
+        )
+    }
+
+    if (settings) {
+        SettingsSheet(
+            onDismiss = { settings = false },
+            onOpenAdvanced = {
+                settings = false
+                advancedSettings = true
+            },
+            audio = audio,
+        )
+    }
+
+    androidx.compose.animation.AnimatedVisibility(
+        visible = advancedSettings,
+        enter = androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(300)) { fullWidth -> fullWidth } + androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(250)),
+        exit = androidx.compose.animation.slideOutHorizontally(androidx.compose.animation.core.tween(280)) { fullWidth -> fullWidth } + androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200)),
+    ) {
+        com.koto.app.ui.screens.settings.AdvancedSettingsScreen(onBack = { advancedSettings = false })
+    }
     if (exitRequested) AlertDialog(
         onDismissRequest = { exitRequested = false },
         title = { Text("Quit this session?") },
@@ -254,12 +302,14 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
             }
         },
         dismissButton = {
-            TactileButton(
-                { exitRequested = false }, Modifier.fillMaxWidth().testTag("keep_studying"),
-                tone = TactileTone.Default,
-            ) {
-                Text("Keep studying", modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-            }
+            CardsButton(
+                label = "Keep studying",
+                onClick = { exitRequested = false },
+                modifier = Modifier.fillMaxWidth().testTag("keep_studying"),
+                background = CardsColors.Surface,
+                ink = CardsColors.Ink,
+                depth = CardsColors.Edge,
+            )
         },
     )
 }
@@ -445,6 +495,8 @@ private fun ActiveStudyContent(
     onOpenSettings: () -> Unit,
     onRequestExit: () -> Unit,
     isCustomDeck: Boolean = false,
+    advancedSettingsState: AdvancedSettingsState = AdvancedSettingsState(),
+    onLookupKanji: (String) -> Unit = {},
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollWholeScreen = maxHeight < 420.dp || LocalDensity.current.fontScale > 1.5f
@@ -472,17 +524,24 @@ private fun ActiveStudyContent(
                 verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 val flipTransition = updateTransition(state.revealed, label = "Card flip")
-                val currentRotation by flipTransition.animateFloat(transitionSpec = { tween(360) }, label = "Card rotation") {
+                val currentRotation by flipTransition.animateFloat(
+                    transitionSpec = {
+                        if (advancedSettingsState.cardFlipAnimation) tween(360) else snap()
+                    },
+                    label = "Card rotation",
+                ) {
                     if (it) 180f else 0f
                 }
                 val japaneseVisible = state.japaneseFirst != (currentRotation > 90f)
                 val allowAudio = !flipTransition.isRunning
                 LaunchedEffect(allowAudio) { if (!allowAudio) audio.stop() }
 
-                // Anti-Cheat Context Action Button ("?"): Reserved solely for built-in curriculum decks
-                // Locked and unclickable until card is revealed so the user cannot cheat
+                val currentContext = LocalContext.current
+                val cardContext = remember(card) { CardContextLoader.getContext(card, currentContext) }
+                val hasContextData = cardContext != null && (cardContext.notes.isNotBlank() || cardContext.examples.isNotEmpty())
+                val showContextButton = !isCustomDeck || hasContextData
                 val canInspectContext = state.revealed || state.hasBeenRevealed
-                if (!isCustomDeck) {
+                if (showContextButton) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -566,6 +625,9 @@ private fun ActiveStudyContent(
                             isCurrent = isCurrent,
                             isExiting = isExiting,
                             rating = if (isExiting) lastRating else null,
+                            revealFuriganaOnTap = advancedSettingsState.revealFuriganaOnTap,
+                            kanjiLookupOnHold = advancedSettingsState.kanjiLookupOnHold,
+                            onLookupKanji = onLookupKanji,
                         ) {
                             if (isCurrent) {
                                 audio.stop()
@@ -731,8 +793,15 @@ private fun CardContextScreen(
                     )
                 }
 
+                val cardTts = card.furigana?.takeIf { it.isNotBlank() } ?: card.displayKanji
                 SpeakerButton(
-                    text = JapaneseText(card.japanese, card.romaji),
+                    text = JapaneseText(
+                        kana = card.japanese,
+                        romaji = card.romaji,
+                        tts = cardTts,
+                        kanji = card.displayKanji,
+                        furigana = card.furigana,
+                    ),
                     speechReady = audio.enabled && audio.status == SpeechStatus.Ready,
                     isPlaying = audio.isSpeaking,
                     speak = { audio.speak(it) },
@@ -1025,8 +1094,15 @@ private fun AudioButton(
 ) {
     val ready = enabled && audio.enabled && audio.status == SpeechStatus.Ready
     val canPlay by rememberUpdatedState(ready)
+    val cardTts = card.furigana?.takeIf { it.isNotBlank() } ?: card.displayKanji
     SpeakerButton(
-        text = JapaneseText(card.japanese, card.romaji),
+        text = JapaneseText(
+            kana = card.japanese,
+            romaji = card.romaji,
+            tts = cardTts,
+            kanji = card.displayKanji,
+            furigana = card.furigana,
+        ),
         speechReady = ready,
         isPlaying = audio.isSpeaking,
         speak = {
@@ -1053,8 +1129,13 @@ private fun StudyCard(
     isCurrent: Boolean = true,
     isExiting: Boolean = false,
     rating: CardRating? = null,
+    revealFuriganaOnTap: Boolean = false,
+    kanjiLookupOnHold: Boolean = true,
+    onLookupKanji: (String) -> Unit = {},
     flip: () -> Unit,
 ) {
+    var furiganaRevealed by rememberSaveable(card.id) { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
     val backVisible = rotation > 90f
     val japaneseVisible = state.japaneseFirst != backVisible
     val shape = RoundedCornerShape(16.dp)
@@ -1183,7 +1264,25 @@ private fun StudyCard(
                             kanji = card.displayKanji,
                             kana = card.japanese,
                             romaji = card.romaji,
-                            wordModifier = Modifier.testTag("card_word"),
+                            wordModifier = Modifier
+                                .testTag("card_word")
+                                .pointerInput(card.id, revealFuriganaOnTap, kanjiLookupOnHold) {
+                                    detectTapGestures(
+                                        onLongPress = {
+                                            if (kanjiLookupOnHold) {
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                onLookupKanji(card.displayKanji.ifBlank { card.japanese })
+                                            }
+                                        },
+                                        onTap = {
+                                            if (revealFuriganaOnTap) {
+                                                furiganaRevealed = !furiganaRevealed
+                                            } else {
+                                                if (!isFlipping && !isExiting) flip()
+                                            }
+                                        },
+                                    )
+                                },
                             romajiModifier = Modifier.testTag("card_romaji"),
                             showRomaji = state.showRomaji,
                             fontSize = computedFontSize,
@@ -1191,6 +1290,8 @@ private fun StudyCard(
                             furiganaColor = CardsColors.Blue,
                             romajiColor = CardsColors.Muted,
                             horizontalAlignment = Alignment.CenterHorizontally,
+                            revealFuriganaOnTap = revealFuriganaOnTap,
+                            furiganaRevealed = furiganaRevealed,
                         )
                     } else {
                         Text(

@@ -18,6 +18,9 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,6 +38,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import com.koto.app.BuildConfig
+import com.koto.app.feature.translator.data.DeepLApiClient
+import com.koto.app.feature.translator.data.NetworkMonitor
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -82,6 +88,7 @@ import com.koto.app.ui.theme.KotoColors
 private enum class CreateDeckStage {
     Overview,
     CardDetail,
+    CardContext,
 }
 
 val CANON_DECK_ICONS = listOf(
@@ -101,6 +108,7 @@ fun CreateDeckScreen(
     deckIdToEdit: String? = null,
     onBack: () -> Unit,
     onDeckSaved: (FlashcardDeck) -> Unit,
+    onDeleteDeck: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val customDeckStore = remember(context) { CustomDeckStore(context) }
@@ -126,6 +134,16 @@ fun CreateDeckScreen(
     var editingCardId by rememberSaveable { mutableStateOf<String?>(null) }
     var editorKana by rememberSaveable { mutableStateOf("") }
     var editorEnglish by rememberSaveable { mutableStateOf("") }
+    var editorNotes by rememberSaveable { mutableStateOf("") }
+    var editorEx1Jp by rememberSaveable { mutableStateOf("") }
+    var editorEx1Romaji by rememberSaveable { mutableStateOf("") }
+    var editorEx1En by rememberSaveable { mutableStateOf("") }
+    var editorEx2Jp by rememberSaveable { mutableStateOf("") }
+    var editorEx2Romaji by rememberSaveable { mutableStateOf("") }
+    var editorEx2En by rememberSaveable { mutableStateOf("") }
+    var editorEx3Jp by rememberSaveable { mutableStateOf("") }
+    var editorEx3Romaji by rememberSaveable { mutableStateOf("") }
+    var editorEx3En by rememberSaveable { mutableStateOf("") }
 
     // Quick add buffer
     var quickKana by rememberSaveable { mutableStateOf("") }
@@ -136,7 +154,9 @@ fun CreateDeckScreen(
     var cardIdToDelete by rememberSaveable { mutableStateOf<String?>(null) }
 
     val handleBackPress = {
-        if (stage == CreateDeckStage.CardDetail) {
+        if (stage == CreateDeckStage.CardContext) {
+            stage = CreateDeckStage.CardDetail
+        } else if (stage == CreateDeckStage.CardDetail) {
             stage = CreateDeckStage.Overview
         } else {
             val hasChanges = deckTitle.isNotBlank() || cardsList.isNotEmpty() || quickKana.isNotBlank() || quickEnglish.isNotBlank()
@@ -163,7 +183,7 @@ fun CreateDeckScreen(
             targetState = stage,
             modifier = Modifier.fillMaxSize(),
             transitionSpec = {
-                val forward = targetState == CreateDeckStage.CardDetail
+                val forward = targetState.ordinal > initialState.ordinal
                 val direction = if (forward) layoutSign else -layoutSign
                 (slideInHorizontally(
                     animationSpec = tween(300, easing = FastOutSlowInEasing),
@@ -211,6 +231,16 @@ fun CreateDeckScreen(
                             editingCardId = card.id
                             editorKana = card.japanese
                             editorEnglish = card.english
+                            editorNotes = card.notes ?: ""
+                            editorEx1Jp = card.example1Kana ?: ""
+                            editorEx1Romaji = card.example1Romaji ?: ""
+                            editorEx1En = card.example1English ?: ""
+                            editorEx2Jp = card.example2Kana ?: ""
+                            editorEx2Romaji = card.example2Romaji ?: ""
+                            editorEx2En = card.example2English ?: ""
+                            editorEx3Jp = card.example3Kana ?: ""
+                            editorEx3Romaji = card.example3Romaji ?: ""
+                            editorEx3En = card.example3English ?: ""
                             stage = CreateDeckStage.CardDetail
                         },
                         onDeleteCard = { cardId ->
@@ -223,6 +253,16 @@ fun CreateDeckScreen(
                             editingCardId = null
                             editorKana = ""
                             editorEnglish = ""
+                            editorNotes = ""
+                            editorEx1Jp = ""
+                            editorEx1Romaji = ""
+                            editorEx1En = ""
+                            editorEx2Jp = ""
+                            editorEx2Romaji = ""
+                            editorEx2En = ""
+                            editorEx3Jp = ""
+                            editorEx3Romaji = ""
+                            editorEx3En = ""
                             stage = CreateDeckStage.CardDetail
                         },
                         onBack = handleBackPress,
@@ -238,6 +278,12 @@ fun CreateDeckScreen(
                                 onDeckSaved(savedDeck)
                             }
                         },
+                        onDeleteDeck = if (!deckIdToEdit.isNullOrBlank() && onDeleteDeck != null) {
+                            {
+                                customDeckStore.deleteDeck(deckIdToEdit)
+                                onDeleteDeck(deckIdToEdit)
+                            }
+                        } else null,
                         isEditing = !deckIdToEdit.isNullOrBlank(),
                     )
                 }
@@ -247,6 +293,7 @@ fun CreateDeckScreen(
                         onKanaChange = { editorKana = it },
                         english = editorEnglish,
                         onEnglishChange = { editorEnglish = it },
+                        onOpenContext = { stage = CreateDeckStage.CardContext },
                         onBack = { stage = CreateDeckStage.Overview },
                         onSave = {
                             val jp = editorKana.trim()
@@ -256,8 +303,25 @@ fun CreateDeckScreen(
                                 val updatedCard = CustomCardItem(
                                     id = editingCardId ?: "card_${System.currentTimeMillis()}_${cardsList.size}",
                                     japanese = jp,
+                                    furigana = "",
                                     romaji = rom,
                                     english = en,
+                                    notes = editorNotes.trim(),
+                                    exampleKana = editorEx1Jp.trim(),
+                                    exampleRomaji = editorEx1Romaji.trim().ifEmpty {
+                                        editorEx1Jp.trim().takeIf { it.isNotEmpty() }?.let { KanaConverter.toRomaji(KanaConverter.toPureKana(it)) } ?: ""
+                                    },
+                                    exampleEnglish = editorEx1En.trim(),
+                                    example2Kana = editorEx2Jp.trim(),
+                                    example2Romaji = editorEx2Romaji.trim().ifEmpty {
+                                        editorEx2Jp.trim().takeIf { it.isNotEmpty() }?.let { KanaConverter.toRomaji(KanaConverter.toPureKana(it)) } ?: ""
+                                    },
+                                    example2English = editorEx2En.trim(),
+                                    example3Kana = editorEx3Jp.trim(),
+                                    example3Romaji = editorEx3Romaji.trim().ifEmpty {
+                                        editorEx3Jp.trim().takeIf { it.isNotEmpty() }?.let { KanaConverter.toRomaji(KanaConverter.toPureKana(it)) } ?: ""
+                                    },
+                                    example3English = editorEx3En.trim(),
                                 )
                                 cardsList = if (editingCardId != null) {
                                     cardsList.map { if (it.id == editingCardId) updatedCard else it }
@@ -267,6 +331,31 @@ fun CreateDeckScreen(
                             }
                             stage = CreateDeckStage.Overview
                         },
+                    )
+                }
+                CreateDeckStage.CardContext -> {
+                    CardContextEditorView(
+                        notes = editorNotes,
+                        onNotesChange = { editorNotes = it },
+                        ex1Jp = editorEx1Jp,
+                        onEx1JpChange = { editorEx1Jp = it },
+                        ex1Romaji = editorEx1Romaji,
+                        onEx1RomajiChange = { editorEx1Romaji = it },
+                        ex1En = editorEx1En,
+                        onEx1EnChange = { editorEx1En = it },
+                        ex2Jp = editorEx2Jp,
+                        onEx2JpChange = { editorEx2Jp = it },
+                        ex2Romaji = editorEx2Romaji,
+                        onEx2RomajiChange = { editorEx2Romaji = it },
+                        ex2En = editorEx2En,
+                        onEx2EnChange = { editorEx2En = it },
+                        ex3Jp = editorEx3Jp,
+                        onEx3JpChange = { editorEx3Jp = it },
+                        ex3Romaji = editorEx3Romaji,
+                        onEx3RomajiChange = { editorEx3Romaji = it },
+                        ex3En = editorEx3En,
+                        onEx3EnChange = { editorEx3En = it },
+                        onBack = { stage = CreateDeckStage.CardDetail },
                     )
                 }
             }
@@ -413,6 +502,7 @@ private fun CreateDeckOverviewView(
     onAddNewCard: () -> Unit = {},
     onBack: () -> Unit,
     onSaveDeck: () -> Unit,
+    onDeleteDeck: (() -> Unit)? = null,
     isEditing: Boolean = false,
 ) {
     val context = LocalContext.current
@@ -421,6 +511,9 @@ private fun CreateDeckOverviewView(
 
     var importState by remember { mutableStateOf<ImportState>(ImportState.Idle) }
     var showTemplateDialog by rememberSaveable { mutableStateOf(false) }
+    var showImportDialog by rememberSaveable { mutableStateOf(false) }
+    var showExportDialog by rememberSaveable { mutableStateOf(false) }
+    var showDeleteDeckDialog by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -478,8 +571,7 @@ private fun CreateDeckOverviewView(
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .navigationBarsPadding(),
+            .background(Color.White),
     ) {
         // Canon Top App Bar
         Box(
@@ -500,43 +592,30 @@ private fun CreateDeckOverviewView(
                 }
                 .padding(horizontal = 16.dp),
         ) {
-            // Left: Back button
-            TactileButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .size(48.dp, 52.dp)
-                    .align(Alignment.CenterStart)
-                    .testTag("create_deck_back")
-                    .testTag("cards_detail_back"),
-                tone = TactileTone.Quiet,
-                description = "Back",
-                padding = PaddingValues(12.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_back),
-                    contentDescription = null,
-                    tint = KotoColors.Navy,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-
-            // Center: Screen Title
-            Text(
-                text = if (isEditing) "Edit Deck" else "Create Deck",
-                color = CardsColors.Ink,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center),
-            )
-
-            // Right: Actions Row containing [ 📄↓ ], [ + Add Card ], and [ 📥 Import ]
+            // Left: Back button & Template Download button (moved to the left)
             Row(
-                modifier = Modifier.align(Alignment.CenterEnd),
+                modifier = Modifier.align(Alignment.CenterStart),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Outlined document-download icon button [ 📄↓ ]
+                TactileButton(
+                    onClick = onBack,
+                    modifier = Modifier
+                        .size(44.dp, 48.dp)
+                        .testTag("create_deck_back")
+                        .testTag("cards_detail_back"),
+                    tone = TactileTone.Quiet,
+                    description = "Back",
+                    padding = PaddingValues(10.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_back),
+                        contentDescription = null,
+                        tint = KotoColors.Navy,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+
                 TactileButton(
                     onClick = { showTemplateDialog = true },
                     modifier = Modifier
@@ -553,37 +632,47 @@ private fun CreateDeckOverviewView(
                         modifier = Modifier.size(22.dp),
                     )
                 }
+            }
 
-                // [ + Add Card ] button
+            // Center: Screen Title
+            Text(
+                text = if (isEditing) "Edit Deck" else "Create Deck",
+                color = CardsColors.Ink,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center),
+            )
+
+            // Right: Export & Import Buttons
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Export Button (replaces +)
                 TactileButton(
-                    onClick = onAddNewCard,
+                    onClick = { showExportDialog = true },
                     modifier = Modifier
                         .size(44.dp, 48.dp)
+                        .testTag("create_deck_export_button")
+                        .testTag("btn_export_deck")
                         .testTag("create_deck_add_card_button"),
                     tone = TactileTone.Quiet,
-                    description = "Add Card",
+                    description = "Export Deck",
                     padding = PaddingValues(10.dp),
                 ) {
                     Icon(
-                        painter = painterResource(R.drawable.ic_plus),
-                        contentDescription = "Add Card",
+                        painter = painterResource(R.drawable.ic_export),
+                        contentDescription = "Export Deck",
                         tint = KotoColors.Navy,
                         modifier = Modifier.size(22.dp),
                     )
                 }
 
-                // Import Deck Icon Button
+                // Import Button (triggers ImportOptionsDialog)
                 TactileButton(
-                    onClick = {
-                        openDocumentLauncher.launch(
-                            arrayOf(
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                "text/csv",
-                                "text/comma-separated-values",
-                                "*/*",
-                            ),
-                        )
-                    },
+                    onClick = { showImportDialog = true },
                     modifier = Modifier
                         .size(44.dp, 48.dp)
                         .testTag("create_deck_import_button"),
@@ -823,7 +912,7 @@ private fun CreateDeckOverviewView(
             }
         }
 
-        // Sticky Bottom Bar: Full-width 3D Save Deck Button (Zero jumping, glued spatial layout)
+        // Sticky Bottom Bar: Fixed at the very bottom (Zero jumping, glued spatial layout)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -831,20 +920,53 @@ private fun CreateDeckOverviewView(
                 .drawBehind {
                     drawLine(CardsColors.Edge, Offset(0f, 0f), Offset(size.width, 0f), 1f)
                 }
+                .navigationBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {
-            CardsButton(
-                label = "Save Deck",
-                onClick = onSaveDeck,
-                enabled = canSave,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("create_deck_save"),
-                background = if (canSave) CardsColors.Blue else CardsColors.Ice,
-                ink = if (canSave) Color.White else CardsColors.Muted,
-                depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
-            )
+            if (isEditing && onDeleteDeck != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CardsButton(
+                        label = "Delete Deck",
+                        onClick = { showDeleteDeckDialog = true },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .testTag("btn_delete_deck"),
+                        background = CardsColors.Surface,
+                        ink = CardsColors.Coral,
+                        depth = CardsColors.Edge,
+                    )
+                    CardsButton(
+                        label = "Save Deck",
+                        onClick = onSaveDeck,
+                        enabled = canSave,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp)
+                            .testTag("create_deck_save"),
+                        background = if (canSave) CardsColors.Blue else CardsColors.Ice,
+                        ink = if (canSave) Color.White else CardsColors.Muted,
+                        depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
+                    )
+                }
+            } else {
+                CardsButton(
+                    label = "Save Deck",
+                    onClick = onSaveDeck,
+                    enabled = canSave,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .testTag("create_deck_save"),
+                    background = if (canSave) CardsColors.Blue else CardsColors.Ice,
+                    ink = if (canSave) Color.White else CardsColors.Muted,
+                    depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
+                )
+            }
         }
 
         // Snackbar Host for import notifications
@@ -863,6 +985,135 @@ private fun CreateDeckOverviewView(
     if (showTemplateDialog) {
         TemplateDownloadDialog(
             onDismiss = { showTemplateDialog = false },
+        )
+    }
+
+    // Import Options Dialog (guide & rules)
+    if (showImportDialog) {
+        ImportOptionsDialog(
+            onSelectFile = {
+                showImportDialog = false
+                openDocumentLauncher.launch(
+                    arrayOf(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "text/csv",
+                        "text/comma-separated-values",
+                        "*/*",
+                    ),
+                )
+            },
+            onDownloadTemplate = {
+                showImportDialog = false
+                downloadTemplateFile(context)
+            },
+            onDismiss = { showImportDialog = false },
+        )
+    }
+
+    // Export Deck Dialog (options & rules)
+    if (showExportDialog) {
+        ExportDeckDialog(
+            deckTitle = deckTitle.ifBlank { "Untitled Deck" },
+            cardCount = cards.size,
+            onDismiss = { showExportDialog = false },
+            onExport = { format ->
+                showExportDialog = false
+                if (cards.isEmpty()) {
+                    Toast.makeText(context, "Add at least 1 card to export", Toast.LENGTH_SHORT).show()
+                } else {
+                    coroutineScope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            val dateStr = SimpleDateFormat("yyyyMMdd", Locale.US).format(Date())
+                            val cleanName = (deckTitle.ifBlank { "Deck" }).replace("[^a-zA-Z0-9_-]".toRegex(), "_").ifEmpty { "Deck" }
+                            val filename = "${cleanName}_KotobaExport_${dateStr}.${format.extension}"
+                            val bytes = SpreadsheetEngine.exportDeck(deckTitle.ifBlank { "Deck" }, cards, format)
+                            val uri = SpreadsheetEngine.saveToDownloads(context, filename, format.mimeType, bytes)
+                            if (uri != null) {
+                                SpreadsheetEngine.ExportResult(
+                                    uri = uri,
+                                    filename = filename,
+                                    mimeType = format.mimeType,
+                                    deckTitle = deckTitle,
+                                    cardCount = cards.size,
+                                )
+                            } else null
+                        }
+                        if (result != null) {
+                            val action = snackbarHostState.showSnackbar(
+                                message = "Exported ${result.filename} successfully.",
+                                actionLabel = "Share",
+                                duration = androidx.compose.material3.SnackbarDuration.Long,
+                            )
+                            Toast.makeText(context, "Exported ${result.filename} to Downloads", Toast.LENGTH_SHORT).show()
+                            if (action == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                SpreadsheetEngine.shareExportedFile(context, result.uri, result.mimeType, result.deckTitle)
+                            }
+                        } else {
+                            snackbarHostState.showSnackbar("Failed to export deck.")
+                        }
+                    }
+                }
+            },
+        )
+    }
+
+    // Delete Deck Confirmation Dialog
+    if (showDeleteDeckDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDeckDialog = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(14.dp),
+            title = {
+                Text(
+                    "Delete Deck?",
+                    color = CardsColors.Ink,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            text = {
+                Text(
+                    "Are you sure you want to delete \"${deckTitle.ifBlank { "this deck" }}\"? All cards in this deck will be permanently removed.",
+                    color = CardsColors.Muted,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    CardsButton(
+                        label = "Cancel",
+                        onClick = { showDeleteDeckDialog = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("btn_cancel_delete_deck"),
+                        background = CardsColors.Surface,
+                        ink = CardsColors.Ink,
+                        depth = CardsColors.Edge,
+                    )
+                    CardsButton(
+                        label = "Delete",
+                        onClick = {
+                            showDeleteDeckDialog = false
+                            onDeleteDeck?.invoke()
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("btn_confirm_delete_deck"),
+                        background = CardsColors.Coral,
+                        ink = Color.White,
+                        depth = Color(0xFF8B2B2B),
+                    )
+                }
+            },
+            dismissButton = null,
         )
     }
 
@@ -922,12 +1173,12 @@ private fun CardEditorDetailView(
     onKanaChange: (String) -> Unit,
     english: String,
     onEnglishChange: (String) -> Unit,
+    onOpenContext: () -> Unit,
     onBack: () -> Unit,
     onSave: () -> Unit,
 ) {
     val canSave = kana.trim().isNotBlank() && english.trim().isNotBlank()
     val context = LocalContext.current
-    val translationEngine = remember(context) { HybridTranslationEngine.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
     var isTranslatingEditor by remember { mutableStateOf(false) }
     val canTranslateEditor = kana.isNotBlank() || english.isNotBlank()
@@ -992,6 +1243,7 @@ private fun CardEditorDetailView(
             Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
@@ -1044,58 +1296,70 @@ private fun CardEditorDetailView(
                 )
             }
 
-            // Action Buttons: Save & Translate
+            // Action Buttons: Add Context & Translate
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                // Save Button (Saves and navigates back to deck overview)
+                // Add Context Button (matching white outlined style)
                 CardsButton(
-                    label = "Save",
-                    onClick = onSave,
-                    enabled = canSave,
+                    label = "Add Context",
+                    onClick = onOpenContext,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("btn_edit_card_save"),
-                    background = if (canSave) CardsColors.Blue else CardsColors.Surface,
-                    ink = if (canSave) Color.White else CardsColors.Muted,
-                    depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
+                        .testTag("btn_edit_card_add_context"),
+                    background = CardsColors.Surface,
+                    ink = CardsColors.Ink,
+                    depth = CardsColors.Edge,
                 )
 
-                // Translate Button
+                // Translate Button (DeepL Only, Toast when offline)
                 CardsButton(
                     label = if (isTranslatingEditor) "Translating..." else "Translate",
                     onClick = {
                         if (!isTranslatingEditor && canTranslateEditor) {
                             coroutineScope.launch {
+                                if (!NetworkMonitor.isOnline(context)) {
+                                    Toast.makeText(
+                                        context,
+                                        "Internet connection required for high-accuracy translation.",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                    return@launch
+                                }
                                 isTranslatingEditor = true
                                 try {
+                                    val apiKey = BuildConfig.DEEPL_API_KEY.trim()
+                                    val deepLApiClient = DeepLApiClient()
                                     if (kana.isNotBlank() && english.isBlank()) {
-                                        val res = translationEngine.translate(
+                                        val res = deepLApiClient.translate(
                                             kana,
-                                            TranslationLanguage.Japanese,
-                                            TranslationLanguage.English,
+                                            com.koto.app.feature.translator.model.TranslationLanguage.Japanese,
+                                            com.koto.app.feature.translator.model.TranslationLanguage.English,
+                                            apiKey,
                                         )
-                                        if (res.translatedText.isNotBlank()) {
-                                            onEnglishChange(res.translatedText)
+                                        if (!res.isNullOrBlank()) {
+                                            onEnglishChange(res.trim().replaceFirstChar { it.uppercase() })
                                         }
                                     } else if (english.isNotBlank() && kana.isBlank()) {
-                                        val res = translationEngine.translate(
+                                        val res = deepLApiClient.translate(
                                             english,
-                                            TranslationLanguage.English,
-                                            TranslationLanguage.Japanese,
+                                            com.koto.app.feature.translator.model.TranslationLanguage.English,
+                                            com.koto.app.feature.translator.model.TranslationLanguage.Japanese,
+                                            apiKey,
                                         )
-                                        if (res.translatedText.isNotBlank()) {
-                                            onKanaChange(res.translatedText)
+                                        if (!res.isNullOrBlank()) {
+                                            onKanaChange(res.trim())
                                         }
                                     } else if (kana.isNotBlank()) {
-                                        val res = translationEngine.translate(
+                                        val res = deepLApiClient.translate(
                                             kana,
-                                            TranslationLanguage.Japanese,
-                                            TranslationLanguage.English,
+                                            com.koto.app.feature.translator.model.TranslationLanguage.Japanese,
+                                            com.koto.app.feature.translator.model.TranslationLanguage.English,
+                                            apiKey,
                                         )
-                                        if (res.translatedText.isNotBlank()) {
-                                            onEnglishChange(res.translatedText)
+                                        if (!res.isNullOrBlank()) {
+                                            onEnglishChange(res.trim().replaceFirstChar { it.uppercase() })
                                         }
                                     }
                                 } catch (_: Throwable) {
@@ -1114,6 +1378,276 @@ private fun CardEditorDetailView(
                     depth = CardsColors.Edge,
                 )
             }
+        }
+
+        // Bottom Full-Width Blue Action Bar: Save
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(CardsColors.Surface)
+                .drawBehind {
+                    drawLine(CardsColors.Edge, Offset(0f, 0f), Offset(size.width, 0f), 1f)
+                }
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+        ) {
+            CardsButton(
+                label = "Save",
+                onClick = onSave,
+                enabled = canSave,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("btn_edit_card_save"),
+                background = if (canSave) CardsColors.Blue else CardsColors.Ice,
+                ink = if (canSave) Color.White else CardsColors.Muted,
+                depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
+            )
+        }
+    }
+}
+
+/**
+ * Screen 3: Dedicated Context & Example Sentences Editor (Specification 3.2 Task 6.4)
+ * Allows specifying Nuance / Context notes and up to 3 rich example sentences.
+ */
+@Composable
+private fun CardContextEditorView(
+    notes: String,
+    onNotesChange: (String) -> Unit,
+    ex1Jp: String,
+    onEx1JpChange: (String) -> Unit,
+    ex1Romaji: String,
+    onEx1RomajiChange: (String) -> Unit,
+    ex1En: String,
+    onEx1EnChange: (String) -> Unit,
+    ex2Jp: String,
+    onEx2JpChange: (String) -> Unit,
+    ex2Romaji: String,
+    onEx2RomajiChange: (String) -> Unit,
+    ex2En: String,
+    onEx2EnChange: (String) -> Unit,
+    ex3Jp: String,
+    onEx3JpChange: (String) -> Unit,
+    ex3Romaji: String,
+    onEx3RomajiChange: (String) -> Unit,
+    ex3En: String,
+    onEx3EnChange: (String) -> Unit,
+    onBack: () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(Color.White)
+            .navigationBarsPadding(),
+    ) {
+        // Canon Top App Bar
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .zIndex(1f)
+                .shadow(
+                    elevation = 4.dp,
+                    shape = androidx.compose.ui.graphics.RectangleShape,
+                    clip = false,
+                    ambientColor = Color(0x201A3761),
+                    spotColor = Color(0x301A3761),
+                )
+                .background(Color.White)
+                .heightIn(min = 64.dp)
+                .drawBehind {
+                    drawLine(KotoColors.Hairline, Offset(0f, size.height), Offset(size.width, size.height), 1f)
+                }
+                .padding(horizontal = 16.dp),
+        ) {
+            // Left: Back button
+            TactileButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(48.dp, 52.dp)
+                    .align(Alignment.CenterStart)
+                    .testTag("card_context_back"),
+                tone = TactileTone.Quiet,
+                description = "Back to card editor",
+                padding = PaddingValues(12.dp),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_back),
+                    contentDescription = null,
+                    tint = KotoColors.Navy,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+
+            // Center: Screen Title
+            Text(
+                text = "Add Context",
+                color = CardsColors.Ink,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+
+        // Form Body
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            // General Context / Nuance Notes
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "GENERAL CONTEXT / NUANCE",
+                    color = CardsColors.Ink,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                )
+                CleanInputBox(
+                    value = notes,
+                    onValueChange = onNotesChange,
+                    placeholder = "Usage notes, cultural context, tone nuance...",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_context_notes"),
+                    singleLine = false,
+                    minLines = 3,
+                )
+            }
+
+            // Example Sentence 1
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "EXAMPLE SENTENCE 1",
+                    color = CardsColors.Ink,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                )
+                CleanInputBox(
+                    value = ex1Jp,
+                    onValueChange = onEx1JpChange,
+                    placeholder = "Japanese / Kana",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex1_jp"),
+                )
+                CleanInputBox(
+                    value = ex1Romaji,
+                    onValueChange = onEx1RomajiChange,
+                    placeholder = "Romaji (optional)",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex1_romaji"),
+                )
+                CleanInputBox(
+                    value = ex1En,
+                    onValueChange = onEx1EnChange,
+                    placeholder = "English translation",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex1_en"),
+                )
+            }
+
+            // Example Sentence 2
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "EXAMPLE SENTENCE 2",
+                    color = CardsColors.Ink,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                )
+                CleanInputBox(
+                    value = ex2Jp,
+                    onValueChange = onEx2JpChange,
+                    placeholder = "Japanese / Kana",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex2_jp"),
+                )
+                CleanInputBox(
+                    value = ex2Romaji,
+                    onValueChange = onEx2RomajiChange,
+                    placeholder = "Romaji (optional)",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex2_romaji"),
+                )
+                CleanInputBox(
+                    value = ex2En,
+                    onValueChange = onEx2EnChange,
+                    placeholder = "English translation",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex2_en"),
+                )
+            }
+
+            // Example Sentence 3
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "EXAMPLE SENTENCE 3",
+                    color = CardsColors.Ink,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                )
+                CleanInputBox(
+                    value = ex3Jp,
+                    onValueChange = onEx3JpChange,
+                    placeholder = "Japanese / Kana",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex3_jp"),
+                )
+                CleanInputBox(
+                    value = ex3Romaji,
+                    onValueChange = onEx3RomajiChange,
+                    placeholder = "Romaji (optional)",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex3_romaji"),
+                )
+                CleanInputBox(
+                    value = ex3En,
+                    onValueChange = onEx3EnChange,
+                    placeholder = "English translation",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("input_ex3_en"),
+                )
+            }
+        }
+
+        // Bottom Full-Width Blue Action Bar: Done
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(CardsColors.Surface)
+                .drawBehind {
+                    drawLine(CardsColors.Edge, Offset(0f, 0f), Offset(size.width, 0f), 1f)
+                }
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+        ) {
+            CardsButton(
+                label = "Done",
+                onClick = onBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("btn_card_context_done"),
+                background = CardsColors.Blue,
+                ink = Color.White,
+                depth = CardsColors.BlueDepth,
+            )
         }
     }
 }

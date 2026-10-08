@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.unit.dp
+import com.koto.app.feature.cards.data.CustomCardItem
 import com.koto.app.feature.cards.data.CustomDeckStore
 import com.koto.app.ui.screens.cards.loadFlashcardDecks
 import org.junit.Assert.assertEquals
@@ -486,48 +487,58 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("quit_session").performClick()
     }
 
-    @Test fun quickTranslationsDeckShowsInfoAndCanBeDeleted() {
+    @Test fun customDeckShowsDeleteDialogAndCanBeDeleted() {
         val context = compose.activity
-        val store = com.koto.app.feature.translator.data.TranslatorCardStore(context)
-        store.toggleStar(
-            sourceText = "spoon",
-            targetText = "スプーン",
-            targetRomaji = "supuun",
-            sourceLang = com.koto.app.feature.translator.model.TranslationLanguage.English,
-            targetLang = com.koto.app.feature.translator.model.TranslationLanguage.Japanese,
+        val customStore = CustomDeckStore(context)
+        customStore.saveDeck(
+            deckId = null,
+            title = "Test Deck",
+            cards = listOf(
+                CustomCardItem(
+                    id = "test_card_1",
+                    japanese = "スプーン",
+                    romaji = "supuun",
+                    english = "spoon",
+                )
+            ),
         )
 
         compose.onNodeWithTag("tab_cards").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Quick Translations").assertIsDisplayed()
-        compose.onNodeWithText("Quick Translations").performClick()
+        compose.onNodeWithText("Test Deck").assertIsDisplayed()
+        compose.onNodeWithText("Test Deck").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Auto-synced from your starred translations in Learn → Translate").assertIsDisplayed()
         compose.onNodeWithTag("btn_delete_deck").performClick()
-        compose.onNodeWithText("Delete Quick Translations?").assertIsDisplayed()
+        compose.onNodeWithText("Delete Deck?").assertIsDisplayed()
         compose.onNodeWithTag("btn_confirm_delete_deck").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Quick Translations").assertDoesNotExist()
+        compose.onNodeWithText("Test Deck").assertDoesNotExist()
     }
 
     @Test fun deleteDeckDialogCancelLeavesDeckIntact() {
         val context = compose.activity
-        com.koto.app.feature.translator.data.TranslatorCardStore(context).toggleStar(
-            sourceText = "fork",
-            targetText = "フォーク",
-            targetRomaji = "fooku",
-            sourceLang = com.koto.app.feature.translator.model.TranslationLanguage.English,
-            targetLang = com.koto.app.feature.translator.model.TranslationLanguage.Japanese,
+        val customStore = CustomDeckStore(context)
+        customStore.saveDeck(
+            deckId = null,
+            title = "Fork Deck",
+            cards = listOf(
+                CustomCardItem(
+                    id = "test_card_2",
+                    japanese = "フォーク",
+                    romaji = "fooku",
+                    english = "fork",
+                )
+            ),
         )
 
         compose.onNodeWithTag("tab_cards").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Quick Translations").performClick()
+        compose.onNodeWithText("Fork Deck").performClick()
         compose.waitForIdle()
 
         compose.onNodeWithTag("btn_delete_deck").performClick()
         compose.waitForIdle()
-        compose.onNodeWithText("Delete Quick Translations?").assertIsDisplayed()
+        compose.onNodeWithText("Delete Deck?").assertIsDisplayed()
         compose.onNodeWithTag("btn_cancel_delete_deck").assertIsDisplayed()
         compose.onNodeWithTag("btn_confirm_delete_deck").assertIsDisplayed()
 
@@ -535,8 +546,8 @@ class FlashcardFlowTest {
         compose.onNodeWithTag("btn_cancel_delete_deck").performClick()
         compose.waitForIdle()
 
-        compose.onNodeWithText("Delete Quick Translations?").assertDoesNotExist()
-        compose.onNodeWithText("Quick Translations").assertIsDisplayed()
+        compose.onNodeWithText("Delete Deck?").assertDoesNotExist()
+        compose.onNodeWithText("Fork Deck").assertIsDisplayed()
     }
 
     @Test fun editCustomDeckDoesNotShowIconSelector() {
