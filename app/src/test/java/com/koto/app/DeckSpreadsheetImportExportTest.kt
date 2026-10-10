@@ -107,6 +107,36 @@ class DeckSpreadsheetImportExportTest {
     }
 
     @Test
+    fun importOptionsDialogOffersTemplateDownloadAndGuide() {
+        var fileSelected = false
+        var templateDownloaded = false
+        var dismissed = false
+
+        compose.setContent {
+            ImportOptionsDialog(
+                onSelectFile = { fileSelected = true },
+                onDownloadTemplate = { templateDownloaded = true },
+                onDismiss = { dismissed = true },
+            )
+        }
+
+        compose.onNodeWithTag("import_deck_dialog").assertIsDisplayed()
+        compose.onNodeWithTag("btn_select_import_file").assertIsDisplayed()
+        compose.onNodeWithTag("btn_import_download_template").assertIsDisplayed().performClick()
+        assertTrue("Template download should be invoked", templateDownloaded)
+
+        // Guide ? button opens TemplateDownloadDialog
+        compose.onNodeWithTag("btn_template_guide").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("template_download_dialog").assertIsDisplayed()
+        compose.onNodeWithTag("btn_close_template_dialog").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("template_download_dialog").assertDoesNotExist()
+
+        // Close import dialog
+        compose.onNodeWithTag("btn_close_import_dialog").assertIsDisplayed().performClick()
+        assertTrue("Import dialog should be dismissed", dismissed)
+    }
+
+    @Test
     fun importSummaryDialogDisplaysCountsAndSkippedRows() {
         var imported = false
         var cancelled = false

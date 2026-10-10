@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.R
+import com.koto.app.feature.cards.srs.*
 import com.koto.app.ui.components.JapaneseWordDisplay
 import com.koto.app.ui.components.TactileButton
 import com.koto.app.ui.components.TactileTone
@@ -238,11 +239,9 @@ private fun DeckDetailContent(
             )
 
             // Custom Deck Management Actions (Edit Deck)
-            var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
             val isCustomDeck = deck.category == "Custom" || deck.id.startsWith("custom_")
-            val isQuickTranslations = deck.id == "deck_quick_translations"
-            if (isCustomDeck || isQuickTranslations) {
-                if (onEditDeck != null && isCustomDeck) {
+            if (isCustomDeck) {
+                if (onEditDeck != null) {
                     Spacer(Modifier.height(8.dp))
                     CardsButton(
                         label = "Edit Deck",
@@ -253,82 +252,6 @@ private fun DeckDetailContent(
                         depth = CardsColors.Edge,
                     )
                 }
-
-                // Delete Translations Deck for system auto-synced translations only
-                if (onDeleteDeck != null && isQuickTranslations) {
-                    Spacer(Modifier.height(8.dp))
-                    CardsButton(
-                        label = "Delete Translations Deck",
-                        onClick = { showDeleteDialog = true },
-                        modifier = Modifier.fillMaxWidth().testTag("btn_delete_deck"),
-                        background = CardsColors.Surface,
-                        ink = CardsColors.Coral,
-                        depth = CardsColors.Edge,
-                    )
-                }
-            }
-
-            if (showDeleteDialog) {
-                AlertDialog(
-                    onDismissRequest = { showDeleteDialog = false },
-                    title = {
-                        Text(
-                            text = if (isQuickTranslations) "Delete Quick Translations?" else "Delete Deck?",
-                            color = CardsColors.Ink,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = if (isQuickTranslations) {
-                                "Are you sure you want to delete this deck? All starred words saved from the Translate tool will be cleared."
-                            } else {
-                                "Are you sure you want to delete \"${deck.title}\"? All cards in this deck will be permanently removed."
-                            },
-                            color = CardsColors.Ink,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    },
-                    confirmButton = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            CardsButton(
-                                label = "Cancel",
-                                onClick = { showDeleteDialog = false },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("btn_cancel_delete_deck"),
-                                background = CardsColors.Surface,
-                                ink = CardsColors.Ink,
-                                depth = CardsColors.Edge,
-                            )
-                            CardsButton(
-                                label = "Delete",
-                                onClick = {
-                                    showDeleteDialog = false
-                                    onDeleteDeck?.invoke(deck.id)
-                                },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .testTag("btn_confirm_delete_deck"),
-                                background = CardsColors.Coral,
-                                depth = Color(0xFF833323),
-                                ink = Color.White,
-                            )
-                        }
-                    },
-                    dismissButton = null,
-                    containerColor = Color.White,
-                    shape = RoundedCornerShape(12.dp),
-                )
             }
 
             if (showExportDialog) {
@@ -373,15 +296,18 @@ private fun DeckDetailContent(
 
             Spacer(Modifier.weight(1f))
 
-            // Start Review Button: No white bottom bar container underneath, sits cleanly above navigation bar
+            // Start Review / Start Deck Button: No white bottom bar container underneath, sits cleanly above navigation bar
             Box(
                 Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .padding(top = 8.dp, bottom = 28.dp),
             ) {
+                val hasPlayHistory = state.practiced.containsKey(deck.id) ||
+                    deck.cards.any { state.ratings.containsKey(it.id) || state.srsRecords[it.id]?.lastRating != null }
+                val reviewButtonLabel = if (hasPlayHistory) "Start Review" else "Start Deck"
                 CardsButton(
-                    label = "START REVIEW",
+                    label = reviewButtonLabel,
                     onClick = { update(state.start(deck, state.sessionSize)) },
                     modifier = Modifier.fillMaxWidth().testTag("start_flashcards").testTag("start_review"),
                 )
@@ -510,23 +436,35 @@ private fun SessionSizeSelector(
 
 @Composable
 internal fun DeckStats(counts: DeckCounts) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(
-            Triple("DUE", counts.due, CardsColors.Blue),
-            Triple("WEAK", counts.weak, CardsColors.Coral),
-            Triple("MASTERED", counts.mastered, CardsColors.Green),
-        ).forEach { (label, count, ink) ->
-            Column(
-                Modifier.weight(1f).testTag("stat_${label.lowercase()}").semantics(mergeDescendants = true) {
-                    if (label == "DUE") {
-                        // Alias for legacy test tags checking stat_new
-                    }
-                },
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text("$count", color = ink, fontSize = 26.sp, fontWeight = FontWeight.Bold)
-                Text(label, color = CardsColors.Muted, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(
+                Triple("DUE", counts.due, CardsColors.Blue),
+                Triple("WEAK", counts.weak, CardsColors.Coral),
+                Triple("MASTERED", counts.mastered, CardsColors.Green),
+            ).forEach { (label, count, ink) ->
+                Column(
+                    Modifier.weight(1f).testTag("stat_${label.lowercase()}").semantics(mergeDescendants = true) {
+                        if (label == "DUE") {
+                            // Alias for legacy test tags checking stat_new
+                        }
+                    },
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("$count", color = ink, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    Text(label, color = CardsColors.Muted, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                }
             }
+        }
+        if (counts.due == 0) {
+            val nextReviewText = formatNextDueTime(counts.nextDueTime)
+            Text(
+                text = "All caught up · Next review $nextReviewText",
+                color = CardsColors.Green,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.testTag("all_caught_up_indicator"),
+            )
         }
     }
 }
@@ -549,3 +487,23 @@ private fun OptionButton(
 
 private fun practiceLabel(timestamp: Long?): String = if (timestamp == null) "Not studied yet" else
     "Last studied ${DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(timestamp))}"
+
+fun formatNextDueTime(nextDueTime: Long?, now: Long = System.currentTimeMillis()): String {
+    if (nextDueTime == null || nextDueTime <= 0L) return "none scheduled"
+    val diffMs = nextDueTime - now
+    if (diffMs <= 0L) return "due now"
+    val diffMins = diffMs / 60_000L
+    val diffHours = diffMs / 3_600_000L
+    val diffDays = diffMs / 86_400_000L
+
+    return when {
+        diffMins < 60 -> "in ${maxOf(1L, diffMins)}m"
+        diffHours < 24 -> "in ${diffHours}h"
+        diffDays == 1L -> "tomorrow"
+        diffDays < 7L -> "in ${diffDays}d"
+        else -> {
+            val sdf = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault())
+            sdf.format(Date(nextDueTime))
+        }
+    }
+}

@@ -3,7 +3,7 @@
     <!-- Match Color.kt: these are needed before Compose draws its first frame. -->
     <color name="koto_background">#FFFFFF</color>
     <color name="koto_accent">#1A3761</color>
-    <color name="koto_icon_background">#FDFDFD</color>
+    <color name="koto_icon_background">#FFFFFF</color>
 </resources>
 
 

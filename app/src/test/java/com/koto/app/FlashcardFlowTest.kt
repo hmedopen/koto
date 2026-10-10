@@ -23,6 +23,11 @@ import org.robolectric.annotation.GraphicsMode
 class FlashcardFlowTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
+    @org.junit.Before fun setUp() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        com.koto.app.feature.translator.data.db.KotoDatabase.getInstance(context).clearAllTables()
+    }
+
     @Test fun cardsHomeShowsDecksCatalogWithoutMixesBar() {
         compose.onNodeWithTag("tab_cards").performClick()
         compose.onNodeWithText("Small practice.\nLasting progress.").assertDoesNotExist()
@@ -418,7 +423,7 @@ class FlashcardFlowTest {
 
     @Test fun startButtonCompressesAndCancelledPressDoesNotStartSession() {
         openDeck()
-        val label = compose.onNodeWithText("START REVIEW", useUnmergedTree = true)
+        val label = compose.onNode(hasText("Start Deck") or hasText("Start Review") or hasText("START REVIEW"), useUnmergedTree = true)
         val restingTop = label.fetchSemanticsNode().boundsInRoot.top
         compose.mainClock.autoAdvance = false
         compose.onNodeWithTag("start_flashcards").performTouchInput { down(center) }
@@ -508,6 +513,8 @@ class FlashcardFlowTest {
         compose.onNodeWithText("Test Deck").assertIsDisplayed()
         compose.onNodeWithText("Test Deck").performClick()
         compose.waitForIdle()
+        compose.onNodeWithTag("edit_custom_deck").performClick()
+        compose.waitForIdle()
         compose.onNodeWithTag("btn_delete_deck").performClick()
         compose.onNodeWithText("Delete Deck?").assertIsDisplayed()
         compose.onNodeWithTag("btn_confirm_delete_deck").performClick()
@@ -536,6 +543,8 @@ class FlashcardFlowTest {
         compose.onNodeWithText("Fork Deck").performClick()
         compose.waitForIdle()
 
+        compose.onNodeWithTag("edit_custom_deck").performClick()
+        compose.waitForIdle()
         compose.onNodeWithTag("btn_delete_deck").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("Delete Deck?").assertIsDisplayed()
@@ -547,6 +556,8 @@ class FlashcardFlowTest {
         compose.waitForIdle()
 
         compose.onNodeWithText("Delete Deck?").assertDoesNotExist()
+        compose.onNodeWithTag("create_deck_back").performClick()
+        compose.waitForIdle()
         compose.onNodeWithText("Fork Deck").assertIsDisplayed()
     }
 

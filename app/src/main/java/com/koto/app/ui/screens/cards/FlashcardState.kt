@@ -1,31 +1,42 @@
 package com.koto.app.ui.screens.cards
 
 import androidx.compose.runtime.saveable.listSaver
+import com.koto.app.feature.cards.srs.FsrsCard
+import com.koto.app.feature.cards.srs.FsrsConfig
+import com.koto.app.feature.cards.srs.FsrsEngine
+import com.koto.app.feature.cards.srs.FsrsRating
+import com.koto.app.feature.cards.srs.FsrsState
 import kotlin.random.Random
 
-enum class CardRating { Again, Hard, Good, Easy }
-data class DeckCounts(val due: Int, val weak: Int, val mastered: Int) {
+data class DeckCounts(
+    val due: Int,
+    val weak: Int,
+    val mastered: Int,
+    val nextDueTime: Long? = null,
+) {
     val new: Int get() = due
 }
 
-/** Task-local and persistent study state with SRS scheduling and session size options. */
+/** Task-local and persistent study state with FSRS scheduling and session size options. */
 data class FlashcardState(
     val deckId: String? = null,
     val studying: Boolean = false,
     val showRomaji: Boolean = true,
-    val shuffle: Boolean = true,
+    val shuffle: Boolean = false,
     val japaneseFirst: Boolean = true,
     val order: List<String> = emptyList(),
     val index: Int = 0,
     val revealed: Boolean = false,
-    val ratings: Map<String, CardRating> = emptyMap(),
+    val ratings: Map<String, FsrsRating> = emptyMap(),
     val favorites: Set<String> = emptySet(),
     val pinned: Set<String> = emptySet(),
     val practiced: Map<String, Long> = emptyMap(),
     val hasBeenRevealed: Boolean = false,
     val sessionSize: Int? = null,
-    val srsRecords: Map<String, CardSrsRecord> = emptyMap(),
+    val srsRecords: Map<String, FsrsCard> = emptyMap(),
 ) {
+    val fsrsCards: Map<String, FsrsCard> get() = srsRecords
+
     val complete get() = studying && index >= order.size
     val currentId get() = order.getOrNull(index)
 
@@ -38,14 +49,22 @@ data class FlashcardState(
 
     fun start(deck: FlashcardDeck, random: Random = Random.Default): FlashcardState = start(deck, sessionSize, random)
 
-    fun start(deck: FlashcardDeck, size: Int?, random: Random = Random.Default): FlashcardState {
-        val allIds = deck.cards.map { it.id }
-        val orderedIds = if (shuffle) allIds.shuffled(random) else allIds
-        val sessionIds = if (size != null && size in 1 until orderedIds.size) {
-            orderedIds.take(size)
-        } else {
-            orderedIds
+    fun start(
+        deck: FlashcardDeck,
+        size: Int?,
+        random: Random = Random.Default,
+        now: Long = System.currentTimeMillis(),
+    ): FlashcardState {
+        val cards = deck.cards.map { card ->
+            fsrsCards[card.id] ?: FsrsCard.createNew(card.id, deck.id, now)
         }
+        val sessionIds = FsrsEngine.buildQueue(
+            cards = cards,
+            sessionSize = size,
+            now = now,
+            shuffle = shuffle,
+            random = random,
+        )
         return copy(
             deckId = deck.id,
             studying = true,
@@ -65,27 +84,28 @@ data class FlashcardState(
     // The expected ID also guards callbacks from a card that has already advanced.
     fun rate(
         expectedId: String,
-        rating: CardRating,
+        rating: FsrsRating,
         now: Long = System.currentTimeMillis(),
         requeueAgain: Boolean = false,
         requeueSoon: Boolean = false,
     ): FlashcardState {
         if (!studying || !hasBeenRevealed || currentId != expectedId || deckId == null) return this
-        val currentSrs = srsRecords[expectedId]
-        val nextSrs = FlashcardSrsScheduler.scheduleNext(currentSrs, expectedId, deckId, rating, now)
+        val currentCard = fsrsCards[expectedId] ?: FsrsCard.createNew(expectedId, deckId, now)
+        val (nextCard, _) = FsrsEngine.rateCard(currentCard, rating, now)
+        val isShortStep = (nextCard.due - now) <= FsrsConfig.SHORT_STEP_THRESHOLD_MS
         val nextOrder = when {
-            rating == CardRating.Again && requeueSoon -> {
+            rating == FsrsRating.Again && isShortStep && requeueAgain -> order + expectedId
+            rating == FsrsRating.Again && requeueSoon -> {
                 val list = order.toMutableList()
                 val targetIndex = (index + 4).coerceAtMost(list.size)
                 list.add(targetIndex, expectedId)
                 list
             }
-            rating == CardRating.Again && requeueAgain -> order + expectedId
             else -> order
         }
         return copy(
             ratings = ratings + (expectedId to rating),
-            srsRecords = srsRecords + (expectedId to nextSrs),
+            srsRecords = srsRecords + (expectedId to nextCard),
             order = nextOrder,
             index = index + 1,
             revealed = false,
@@ -97,17 +117,24 @@ data class FlashcardState(
     fun favorite(id: String) = copy(favorites = favorites.toggle(id))
     fun pin(id: String) = copy(pinned = pinned.toggle(id))
 
+    fun dueCount(deck: FlashcardDeck, now: Long = System.currentTimeMillis()): Int {
+        val cards = deck.cards.map { card ->
+            fsrsCards[card.id] ?: FsrsCard.createNew(card.id, deck.id, now)
+        }
+        return FsrsEngine.getDeckStats(cards, now).due
+    }
+
     fun counts(deck: FlashcardDeck, now: Long = System.currentTimeMillis()): DeckCounts {
-        val weak = deck.cards.count {
-            ratings[it.id] == CardRating.Again || ratings[it.id] == CardRating.Hard ||
-                (srsRecords[it.id]?.lastRating == CardRating.Hard && srsRecords[it.id]?.isMastered != true)
+        val cards = deck.cards.map { card ->
+            fsrsCards[card.id] ?: FsrsCard.createNew(card.id, deck.id, now)
         }
-        val mastered = deck.cards.count {
-            ratings[it.id] == CardRating.Good || ratings[it.id] == CardRating.Easy ||
-                srsRecords[it.id]?.isMastered == true
-        }
-        val due = (deck.cards.size - weak - mastered).coerceAtLeast(0)
-        return DeckCounts(due = due, weak = weak, mastered = mastered)
+        val stats = FsrsEngine.getDeckStats(cards, now)
+        return DeckCounts(
+            due = stats.due,
+            weak = stats.weak,
+            mastered = stats.mastered,
+            nextDueTime = stats.nextDueTime,
+        )
     }
 
     companion object {
@@ -129,7 +156,7 @@ data class FlashcardState(
                 it.sessionSize ?: -1,
                 it.srsRecords.entries.joinToString(";") { entry ->
                     val r = entry.value
-                    "${r.cardId}:${r.deckId}:${r.dueTimestamp}:${r.lastRating?.name.orEmpty()}:${r.consecutiveEasyCount}:${r.isMastered}:${r.lastReviewedTimestamp ?: -1L}"
+                    "${r.cardId}:${r.deckId}:${r.due}:${r.stability}:${r.difficulty}:${r.elapsed_days}:${r.scheduled_days}:${r.reps}:${r.lapses}:${r.state.name}:${r.last_review ?: -1L}:${r.last_rating?.name.orEmpty()}:${r.step}"
                 },
             )
         }, restore = {
@@ -140,30 +167,79 @@ data class FlashcardState(
                     val p = token.split(':')
                     val cardId = p[0]
                     val deckId = p[1]
-                    val due = p[2].toLong()
-                    val rating = p.getOrNull(3)?.ifEmpty { null }?.let { name -> runCatching { CardRating.valueOf(name) }.getOrNull() }
-                    val consecutiveEasy = p.getOrNull(4)?.toIntOrNull() ?: 0
-                    val isMastered = p.getOrNull(5)?.toBooleanStrictOrNull() ?: false
-                    val lastReviewed = p.getOrNull(6)?.toLongOrNull()?.takeIf { l -> l >= 0 }
-                    cardId to CardSrsRecord(cardId, deckId, due, rating, consecutiveEasy, isMastered, lastReviewed)
+
+                    val card = if (p.size >= 12) {
+                        // FSRS format
+                        val due = p[2].toLongOrNull() ?: 0L
+                        val stability = p[3].toDoubleOrNull() ?: 0.0
+                        val difficulty = p[4].toDoubleOrNull() ?: 0.0
+                        val elapsedDays = p[5].toLongOrNull() ?: 0L
+                        val scheduledDays = p[6].toLongOrNull() ?: 0L
+                        val reps = p[7].toIntOrNull() ?: 0
+                        val lapses = p[8].toIntOrNull() ?: 0
+                        val stateStr = p[9]
+                        val state = runCatching { FsrsState.valueOf(stateStr) }.getOrDefault(FsrsState.New)
+                        val lastReview = p[10].toLongOrNull()?.takeIf { l -> l >= 0 }
+                        val rating = p[11].ifEmpty { null }?.let { name -> runCatching { FsrsRating.valueOf(name) }.getOrNull() }
+                        val step = p.getOrNull(12)?.toIntOrNull() ?: 0
+                        FsrsCard(
+                            cardId = cardId,
+                            deckId = deckId,
+                            due = due,
+                            stability = stability,
+                            difficulty = difficulty,
+                            elapsed_days = elapsedDays,
+                            scheduled_days = scheduledDays,
+                            reps = reps,
+                            lapses = lapses,
+                            state = state,
+                            last_review = lastReview,
+                            last_rating = rating,
+                            step = step,
+                        )
+                    } else {
+                        // Legacy ladder format migration
+                        val stage = p.getOrNull(2)?.toIntOrNull() ?: 0
+                        val dueEpochDay = p.getOrNull(3)?.toLongOrNull() ?: 0L
+                        val lapses = p.getOrNull(4)?.toIntOrNull() ?: 0
+                        val rating = p.getOrNull(5)?.ifEmpty { null }?.let { name -> runCatching { FsrsRating.valueOf(name) }.getOrNull() }
+                        val lastReview = p.getOrNull(6)?.toLongOrNull()?.takeIf { l -> l >= 0 }
+                        val due = dueEpochDay * 86_400_000L
+                        val state = if (stage >= 8) FsrsState.Review else if (stage > 0) FsrsState.Review else FsrsState.New
+                        FsrsCard(
+                            cardId = cardId,
+                            deckId = deckId,
+                            due = due,
+                            stability = if (stage >= 8) 25.0 else stage.toDouble(),
+                            difficulty = 5.0,
+                            elapsed_days = 0L,
+                            scheduled_days = 0L,
+                            reps = stage,
+                            lapses = lapses,
+                            state = state,
+                            last_review = lastReview,
+                            last_rating = rating,
+                        )
+                    }
+                    cardId to card
                 }
             }
             FlashcardState(
-                (it[0] as String).ifEmpty { null },
-                it[1] as Boolean,
-                it[2] as Boolean,
-                it[3] as Boolean,
-                it[4] as Boolean,
-                split(it[5]),
-                it[6] as Int,
-                it[7] as Boolean,
-                split(it[8]).associate { entry -> entry.substringBefore(':') to CardRating.valueOf(entry.substringAfter(':')) },
-                split(it[9]).toSet(),
-                split(it[10]).toSet(),
-                split(it[11]).associate { entry -> entry.substringBefore(':') to entry.substringAfter(':').toLong() },
-                (it.getOrNull(12) as? Boolean) ?: (it[7] as Boolean),
-                if (sizeInt >= 0) sizeInt else null,
-                srsMap,
+                deckId = (it[0] as String).ifEmpty { null },
+                studying = it[1] as Boolean,
+                showRomaji = it[2] as Boolean,
+                shuffle = it[3] as Boolean,
+                japaneseFirst = it[4] as Boolean,
+                order = split(it[5]),
+                index = it[6] as Int,
+                revealed = it[7] as Boolean,
+                ratings = split(it[8]).associate { entry -> entry.substringBefore(':') to FsrsRating.valueOf(entry.substringAfter(':')) },
+                favorites = split(it[9]).toSet(),
+                pinned = split(it[10]).toSet(),
+                practiced = split(it[11]).associate { entry -> entry.substringBefore(':') to entry.substringAfter(':').toLong() },
+                hasBeenRevealed = (it.getOrNull(12) as? Boolean) ?: (it[7] as Boolean),
+                sessionSize = if (sizeInt >= 0) sizeInt else null,
+                srsRecords = srsMap,
             )
         })
 

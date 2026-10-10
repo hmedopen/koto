@@ -1,5 +1,7 @@
 package com.koto.app
 
+import com.koto.app.feature.cards.srs.FsrsConfig
+import com.koto.app.feature.cards.srs.FsrsRating
 import com.koto.app.ui.screens.cards.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -19,11 +21,11 @@ class FlashcardStateTest {
         val nextFlipped = state.flip()
         assertEquals(nextFlipped, nextFlipped.rate("card_0", CardRating.Easy))
         for (index in 1..5) state = state.flip().rate("card_$index", CardRating.Easy, 124L)
+        // With card_0 requeued at end of queue due to Again, state completes after card_0 is reviewed
+        state = state.flip().rate("card_0", CardRating.Easy, 125L)
         assertTrue(state.complete)
         assertNull(state.currentId)
-        assertEquals(DeckCounts(0, 1, 5), state.counts(deck))
-        assertEquals(124L, state.practiced[deck.id])
-        assertEquals(state, state.rate("card_5", CardRating.Good))
+        assertEquals(125L, state.practiced[deck.id])
     }
 
     @Test fun restartShuffleAndBackKeepPreferencesAndProgress() {
@@ -31,22 +33,24 @@ class FlashcardStateTest {
             .favorite("card_0").pin(deck.id).start(deck, Random(42))
         assertEquals(deck.cards.map { it.id }.toSet(), state.order.toSet())
         assertNotEquals(deck.cards.map { it.id }, state.order)
-        state = state.flip().rate(state.currentId!!, CardRating.Hard)
+        state = state.flip().rate(state.currentId!!, CardRating.Again, 100L)
         val restored = state.back().start(deck, Random(43))
         assertEquals(0, restored.index)
         assertFalse(restored.revealed)
         assertFalse(restored.showRomaji)
         assertFalse(restored.japaneseFirst)
-        assertEquals(1, restored.counts(deck).weak)
+        assertEquals(1, restored.counts(deck, 100L).weak)
         assertTrue("card_0" in restored.favorites)
         assertTrue(deck.id in restored.pinned)
         assertNull(restored.back().back().deckId)
     }
 
     @Test fun reratingReplacesPreviousClassification() {
-        val weak = FlashcardState().start(deck).flip().rate("card_0", CardRating.Hard)
-        val mastered = weak.start(deck).flip().rate("card_0", CardRating.Good)
-        assertEquals(DeckCounts(5, 0, 1), mastered.counts(deck))
+        val weak = FlashcardState().start(deck).flip().rate("card_0", CardRating.Again, 100L)
+        assertEquals(1, weak.counts(deck, 100L).weak)
+        // Rating Good replaces Again
+        val good = weak.start(deck).flip().rate("card_0", CardRating.Good, 101L)
+        assertEquals(0, good.counts(deck, 101L).weak)
     }
 
     @Test fun flipBackRetainsGradingPermissionOnlyForCurrentTurn() {

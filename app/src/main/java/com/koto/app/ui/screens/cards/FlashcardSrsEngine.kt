@@ -1,156 +1,244 @@
 package com.koto.app.ui.screens.cards
 
 import android.content.Context
+import com.koto.app.feature.cards.data.db.CardSrsEntity
+import com.koto.app.feature.cards.data.db.FsrsReviewLogEntity
+import com.koto.app.feature.cards.srs.FsrsCard
+import com.koto.app.feature.cards.srs.FsrsConfig
+import com.koto.app.feature.cards.srs.FsrsEngine
+import com.koto.app.feature.cards.srs.FsrsRating
+import com.koto.app.feature.cards.srs.FsrsReviewLog
+import com.koto.app.feature.cards.srs.FsrsState
+import com.koto.app.feature.translator.data.db.KotoDatabase
 import org.json.JSONObject
 
-/**
- * Record representing the Spaced Repetition System (SRS) state of an individual card.
- */
-data class CardSrsRecord(
-    val cardId: String,
-    val deckId: String,
-    val dueTimestamp: Long,
-    val lastRating: CardRating?,
-    val consecutiveEasyCount: Int = 0,
-    val isMastered: Boolean = false,
-    val lastReviewedTimestamp: Long? = null,
-)
+typealias CardRating = FsrsRating
+typealias ReviewAction = FsrsRating
+typealias CardSrsRecord = FsrsCard
 
-/**
- * Core SRS interval scheduling engine.
- *
- * Interval rules:
- * - Again: Due today (re-queued in current session; stays in today's active pool).
- * - Hard / Bad: Next review = Today + 1 Day (categorized as Weak on tomorrow's refresh).
- * - Good: Next review = Today + 3 Days.
- * - Easy: Next review = Today + 7 Days (if rated Easy consecutively, flagged as Mastered).
- */
-object FlashcardSrsScheduler {
-    const val ONE_DAY_MS = 24L * 60 * 60 * 1000L
+val FsrsCard.isMastered: Boolean get() = FsrsEngine.isMastered(this)
+val FsrsCard.dueDateEpochDay: Long get() = due / 86_400_000L
+val FsrsCard.lastReviewedTimestamp: Long? get() = last_review
 
-    fun scheduleNext(
-        current: CardSrsRecord?,
-        cardId: String,
-        deckId: String,
-        rating: CardRating,
-        now: Long = System.currentTimeMillis(),
-    ): CardSrsRecord {
-        return when (rating) {
-            CardRating.Again -> CardSrsRecord(
-                cardId = cardId,
-                deckId = deckId,
-                dueTimestamp = now, // Due today
-                lastRating = rating,
-                consecutiveEasyCount = 0,
-                isMastered = false,
-                lastReviewedTimestamp = now,
-            )
-            CardRating.Hard -> CardSrsRecord(
-                cardId = cardId,
-                deckId = deckId,
-                dueTimestamp = now + 1 * ONE_DAY_MS, // Today + 1 Day
-                lastRating = rating,
-                consecutiveEasyCount = 0,
-                isMastered = false,
-                lastReviewedTimestamp = now,
-            )
-            CardRating.Good -> CardSrsRecord(
-                cardId = cardId,
-                deckId = deckId,
-                dueTimestamp = now + 3 * ONE_DAY_MS, // Today + 3 Days
-                lastRating = rating,
-                consecutiveEasyCount = 0,
-                isMastered = false,
-                lastReviewedTimestamp = now,
-            )
-            CardRating.Easy -> {
-                val prevConsecutive = current?.consecutiveEasyCount ?: 0
-                val newConsecutive = prevConsecutive + 1
-                val isMastered = newConsecutive >= 2 || (current?.isMastered == true)
-                CardSrsRecord(
-                    cardId = cardId,
-                    deckId = deckId,
-                    dueTimestamp = now + 7 * ONE_DAY_MS, // Today + 7 Days
-                    lastRating = rating,
-                    consecutiveEasyCount = newConsecutive,
-                    isMastered = isMastered,
-                    lastReviewedTimestamp = now,
-                )
-            }
-        }
-    }
+fun FsrsCard?.isDue(now: Long = System.currentTimeMillis()): Boolean {
+    if (this == null || this.state == FsrsState.New) return true
+    return this.due <= now
 }
 
 /**
- * Local persistent store for flashcard SRS records using SharedPreferences.
+ * Persistent store for flashcard FSRS records backed by Room Database,
+ * with fallback to SharedPreferences and in-memory caching.
  */
 class FlashcardSrsStore(context: Context? = null) {
     private val appContext = context?.applicationContext
     private val preferences = appContext?.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-
-    init {
-        // Wipe legacy v1 session / review data if present to ensure clean database replacement
-        if (appCtxHasLegacyV1()) {
-            appContext?.getSharedPreferences(LEGACY_PREFERENCES_NAME, Context.MODE_PRIVATE)?.edit()?.clear()?.apply()
-        }
+    private val cardSrsDao by lazy {
+        appContext?.let { runCatching { KotoDatabase.getInstance(it).cardSrsDao() }.getOrNull() }
     }
-
-    private fun appCtxHasLegacyV1(): Boolean {
-        val legacy = appContext?.getSharedPreferences(LEGACY_PREFERENCES_NAME, Context.MODE_PRIVATE) ?: return false
-        return legacy.all.isNotEmpty()
+    private val reviewLogDao by lazy {
+        appContext?.let { runCatching { KotoDatabase.getInstance(it).fsrsReviewLogDao() }.getOrNull() }
     }
+    private val memoryStore = mutableMapOf<String, FsrsCard>()
 
-    fun clearAll() {
-        preferences?.edit()?.clear()?.apply()
-    }
-
-    fun clear() = clearAll()
-
-    fun loadAll(): Map<String, CardSrsRecord> {
-        val json = preferences?.getString(KEY_SRS_DATA, null) ?: return emptyMap()
-        return runCatching {
-            val root = JSONObject(json)
-            val result = mutableMapOf<String, CardSrsRecord>()
-            val keys = root.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                val obj = root.getJSONObject(key)
-                val cardId = obj.getString("cardId")
-                val deckId = obj.getString("deckId")
-                val due = obj.getLong("dueTimestamp")
-                val ratingName = obj.optString("lastRating", "")
-                val rating = if (ratingName.isNotEmpty()) runCatching { CardRating.valueOf(ratingName) }.getOrNull() else null
-                val consecutiveEasy = obj.optInt("consecutiveEasyCount", 0)
-                val isMastered = obj.optBoolean("isMastered", false)
-                val lastReviewed = if (obj.has("lastReviewedTimestamp")) obj.getLong("lastReviewedTimestamp") else null
-                result[cardId] = CardSrsRecord(cardId, deckId, due, rating, consecutiveEasy, isMastered, lastReviewed)
+    fun loadAll(): Map<String, FsrsCard> {
+        // 1. Try Room Database first
+        val dao = cardSrsDao
+        if (dao != null) {
+            val entities = runCatching { dao.getAll() }.getOrNull()
+            if (!entities.isNullOrEmpty()) {
+                val result = entities.associate { entity ->
+                    entity.cardId to entityToFsrsCard(entity)
+                }
+                memoryStore.putAll(result)
+                return result
             }
-            result
-        }.getOrDefault(emptyMap())
+        }
+
+        // 2. Try SharedPreferences
+        val json = preferences?.getString(KEY_SRS_DATA, null)
+        if (json != null) {
+            val loaded = runCatching {
+                val root = JSONObject(json)
+                val result = mutableMapOf<String, FsrsCard>()
+                val keys = root.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    val obj = root.getJSONObject(key)
+                    val cardId = obj.getString("cardId")
+                    val deckId = obj.getString("deckId")
+                    val due = obj.optLong("due", 0L)
+                    val stability = obj.optDouble("stability", 0.0)
+                    val difficulty = obj.optDouble("difficulty", 0.0)
+                    val elapsedDays = obj.optLong("elapsed_days", 0L)
+                    val scheduledDays = obj.optLong("scheduled_days", 0L)
+                    val reps = obj.optInt("reps", 0)
+                    val lapses = obj.optInt("lapses", 0)
+                    val stateStr = obj.optString("state", "New")
+                    val state = runCatching { FsrsState.valueOf(stateStr) }.getOrDefault(FsrsState.New)
+                    val lastReview = if (obj.has("last_review")) obj.getLong("last_review") else null
+                    val lastRatingStr = obj.optString("last_rating", "")
+                    val lastRating = if (lastRatingStr.isNotEmpty()) runCatching { FsrsRating.valueOf(lastRatingStr) }.getOrNull() else null
+                    val step = obj.optInt("step", 0)
+
+                    result[cardId] = FsrsCard(
+                        cardId = cardId,
+                        deckId = deckId,
+                        due = due,
+                        stability = stability,
+                        difficulty = difficulty,
+                        elapsed_days = elapsedDays,
+                        scheduled_days = scheduledDays,
+                        reps = reps,
+                        lapses = lapses,
+                        state = state,
+                        last_review = lastReview,
+                        last_rating = lastRating,
+                        step = step,
+                    )
+                }
+                result
+            }.getOrDefault(emptyMap())
+
+            if (loaded.isNotEmpty()) {
+                memoryStore.putAll(loaded)
+                saveAll(loaded)
+                return loaded
+            }
+        }
+
+        return memoryStore.toMap()
     }
 
-    fun saveAll(records: Map<String, CardSrsRecord>) {
+    /**
+     * Saves a card and review log IMMEDIATELY on every button press.
+     */
+    fun saveCard(card: FsrsCard, log: FsrsReviewLog? = null) {
+        memoryStore[card.cardId] = card
+
+        val dao = cardSrsDao
+        if (dao != null) {
+            runCatching {
+                dao.insertOrUpdate(fsrsCardToEntity(card))
+            }
+        }
+        val rDao = reviewLogDao
+        if (rDao != null && log != null) {
+            runCatching {
+                rDao.insert(reviewLogToEntity(log))
+            }
+        }
+
+        saveToPreferences(memoryStore)
+    }
+
+    fun saveAll(records: Map<String, FsrsCard>) {
+        memoryStore.putAll(records)
+
+        val dao = cardSrsDao
+        if (dao != null && records.isNotEmpty()) {
+            runCatching {
+                val entities = records.values.map { fsrsCardToEntity(it) }
+                dao.insertOrUpdateAll(entities)
+            }
+        }
+
+        saveToPreferences(memoryStore)
+    }
+
+    private fun saveToPreferences(records: Map<String, FsrsCard>) {
         if (preferences == null) return
         val root = JSONObject()
-        for ((id, record) in records) {
+        for ((id, card) in records) {
             val obj = JSONObject()
-            obj.put("cardId", record.cardId)
-            obj.put("deckId", record.deckId)
-            obj.put("dueTimestamp", record.dueTimestamp)
-            record.lastRating?.let { obj.put("lastRating", it.name) }
-            obj.put("consecutiveEasyCount", record.consecutiveEasyCount)
-            obj.put("isMastered", record.isMastered)
-            record.lastReviewedTimestamp?.let { obj.put("lastReviewedTimestamp", it) }
+            obj.put("cardId", card.cardId)
+            obj.put("deckId", card.deckId)
+            obj.put("due", card.due)
+            obj.put("stability", card.stability)
+            obj.put("difficulty", card.difficulty)
+            obj.put("elapsed_days", card.elapsed_days)
+            obj.put("scheduled_days", card.scheduled_days)
+            obj.put("reps", card.reps)
+            obj.put("lapses", card.lapses)
+            obj.put("state", card.state.name)
+            card.last_review?.let { obj.put("last_review", it) }
+            card.last_rating?.let { obj.put("last_rating", it.name) }
+            obj.put("step", card.step)
             root.put(id, obj)
         }
         preferences.edit().putString(KEY_SRS_DATA, root.toString()).apply()
     }
 
+    fun clearAll() {
+        memoryStore.clear()
+        preferences?.edit()?.clear()?.apply()
+        runCatching { cardSrsDao?.clearAll() }
+        runCatching { reviewLogDao?.clearAll() }
+    }
+
+    fun clear() = clearAll()
+
     companion object {
-        private const val LEGACY_PREFERENCES_NAME = "koto_flashcard_srs_v1"
-        private const val PREFERENCES_NAME = "koto_flashcard_srs_v2"
-        private const val KEY_SRS_DATA = "flashcard_srs_records"
+        private const val PREFERENCES_NAME = "koto_fsrs_v1"
+        private const val KEY_SRS_DATA = "fsrs_card_records"
         var defaultInstance: FlashcardSrsStore? = null
             get() = field ?: FlashcardSrsStore().also { field = it }
+
+        fun entityToFsrsCard(entity: CardSrsEntity): FsrsCard {
+            val rating = entity.lastRating?.let { name -> runCatching { FsrsRating.valueOf(name) }.getOrNull() }
+            val state = runCatching { FsrsState.valueOf(entity.state) }.getOrDefault(
+                if (entity.stage >= 1) FsrsState.Review else FsrsState.New
+            )
+            val due = if (entity.due > 0L) entity.due else entity.dueDateEpochDay * 86_400_000L
+            return FsrsCard(
+                cardId = entity.cardId,
+                deckId = entity.deckId,
+                due = due,
+                stability = entity.stability,
+                difficulty = entity.difficulty,
+                elapsed_days = entity.elapsedDays,
+                scheduled_days = entity.scheduledDays,
+                reps = entity.reps,
+                lapses = entity.lapses,
+                state = state,
+                last_review = entity.lastReview ?: entity.lastReviewedTimestamp,
+                last_rating = rating,
+                step = entity.step,
+            )
+        }
+
+        fun fsrsCardToEntity(card: FsrsCard): CardSrsEntity {
+            return CardSrsEntity(
+                cardId = card.cardId,
+                deckId = card.deckId,
+                due = card.due,
+                stability = card.stability,
+                difficulty = card.difficulty,
+                elapsedDays = card.elapsed_days,
+                scheduledDays = card.scheduled_days,
+                reps = card.reps,
+                lapses = card.lapses,
+                state = card.state.name,
+                lastReview = card.last_review,
+                lastRating = card.last_rating?.name,
+                step = card.step,
+                stage = if (card.state == FsrsState.Review && card.stability >= FsrsConfig.MASTERED_STABILITY_DAYS) 8 else if (card.state != FsrsState.New) 1 else 0,
+                dueDateEpochDay = card.due / 86_400_000L,
+                lastReviewedTimestamp = card.last_review,
+            )
+        }
+
+        fun reviewLogToEntity(log: FsrsReviewLog): FsrsReviewLogEntity {
+            return FsrsReviewLogEntity(
+                cardId = log.cardId,
+                rating = log.rating.name,
+                state = log.state.name,
+                due = log.due,
+                stability = log.stability,
+                difficulty = log.difficulty,
+                elapsedDays = log.elapsed_days,
+                scheduledDays = log.scheduled_days,
+                review = log.review,
+            )
+        }
     }
 }

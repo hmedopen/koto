@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.R
 import com.koto.app.feature.cards.data.CustomDeckStore
+import com.koto.app.feature.cards.data.DeckFavoriteStore
 import com.koto.app.feature.translator.data.TranslatorCardStore
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -81,9 +82,17 @@ fun CardsScreen(
     val srsStore = remember(context) { FlashcardSrsStore(context) }
     val cardStore = remember(context) { TranslatorCardStore(context) }
     val customDeckStore = remember(context) { CustomDeckStore(context) }
+    val deckFavoriteStore = remember(context) { DeckFavoriteStore(context) }
     val coroutineScope = rememberCoroutineScope()
     var starredTranslationCards by remember { mutableStateOf(cardStore.loadStarredCards()) }
     var customDecks by remember { mutableStateOf(customDeckStore.loadCustomDecks()) }
+
+    var state by rememberSaveable(stateSaver = FlashcardState.Saver) {
+        val initialSrs = srsStore.loadAll()
+        val initialPinned = deckFavoriteStore.loadBookmarkedDeckIds()
+        val initialFavorites = deckFavoriteStore.loadStarredCardIds()
+        mutableStateOf(FlashcardState(srsRecords = initialSrs, pinned = initialPinned, favorites = initialFavorites))
+    }
 
     LaunchedEffect(Unit) {
         launch {
@@ -94,6 +103,20 @@ fun CardsScreen(
         launch {
             customDeckStore.customDecksFlow.collect { cDecks ->
                 customDecks = cDecks
+            }
+        }
+        launch {
+            deckFavoriteStore.bookmarkedDeckIdsFlow.collect { pinned ->
+                if (state.pinned != pinned) {
+                    state = state.copy(pinned = pinned)
+                }
+            }
+        }
+        launch {
+            deckFavoriteStore.starredCardIdsFlow.collect { favorites ->
+                if (state.favorites != favorites) {
+                    state = state.copy(favorites = favorites)
+                }
             }
         }
     }
@@ -124,11 +147,6 @@ fun CardsScreen(
         list.addAll(customDecks)
         list.addAll(decks)
         list
-    }
-
-    var state by rememberSaveable(stateSaver = FlashcardState.Saver) {
-        val initialSrs = srsStore.loadAll()
-        mutableStateOf(FlashcardState(srsRecords = initialSrs))
     }
 
     // Persist SRS updates to local database
@@ -214,8 +232,14 @@ fun CardsScreen(
             onTargetDeckIdHandled()
         }
     }
-    val pinDeck: (String) -> Unit = remember { { state = state.pin(it) } }
-    val favoriteCard: (String) -> Unit = remember { { state = state.favorite(it) } }
+    val pinDeck: (String) -> Unit = remember(deckFavoriteStore) { { deckId ->
+        deckFavoriteStore.toggleDeckBookmark(deckId)
+        state = state.pin(deckId)
+    } }
+    val favoriteCard: (String) -> Unit = remember(deckFavoriteStore) { { cardId ->
+        deckFavoriteStore.toggleCardStar(cardId)
+        state = state.favorite(cardId)
+    } }
 
     LaunchedEffect(state.studying) { onStudyModeChanged(state.studying) }
     LaunchedEffect(subScreenOpen) { onDeckOpenChanged(subScreenOpen) }
@@ -372,8 +396,14 @@ private fun CategoryGrid(
     onOpen: (FlashcardDeck) -> Unit,
     onFavorite: (String) -> Unit,
 ) {
-    val sorted = remember(decks, state.pinned) { decks.sortedByDescending { it.id in state.pinned } }
     val counts = remember(decks, state.ratings, state.srsRecords) { decks.associate { it.id to state.counts(it) } }
+    val sorted = remember(decks, state.pinned, counts) {
+        decks.sortedWith(
+            compareByDescending<FlashcardDeck> { (counts[it.id]?.due ?: 0) > 0 }
+                .thenByDescending { it.id in state.pinned }
+                .thenBy { it.number }
+        )
+    }
     val density = LocalDensity.current
     val largeText = density.fontScale > 1.3f
     val columns = remember { GridCells.Fixed(2) }
@@ -821,7 +851,7 @@ private fun SurpriseMeDialog(
             ) {
                 if (selectedDeck != null) {
                     CardsButton(
-                        label = "START REVIEW",
+                        label = "View Deck",
                         onClick = {
                             onDismiss()
                             onOpenDeck(selectedDeck)

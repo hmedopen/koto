@@ -12,6 +12,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,7 +77,7 @@ fun TemplateDownloadDialog(
                     Spacer(modifier = Modifier.size(40.dp).align(Alignment.CenterStart))
 
                     Text(
-                        text = "Spreadsheet Template",
+                        text = "Spreadsheet Guide",
                         style = KotoType.Brand,
                         fontSize = 18.sp,
                         color = CardsColors.Ink,
@@ -109,7 +114,7 @@ fun TemplateDownloadDialog(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    // Two-Step Guide
+                    // How to use
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -126,9 +131,9 @@ fun TemplateDownloadDialog(
                         )
 
                         Text(
-                            text = "1. Download the pre-formatted spreadsheet template.\n" +
-                                "2. Fill in your terms following the 3 example rows.\n" +
-                                "3. Import via the Import button to generate cards instantly.",
+                            text = "1. Download the pre-formatted Excel template (.xlsx).\n" +
+                                "2. Fill in your vocabulary following the column guidelines below.\n" +
+                                "3. Import via 'Select File' to populate your deck instantly.",
                             style = TextStyle(
                                 fontFamily = KotoFont,
                                 fontWeight = FontWeight.Normal,
@@ -139,9 +144,48 @@ fun TemplateDownloadDialog(
                         )
                     }
 
-                    // Explicit Disclaimer (Rendered cleanly on white per Anti-Bubble & Task 4.4)
+                    HorizontalDivider(color = CardsColors.Edge, thickness = 1.dp)
+
+                    // Column Specifications
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            text = "COLUMN SPECIFICATIONS",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                letterSpacing = 1.sp,
+                                color = CardsColors.Muted,
+                            ),
+                        )
+
+                        Text(
+                            text = "• Japanese / Kana (Required): Kanji or Kana word (e.g. 病院, 食べる, ありがとう).\n" +
+                                "• English (Required): Primary English meaning (e.g. Hospital, To eat).\n" +
+                                "• Furigana (Optional): Reading in Hiragana for Kanji. Leave blank for pure Kana.\n" +
+                                "• Romaji (Optional): Latin pronunciation. Generated automatically if blank.\n" +
+                                "• Context / Notes (Optional): Nuance, grammar notes, or study tips.\n" +
+                                "• Examples 1, 2, 3 (Optional): Rich sentences formatted with a slash:\n" +
+                                "  Japanese sentence / English translation\n" +
+                                "  (e.g. 明日、病院に行きます。 / I will go to the hospital tomorrow.)",
+                            style = TextStyle(
+                                fontFamily = KotoFont,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 12.sp,
+                                color = CardsColors.Ink,
+                                lineHeight = 19.sp,
+                            ),
+                        )
+                    }
+
+                    HorizontalDivider(color = CardsColors.Edge, thickness = 1.dp)
+
+                    // Notes
                     Text(
-                        text = "Cards imported via spreadsheet bypass live auto-furigana generation and automatic dictionary lookups. Content renders exactly as entered.",
+                        text = "Cards imported via spreadsheet render with full support for up to 3 example sentences and custom notes. Content renders exactly as entered.",
                         style = TextStyle(
                             fontFamily = KotoFont,
                             fontWeight = FontWeight.Normal,
@@ -470,6 +514,14 @@ fun ImportOptionsDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showTemplateGuide by rememberSaveable { mutableStateOf(false) }
+
+    if (showTemplateGuide) {
+        TemplateDownloadDialog(
+            onDismiss = { showTemplateGuide = false },
+        )
+    }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false),
@@ -548,7 +600,7 @@ fun ImportOptionsDialog(
                         Text(
                             text = "• Supported formats: Excel (.xlsx) and CSV (.csv).\n" +
                                 "• Required columns: Japanese (Kana/Kanji) and English.\n" +
-                                "• Optional columns: Furigana, Romaji, and Notes.\n" +
+                                "• Optional columns: Furigana, Romaji, Notes, and up to 3 Examples (JP / EN).\n" +
                                 "• Imported cards will be added to your current deck.",
                             style = TextStyle(
                                 fontFamily = KotoFont,
@@ -560,41 +612,52 @@ fun ImportOptionsDialog(
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(BoxShape)
-                            .border(1.dp, CardsColors.Edge, BoxShape)
-                            .background(CardsColors.Background)
-                            .padding(12.dp),
-                    ) {
-                        Text(
-                            text = "Tip: Download the pre-formatted spreadsheet template to ensure your column headers match.",
-                            style = TextStyle(
-                                fontFamily = KotoFont,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 12.sp,
-                                color = CardsColors.Muted,
-                                lineHeight = 17.sp,
-                            ),
-                        )
-                    }
-
-                    Column(
+                    // Download Template row with ? info button
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CardsButton(
-                            label = "Select File (.xlsx / .csv)",
-                            onClick = onSelectFile,
+                            label = "Download Template (.xlsx)",
+                            onClick = onDownloadTemplate,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("btn_select_import_file"),
-                            background = CardsColors.Blue,
-                            ink = Color.White,
-                            depth = CardsColors.BlueDepth,
+                                .weight(1f)
+                                .testTag("btn_import_download_template"),
+                            background = CardsColors.Surface,
+                            ink = CardsColors.Blue,
+                            depth = CardsColors.Edge,
                         )
+
+                        CardsPressable(
+                            onClick = { showTemplateGuide = true },
+                            modifier = Modifier
+                                .size(width = 48.dp, height = 52.dp)
+                                .testTag("btn_template_guide"),
+                            face = CardsColors.Surface,
+                            depth = CardsColors.Edge,
+                            padding = PaddingValues(0.dp),
+                        ) {
+                            Text(
+                                text = "?",
+                                color = CardsColors.Blue,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                            )
+                        }
                     }
+
+                    // Select File Button
+                    CardsButton(
+                        label = "Select File (.xlsx / .csv)",
+                        onClick = onSelectFile,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("btn_select_import_file"),
+                        background = CardsColors.Blue,
+                        ink = Color.White,
+                        depth = CardsColors.BlueDepth,
+                    )
                 }
             }
         }

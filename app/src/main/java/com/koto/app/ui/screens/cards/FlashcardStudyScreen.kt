@@ -109,6 +109,7 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
 
     val context = LocalContext.current
     val audio = remember(context) { JapaneseTtsController.get(context) }
+    val srsStore = remember(context) { FlashcardSrsStore(context) }
     val advancedSettingsState by remember(context) {
         context.advancedSettingsDataStore.data.map { it.toAdvancedSettingsState() }
     }.collectAsState(initial = AdvancedSettingsState())
@@ -116,7 +117,6 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
     var advancedSettings by rememberSaveable { mutableStateOf(false) }
     var exitRequested by rememberSaveable { mutableStateOf(false) }
     var contextCard by remember { mutableStateOf<Flashcard?>(null) }
-    var lookupKanjiTerm by rememberSaveable { mutableStateOf<String?>(null) }
     var lastRatedCardId by rememberSaveable { mutableStateOf<String?>(null) }
     var lastRatingName by rememberSaveable { mutableStateOf<String?>(null) }
     val lastRating = lastRatingName?.let { name -> CardRating.entries.firstOrNull { it.name == name } }
@@ -226,16 +226,19 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
                         onRate = { rating ->
                             lastRatedCardId = card.id
                             lastRatingName = rating.name
+                            val now = System.currentTimeMillis()
+                            val currentCard = state.fsrsCards[card.id] ?: com.koto.app.feature.cards.srs.FsrsCard.createNew(card.id, deck.id, now)
+                            val (nextCard, reviewLog) = com.koto.app.feature.cards.srs.FsrsEngine.rateCard(currentCard, rating, now)
+                            srsStore.saveCard(nextCard, reviewLog)
                             val requeueSoon = advancedSettingsState.retryFailedCards == RetryFailedCardsPolicy.SOON
                             val requeueAgain = advancedSettingsState.retryFailedCards == RetryFailedCardsPolicy.END
-                            update(state.rate(card.id, rating, requeueSoon = requeueSoon, requeueAgain = requeueAgain))
+                            update(state.rate(card.id, rating, now, requeueAgain = requeueAgain, requeueSoon = requeueSoon))
                         },
                         onOpenContext = { contextCard = card },
                         onOpenSettings = { settings = true },
                         onRequestExit = { exitRequested = true },
                         isCustomDeck = isCustomOrImported,
                         advancedSettingsState = advancedSettingsState,
-                        onLookupKanji = { lookupKanjiTerm = it },
                     )
                 }
             }
@@ -257,18 +260,6 @@ internal fun FlashcardStudyScreen(deck: FlashcardDeck, state: FlashcardState, up
                 )
             }
         }
-    }
-
-    if (lookupKanjiTerm != null) {
-        val targetCard = deck.cards.firstOrNull { it.displayKanji == lookupKanjiTerm || it.japanese == lookupKanjiTerm } ?: card
-        val termMeaning = targetCard?.english
-        val termContext = targetCard?.let { CardContextLoader.getContext(it, context)?.notes }
-        KanjiLookupModal(
-            term = lookupKanjiTerm!!,
-            meaning = termMeaning,
-            contextNotes = termContext,
-            onDismiss = { lookupKanjiTerm = null },
-        )
     }
 
     if (settings) {
@@ -435,13 +426,23 @@ private fun StudyCompletionScreen(
                     )
                 }
             } else {
+                val title = if (counts.due == 0) "All caught up" else "Deck complete"
                 Text(
-                    "Deck complete",
+                    title,
                     color = CardsColors.Ink,
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                 )
+                if (counts.due == 0 && counts.nextDueTime != null) {
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Next review ${formatNextDueTime(counts.nextDueTime)}",
+                        color = CardsColors.Muted,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
 
             Spacer(Modifier.height(32.dp))
@@ -496,7 +497,6 @@ private fun ActiveStudyContent(
     onRequestExit: () -> Unit,
     isCustomDeck: Boolean = false,
     advancedSettingsState: AdvancedSettingsState = AdvancedSettingsState(),
-    onLookupKanji: (String) -> Unit = {},
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val scrollWholeScreen = maxHeight < 420.dp || LocalDensity.current.fontScale > 1.5f
@@ -625,9 +625,7 @@ private fun ActiveStudyContent(
                             isCurrent = isCurrent,
                             isExiting = isExiting,
                             rating = if (isExiting) lastRating else null,
-                            revealFuriganaOnTap = advancedSettingsState.revealFuriganaOnTap,
-                            kanjiLookupOnHold = advancedSettingsState.kanjiLookupOnHold,
-                            onLookupKanji = onLookupKanji,
+                            revealFuriganaOnTap = advancedSettingsState.furiganaDisplay,
                         ) {
                             if (isCurrent) {
                                 audio.stop()
@@ -1130,11 +1128,9 @@ private fun StudyCard(
     isExiting: Boolean = false,
     rating: CardRating? = null,
     revealFuriganaOnTap: Boolean = false,
-    kanjiLookupOnHold: Boolean = true,
-    onLookupKanji: (String) -> Unit = {},
     flip: () -> Unit,
 ) {
-    var furiganaRevealed by rememberSaveable(card.id) { mutableStateOf(false) }
+    var furiganaRevealed by rememberSaveable(card.id) { mutableStateOf(true) }
     val haptic = LocalHapticFeedback.current
     val backVisible = rotation > 90f
     val japaneseVisible = state.japaneseFirst != backVisible
@@ -1264,25 +1260,7 @@ private fun StudyCard(
                             kanji = card.displayKanji,
                             kana = card.japanese,
                             romaji = card.romaji,
-                            wordModifier = Modifier
-                                .testTag("card_word")
-                                .pointerInput(card.id, revealFuriganaOnTap, kanjiLookupOnHold) {
-                                    detectTapGestures(
-                                        onLongPress = {
-                                            if (kanjiLookupOnHold) {
-                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                onLookupKanji(card.displayKanji.ifBlank { card.japanese })
-                                            }
-                                        },
-                                        onTap = {
-                                            if (revealFuriganaOnTap) {
-                                                furiganaRevealed = !furiganaRevealed
-                                            } else {
-                                                if (!isFlipping && !isExiting) flip()
-                                            }
-                                        },
-                                    )
-                                },
+                            wordModifier = Modifier.testTag("card_word"),
                             romajiModifier = Modifier.testTag("card_romaji"),
                             showRomaji = state.showRomaji,
                             fontSize = computedFontSize,
@@ -1292,6 +1270,11 @@ private fun StudyCard(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             revealFuriganaOnTap = revealFuriganaOnTap,
                             furiganaRevealed = furiganaRevealed,
+                            onFuriganaClick = {
+                                if (revealFuriganaOnTap) {
+                                    furiganaRevealed = !furiganaRevealed
+                                }
+                            },
                         )
                     } else {
                         Text(

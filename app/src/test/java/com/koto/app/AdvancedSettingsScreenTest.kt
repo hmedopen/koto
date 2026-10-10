@@ -83,7 +83,7 @@ class AdvancedSettingsScreenTest {
         compose.onNodeWithText("DISPLAY & TYPOGRAPHY").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("AUDIO & SPEECH").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("STUDY & CARD INTERACTION").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("CUSTOM DECK CREATION").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("CUSTOM DECK CREATION").assertDoesNotExist()
         compose.onNodeWithText("STORAGE & DATA").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("ABOUT & LEGAL").performScrollTo().assertIsDisplayed()
     }
@@ -136,13 +136,8 @@ class AdvancedSettingsScreenTest {
         assertEquals("m_plus_1p", jpFontId)
         compose.onNodeWithTag("font_picker_dialog").assertDoesNotExist()
 
-        // Open English font picker dialog
-        compose.onNodeWithTag("badge_english_font").performScrollTo().assertIsDisplayed().performClick()
-        compose.onNodeWithTag("font_picker_dialog").assertIsDisplayed()
-
-        // Close via [X]
-        compose.onNodeWithTag("font_picker_close").assertIsDisplayed().performClick()
-        compose.onNodeWithTag("font_picker_dialog").assertDoesNotExist()
+        // English font selector is completely removed
+        compose.onNodeWithTag("badge_english_font").assertDoesNotExist()
     }
 
     @Test
@@ -213,12 +208,10 @@ class AdvancedSettingsScreenTest {
     }
 
     @Test
-    fun retryFailedCardsSelectorSwitchesBetweenSoonAndEnd() {
-        var currentPolicy by mutableStateOf(RetryFailedCardsPolicy.SOON)
-
+    fun retryFailedCardsSelectorIsRemoved() {
         compose.setContent {
             AdvancedSettingsContent(
-                state = AdvancedSettingsState(retryFailedCards = currentPolicy),
+                state = AdvancedSettingsState(),
                 snackbarHostState = SnackbarHostState(),
                 onBack = {},
                 onFuriganaChange = {},
@@ -231,7 +224,7 @@ class AdvancedSettingsScreenTest {
                 onRevealFuriganaChange = {},
                 onKanjiLookupChange = {},
                 onCardFlipChange = {},
-                onRetryPolicyChange = { currentPolicy = it },
+                onRetryPolicyChange = {},
                 onAutoFillChange = {},
                 onAutoGenerateFuriganaChange = {},
                 onClearCache = {},
@@ -239,12 +232,10 @@ class AdvancedSettingsScreenTest {
             )
         }
 
-        compose.onNodeWithTag("toggle_retry_failed").performScrollTo().assertIsDisplayed()
-        compose.onNode(hasAnyAncestor(hasTestTag("toggle_retry_failed")) and hasText("LATER")).performClick()
-        assertEquals(RetryFailedCardsPolicy.END, currentPolicy)
-
-        compose.onNode(hasAnyAncestor(hasTestTag("toggle_retry_failed")) and hasText("SOON")).performClick()
-        assertEquals(RetryFailedCardsPolicy.SOON, currentPolicy)
+        compose.onNodeWithTag("toggle_retry_failed").assertDoesNotExist()
+        compose.onNodeWithTag("row_retry_failed").assertDoesNotExist()
+        compose.onNodeWithTag("row_kanji_lookup").assertDoesNotExist()
+        compose.onNodeWithTag("row_reveal_furigana").assertDoesNotExist()
     }
 
     @Test

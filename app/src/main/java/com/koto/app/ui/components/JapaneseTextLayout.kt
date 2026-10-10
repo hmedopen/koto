@@ -1,11 +1,13 @@
 package com.koto.app.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +43,7 @@ fun RubyText(
     fontWeight: FontWeight = FontWeight.Bold,
     fontFamily: androidx.compose.ui.text.font.FontFamily = LocalJapaneseFont.current,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    onFuriganaClick: (() -> Unit)? = null,
 ) {
     if (tokens.isEmpty()) return
 
@@ -95,6 +98,13 @@ fun RubyText(
                                 fontFamily = fontFamily,
                                 maxLines = 1,
                                 lineHeight = (baseFontSize.value * 0.55f).sp,
+                                modifier = if (onFuriganaClick != null) {
+                                    Modifier.testTag("furigana_text").clickable(
+                                        interactionSource = null,
+                                        indication = null,
+                                        onClick = onFuriganaClick,
+                                    )
+                                } else Modifier,
                             )
                             Text(
                                 text = token.surface,
@@ -144,6 +154,7 @@ fun RubyText(
     furiganaColor: Color = CardsColors.Blue,
     fontWeight: FontWeight = FontWeight.Bold,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    onFuriganaClick: (() -> Unit)? = null,
 ) {
     val tokens = KanaConverter.extractRubyTokens(text)
     RubyText(
@@ -155,6 +166,7 @@ fun RubyText(
         furiganaColor = furiganaColor,
         fontWeight = fontWeight,
         horizontalArrangement = horizontalArrangement,
+        onFuriganaClick = onFuriganaClick,
     )
 }
 
@@ -183,6 +195,7 @@ fun JapaneseWordDisplay(
     romajiColor: Color = CardsColors.Blue,
     fontFamily: androidx.compose.ui.text.font.FontFamily = LocalJapaneseFont.current,
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
+    onFuriganaClick: (() -> Unit)? = null,
 ) {
     val effectiveKanji = kanji.ifBlank { kana }
     val effectiveKana = kana.ifBlank { KanaConverter.toPureKana(effectiveKanji) }
@@ -231,6 +244,7 @@ fun JapaneseWordDisplay(
                         furiganaColor = effectiveFuriganaColor,
                         fontFamily = fontFamily,
                         horizontalArrangement = if (horizontalAlignment == Alignment.CenterHorizontally) Arrangement.Center else Arrangement.Start,
+                        onFuriganaClick = onFuriganaClick,
                     )
                 } else {
                     Text(

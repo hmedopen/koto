@@ -568,11 +568,14 @@ private fun CreateDeckOverviewView(
 
     val translationEngine = remember(context) { HybridTranslationEngine.getInstance(context) }
 
-    Column(
+    Box(
         Modifier
             .fillMaxSize()
             .background(Color.White),
     ) {
+        Column(
+            Modifier.fillMaxSize(),
+        ) {
         // Canon Top App Bar
         Box(
             Modifier
@@ -592,7 +595,7 @@ private fun CreateDeckOverviewView(
                 }
                 .padding(horizontal = 16.dp),
         ) {
-            // Left: Back button & Template Download button (moved to the left)
+            // Left: Back button & Delete Deck button (only when editing existing deck)
             Row(
                 modifier = Modifier.align(Alignment.CenterStart),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -616,21 +619,23 @@ private fun CreateDeckOverviewView(
                     )
                 }
 
-                TactileButton(
-                    onClick = { showTemplateDialog = true },
-                    modifier = Modifier
-                        .size(44.dp, 48.dp)
-                        .testTag("create_deck_template_download_button"),
-                    tone = TactileTone.Quiet,
-                    description = "Download Template",
-                    padding = PaddingValues(10.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_template_download),
-                        contentDescription = "Download Template",
-                        tint = KotoColors.Navy,
-                        modifier = Modifier.size(22.dp),
-                    )
+                if (isEditing && onDeleteDeck != null) {
+                    TactileButton(
+                        onClick = { showDeleteDeckDialog = true },
+                        modifier = Modifier
+                            .size(44.dp, 48.dp)
+                            .testTag("btn_delete_deck"),
+                        tone = TactileTone.Quiet,
+                        description = "Delete Deck",
+                        padding = PaddingValues(10.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_trash),
+                            contentDescription = "Delete Deck",
+                            tint = CardsColors.Coral,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
                 }
             }
 
@@ -696,7 +701,7 @@ private fun CreateDeckOverviewView(
                 .fillMaxWidth()
                 .weight(1f)
                 .testTag("create_deck_scroll_content"),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // Deck Title Input Section
@@ -912,74 +917,37 @@ private fun CreateDeckOverviewView(
             }
         }
 
-        // Sticky Bottom Bar: Fixed at the very bottom (Zero jumping, glued spatial layout)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(CardsColors.Surface)
-                .drawBehind {
-                    drawLine(CardsColors.Edge, Offset(0f, 0f), Offset(size.width, 0f), 1f)
-                }
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-        ) {
-            if (isEditing && onDeleteDeck != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    CardsButton(
-                        label = "Delete Deck",
-                        onClick = { showDeleteDeckDialog = true },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp)
-                            .testTag("btn_delete_deck"),
-                        background = CardsColors.Surface,
-                        ink = CardsColors.Coral,
-                        depth = CardsColors.Edge,
-                    )
-                    CardsButton(
-                        label = "Save Deck",
-                        onClick = onSaveDeck,
-                        enabled = canSave,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp)
-                            .testTag("create_deck_save"),
-                        background = if (canSave) CardsColors.Blue else CardsColors.Ice,
-                        ink = if (canSave) Color.White else CardsColors.Muted,
-                        depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
-                    )
-                }
-            } else {
+        // Save Deck Button: full-width blue, pinned at bottom like Start Deck
+        if (isEditing) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 4.dp, bottom = 12.dp),
+            ) {
                 CardsButton(
                     label = "Save Deck",
                     onClick = onSaveDeck,
                     enabled = canSave,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
-                        .testTag("create_deck_save"),
-                    background = if (canSave) CardsColors.Blue else CardsColors.Ice,
+                        .testTag("btn_save_deck"),
+                    background = if (canSave) CardsColors.Blue else CardsColors.Surface,
                     ink = if (canSave) Color.White else CardsColors.Muted,
                     depth = if (canSave) CardsColors.BlueDepth else CardsColors.Edge,
                 )
             }
         }
+        } // end Column
 
-        // Snackbar Host for import notifications
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.BottomCenter,
-        ) {
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier.padding(bottom = 80.dp),
-            )
-        }
-    }
+        // Snackbar Host: overlaid so it doesn't steal layout space from the button
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp),
+        )
+    } // end Box
 
     // Template Download Dialog
     if (showTemplateDialog) {
@@ -1186,8 +1154,7 @@ private fun CardEditorDetailView(
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .navigationBarsPadding(),
+            .background(Color.White),
     ) {
         // Canon Top App Bar
         Box(
@@ -1378,6 +1345,7 @@ private fun CardEditorDetailView(
                     depth = CardsColors.Edge,
                 )
             }
+            Spacer(Modifier.height(32.dp))
         }
 
         // Bottom Full-Width Blue Action Bar: Save
@@ -1388,8 +1356,8 @@ private fun CardEditorDetailView(
                 .drawBehind {
                     drawLine(CardsColors.Edge, Offset(0f, 0f), Offset(size.width, 0f), 1f)
                 }
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
         ) {
             CardsButton(
                 label = "Save",
@@ -1397,7 +1365,7 @@ private fun CardEditorDetailView(
                 enabled = canSave,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(48.dp)
                     .testTag("btn_edit_card_save"),
                 background = if (canSave) CardsColors.Blue else CardsColors.Ice,
                 ink = if (canSave) Color.White else CardsColors.Muted,
@@ -1435,11 +1403,69 @@ private fun CardContextEditorView(
     onEx3EnChange: (String) -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val translationEngine = remember(context) { HybridTranslationEngine.getInstance(context) }
+    var isTranslatingEx1 by remember { mutableStateOf(false) }
+    var isTranslatingEx2 by remember { mutableStateOf(false) }
+    var isTranslatingEx3 by remember { mutableStateOf(false) }
+    var isTranslatingAll by remember { mutableStateOf(false) }
+
+    val autoEx1Romaji = remember(ex1Jp) {
+        if (ex1Jp.isNotBlank()) KanaConverter.toSpacedRomaji(ex1Jp).ifBlank { KanaConverter.toRomaji(KanaConverter.toPureKana(ex1Jp)) } else ""
+    }
+    LaunchedEffect(autoEx1Romaji) {
+        if (autoEx1Romaji != ex1Romaji) {
+            onEx1RomajiChange(autoEx1Romaji)
+        }
+    }
+
+    val autoEx2Romaji = remember(ex2Jp) {
+        if (ex2Jp.isNotBlank()) KanaConverter.toSpacedRomaji(ex2Jp).ifBlank { KanaConverter.toRomaji(KanaConverter.toPureKana(ex2Jp)) } else ""
+    }
+    LaunchedEffect(autoEx2Romaji) {
+        if (autoEx2Romaji != ex2Romaji) {
+            onEx2RomajiChange(autoEx2Romaji)
+        }
+    }
+
+    val autoEx3Romaji = remember(ex3Jp) {
+        if (ex3Jp.isNotBlank()) KanaConverter.toSpacedRomaji(ex3Jp).ifBlank { KanaConverter.toRomaji(KanaConverter.toPureKana(ex3Jp)) } else ""
+    }
+    LaunchedEffect(autoEx3Romaji) {
+        if (autoEx3Romaji != ex3Romaji) {
+            onEx3RomajiChange(autoEx3Romaji)
+        }
+    }
+
+    suspend fun translateSentence(
+        jp: String,
+        en: String,
+        onJp: (String) -> Unit,
+        onEn: (String) -> Unit,
+    ) {
+        if (jp.isNotBlank() && en.isBlank()) {
+            val res = translationEngine.translate(jp, TranslationLanguage.Japanese, TranslationLanguage.English)
+            if (res.translatedText.isNotBlank()) {
+                onEn(res.translatedText.trim().replaceFirstChar { it.uppercase() })
+            }
+        } else if (en.isNotBlank() && jp.isBlank()) {
+            val res = translationEngine.translate(en, TranslationLanguage.English, TranslationLanguage.Japanese)
+            if (res.translatedText.isNotBlank()) {
+                onJp(res.translatedText.trim())
+            }
+        } else if (jp.isNotBlank()) {
+            val res = translationEngine.translate(jp, TranslationLanguage.Japanese, TranslationLanguage.English)
+            if (res.translatedText.isNotBlank()) {
+                onEn(res.translatedText.trim().replaceFirstChar { it.uppercase() })
+            }
+        }
+    }
+
     Column(
         Modifier
             .fillMaxSize()
-            .background(Color.White)
-            .navigationBarsPadding(),
+            .background(Color.White),
     ) {
         // Canon Top App Bar
         Box(
@@ -1522,13 +1548,42 @@ private fun CardContextEditorView(
 
             // Example Sentence 1
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "EXAMPLE SENTENCE 1",
-                    color = CardsColors.Ink,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "EXAMPLE SENTENCE 1",
+                        color = CardsColors.Ink,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                    )
+                    val canTranslate1 = ex1Jp.isNotBlank() || ex1En.isNotBlank()
+                    if (canTranslate1) {
+                        CardsButton(
+                            label = if (isTranslatingEx1) "Translating..." else "Translate",
+                            onClick = {
+                                if (!isTranslatingEx1) {
+                                    coroutineScope.launch {
+                                        isTranslatingEx1 = true
+                                        try {
+                                            translateSentence(ex1Jp, ex1En, onEx1JpChange, onEx1EnChange)
+                                        } finally {
+                                            isTranslatingEx1 = false
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isTranslatingEx1,
+                            modifier = Modifier.testTag("btn_translate_ex1"),
+                            background = CardsColors.Surface,
+                            ink = CardsColors.Blue,
+                            depth = CardsColors.Edge,
+                        )
+                    }
+                }
                 CleanInputBox(
                     value = ex1Jp,
                     onValueChange = onEx1JpChange,
@@ -1537,14 +1592,14 @@ private fun CardContextEditorView(
                         .fillMaxWidth()
                         .testTag("input_ex1_jp"),
                 )
-                CleanInputBox(
-                    value = ex1Romaji,
-                    onValueChange = onEx1RomajiChange,
-                    placeholder = "Romaji (optional)",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_ex1_romaji"),
-                )
+                if (autoEx1Romaji.isNotBlank()) {
+                    Text(
+                        text = autoEx1Romaji,
+                        color = CardsColors.Blue,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 4.dp).testTag("text_ex1_romaji"),
+                    )
+                }
                 CleanInputBox(
                     value = ex1En,
                     onValueChange = onEx1EnChange,
@@ -1557,13 +1612,42 @@ private fun CardContextEditorView(
 
             // Example Sentence 2
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "EXAMPLE SENTENCE 2",
-                    color = CardsColors.Ink,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "EXAMPLE SENTENCE 2",
+                        color = CardsColors.Ink,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                    )
+                    val canTranslate2 = ex2Jp.isNotBlank() || ex2En.isNotBlank()
+                    if (canTranslate2) {
+                        CardsButton(
+                            label = if (isTranslatingEx2) "Translating..." else "Translate",
+                            onClick = {
+                                if (!isTranslatingEx2) {
+                                    coroutineScope.launch {
+                                        isTranslatingEx2 = true
+                                        try {
+                                            translateSentence(ex2Jp, ex2En, onEx2JpChange, onEx2EnChange)
+                                        } finally {
+                                            isTranslatingEx2 = false
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isTranslatingEx2,
+                            modifier = Modifier.testTag("btn_translate_ex2"),
+                            background = CardsColors.Surface,
+                            ink = CardsColors.Blue,
+                            depth = CardsColors.Edge,
+                        )
+                    }
+                }
                 CleanInputBox(
                     value = ex2Jp,
                     onValueChange = onEx2JpChange,
@@ -1572,14 +1656,14 @@ private fun CardContextEditorView(
                         .fillMaxWidth()
                         .testTag("input_ex2_jp"),
                 )
-                CleanInputBox(
-                    value = ex2Romaji,
-                    onValueChange = onEx2RomajiChange,
-                    placeholder = "Romaji (optional)",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_ex2_romaji"),
-                )
+                if (autoEx2Romaji.isNotBlank()) {
+                    Text(
+                        text = autoEx2Romaji,
+                        color = CardsColors.Blue,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 4.dp).testTag("text_ex2_romaji"),
+                    )
+                }
                 CleanInputBox(
                     value = ex2En,
                     onValueChange = onEx2EnChange,
@@ -1592,13 +1676,42 @@ private fun CardContextEditorView(
 
             // Example Sentence 3
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "EXAMPLE SENTENCE 3",
-                    color = CardsColors.Ink,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "EXAMPLE SENTENCE 3",
+                        color = CardsColors.Ink,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                    )
+                    val canTranslate3 = ex3Jp.isNotBlank() || ex3En.isNotBlank()
+                    if (canTranslate3) {
+                        CardsButton(
+                            label = if (isTranslatingEx3) "Translating..." else "Translate",
+                            onClick = {
+                                if (!isTranslatingEx3) {
+                                    coroutineScope.launch {
+                                        isTranslatingEx3 = true
+                                        try {
+                                            translateSentence(ex3Jp, ex3En, onEx3JpChange, onEx3EnChange)
+                                        } finally {
+                                            isTranslatingEx3 = false
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isTranslatingEx3,
+                            modifier = Modifier.testTag("btn_translate_ex3"),
+                            background = CardsColors.Surface,
+                            ink = CardsColors.Blue,
+                            depth = CardsColors.Edge,
+                        )
+                    }
+                }
                 CleanInputBox(
                     value = ex3Jp,
                     onValueChange = onEx3JpChange,
@@ -1607,14 +1720,14 @@ private fun CardContextEditorView(
                         .fillMaxWidth()
                         .testTag("input_ex3_jp"),
                 )
-                CleanInputBox(
-                    value = ex3Romaji,
-                    onValueChange = onEx3RomajiChange,
-                    placeholder = "Romaji (optional)",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("input_ex3_romaji"),
-                )
+                if (autoEx3Romaji.isNotBlank()) {
+                    Text(
+                        text = autoEx3Romaji,
+                        color = CardsColors.Blue,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 4.dp).testTag("text_ex3_romaji"),
+                    )
+                }
                 CleanInputBox(
                     value = ex3En,
                     onValueChange = onEx3EnChange,
@@ -1624,9 +1737,10 @@ private fun CardContextEditorView(
                         .testTag("input_ex3_en"),
                 )
             }
+            Spacer(Modifier.height(32.dp))
         }
 
-        // Bottom Full-Width Blue Action Bar: Done
+        // Bottom Full-Width Blue Action Bar: Save (matching Add Card screen)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1634,15 +1748,16 @@ private fun CardContextEditorView(
                 .drawBehind {
                     drawLine(CardsColors.Edge, Offset(0f, 0f), Offset(size.width, 0f), 1f)
                 }
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))
+                .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
         ) {
             CardsButton(
-                label = "Done",
+                label = "Save",
                 onClick = onBack,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
+                    .height(48.dp)
+                    .testTag("btn_card_context_save")
                     .testTag("btn_card_context_done"),
                 background = CardsColors.Blue,
                 ink = Color.White,

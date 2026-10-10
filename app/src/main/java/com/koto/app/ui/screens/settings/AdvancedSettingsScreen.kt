@@ -255,21 +255,6 @@ fun AdvancedSettingsContent(
                 )
             }
 
-            HairlineRowDivider()
-
-            val currentEnFont = FontCatalog.findEnglishFont(state.englishFontId)
-            SettingsRow(
-                title = "English Font",
-                testTag = "row_english_font",
-            ) {
-                FontBadgePill(
-                    sampleGlyph = currentEnFont.sampleGlyph,
-                    fontFamily = currentEnFont.fontFamily,
-                    onClick = { fontPickerTarget = FontPickerType.ENGLISH },
-                    testTag = "badge_english_font",
-                )
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
 
             // ================= 2. AUDIO & SPEECH =================
@@ -336,32 +321,6 @@ fun AdvancedSettingsContent(
             CategoryHeader(title = "STUDY & CARD INTERACTION")
 
             SettingsRow(
-                title = "Reveal Furigana on Tap",
-                testTag = "row_reveal_furigana",
-            ) {
-                BinaryToggleControl(
-                    checked = state.revealFuriganaOnTap,
-                    onCheckedChange = onRevealFuriganaChange,
-                    testTag = "toggle_reveal_furigana",
-                )
-            }
-
-            HairlineRowDivider()
-
-            SettingsRow(
-                title = "Kanji Lookup on Hold",
-                testTag = "row_kanji_lookup",
-            ) {
-                BinaryToggleControl(
-                    checked = state.kanjiLookupOnHold,
-                    onCheckedChange = onKanjiLookupChange,
-                    testTag = "toggle_kanji_lookup",
-                )
-            }
-
-            HairlineRowDivider()
-
-            SettingsRow(
                 title = "Card Flip Animation",
                 testTag = "row_card_flip",
             ) {
@@ -372,54 +331,9 @@ fun AdvancedSettingsContent(
                 )
             }
 
-            HairlineRowDivider()
-
-            SettingsRow(
-                title = "Retry Failed Cards",
-                testTag = "row_retry_failed",
-            ) {
-                SegmentedChoiceToggle(
-                    options = listOf("SOON", "LATER"),
-                    selectedIndex = if (state.retryFailedCards == RetryFailedCardsPolicy.SOON) 0 else 1,
-                    onSelect = { index ->
-                        onRetryPolicyChange(if (index == 0) RetryFailedCardsPolicy.SOON else RetryFailedCardsPolicy.END)
-                    },
-                    testTag = "toggle_retry_failed",
-                )
-            }
-
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ================= 4. CUSTOM DECK CREATION =================
-            CategoryHeader(title = "CUSTOM DECK CREATION")
-
-            SettingsRow(
-                title = "Auto-Fill Other Side",
-                testTag = "row_auto_fill",
-            ) {
-                BinaryToggleControl(
-                    checked = state.autoFillOtherSide,
-                    onCheckedChange = onAutoFillChange,
-                    testTag = "toggle_auto_fill",
-                )
-            }
-
-            HairlineRowDivider()
-
-            SettingsRow(
-                title = "Auto-Generate Furigana",
-                testTag = "row_auto_generate",
-            ) {
-                BinaryToggleControl(
-                    checked = state.autoGenerateFurigana,
-                    onCheckedChange = onAutoGenerateFuriganaChange,
-                    testTag = "toggle_auto_generate",
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // ================= 5. STORAGE & DATA =================
+            // ================= 4. STORAGE & DATA =================
             CategoryHeader(title = "STORAGE & DATA")
 
             SettingsRow(
