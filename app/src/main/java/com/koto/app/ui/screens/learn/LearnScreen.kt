@@ -53,11 +53,13 @@ fun LearnScreen(
             // 1. Translate (Primary Action Banner - Full-Width Blue)
             LearnFeatureCard(
                 title = "Translate",
+                subtitle = "English ⇄ Japanese",
                 iconRes = R.drawable.ic_swap,
                 faceColor = CardsColors.Blue,
                 depthColor = CardsColors.BlueDepth,
                 buttonTag = "learn_translate_button",
                 titleTag = "learn_translate_title",
+                subtitleTag = "learn_translate_subtitle",
                 onClick = onOpenTranslator,
             )
 
@@ -121,11 +123,13 @@ fun LearnScreen(
 @Composable
 private fun LearnFeatureCard(
     title: String,
+    subtitle: String? = null,
     iconRes: Int,
     faceColor: Color,
     depthColor: Color,
     buttonTag: String,
     titleTag: String,
+    subtitleTag: String? = null,
     onClick: () -> Unit,
 ) {
     CardsPressable(
@@ -151,16 +155,28 @@ private fun LearnFeatureCard(
 
             Spacer(Modifier.width(18.dp))
 
-            // Title centered vertically with icon and arrow
-            Text(
-                text = title,
-                color = Color.White,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .weight(1f)
-                    .testTag(titleTag),
-            )
+            // Title & Subtitle centered vertically with icon and arrow
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    text = title,
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.testTag(titleTag),
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Normal,
+                        modifier = if (subtitleTag != null) Modifier.testTag(subtitleTag) else Modifier,
+                    )
+                }
+            }
 
             // Arrow forward indicator (crisp line art)
             Icon(

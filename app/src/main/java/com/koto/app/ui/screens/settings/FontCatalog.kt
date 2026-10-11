@@ -15,14 +15,6 @@ data class AppFont(
 object FontCatalog {
     val englishFonts: List<AppFont> = listOf(
         AppFont("inter_roboto", "Inter / Roboto", "a", FontFamily(Font(R.font.font_inter))),
-        AppFont("plus_jakarta_sans", "Plus Jakarta Sans", "a", FontFamily(Font(R.font.font_plus_jakarta_sans))),
-        AppFont("outfit", "Outfit", "a", FontFamily(Font(R.font.font_outfit))),
-        AppFont("nunito", "Nunito", "a", FontFamily(Font(R.font.font_nunito))),
-        AppFont("manrope", "Manrope", "a", FontFamily(Font(R.font.font_manrope))),
-        AppFont("dm_sans", "DM Sans", "a", FontFamily(Font(R.font.font_dm_sans))),
-        AppFont("lexend_deca", "Lexend Deca", "a", FontFamily(Font(R.font.font_lexend_deca))),
-        AppFont("rubik", "Rubik", "a", FontFamily(Font(R.font.font_rubik))),
-        AppFont("urbanist", "Urbanist", "a", FontFamily(Font(R.font.font_urbanist))),
     )
 
     val japaneseFonts: List<AppFont> = listOf(

@@ -29,7 +29,7 @@ import com.koto.app.feature.cards.data.db.StarredCardEntity
         CardSrsEntity::class,
         FsrsReviewLogEntity::class,
     ],
-    version = 8,
+    version = 10,
     exportSchema = false,
 )
 abstract class KotoDatabase : RoomDatabase() {
@@ -82,6 +82,20 @@ abstract class KotoDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE custom_cards ADD COLUMN kanji TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_card_srs_due` ON `card_srs` (`due`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_starred_cards_deckId` ON `starred_cards` (`deckId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_translation_cards_japanese_english` ON `translation_cards` (`japanese`, `english`)")
+            }
+        }
+
         fun getInstance(context: Context): KotoDatabase {
             return instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -89,8 +103,7 @@ abstract class KotoDatabase : RoomDatabase() {
                     KotoDatabase::class.java,
                     "koto_local.db",
                 )
-                .addMigrations(MIGRATION_7_8)
-                .allowMainThreadQueries()
+                .addMigrations(MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .fallbackToDestructiveMigration()
                 .build()
                 .also { instance = it }

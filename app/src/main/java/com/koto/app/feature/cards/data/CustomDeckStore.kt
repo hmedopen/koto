@@ -5,15 +5,14 @@ import com.koto.app.feature.cards.data.db.CustomCardEntity
 import com.koto.app.feature.cards.data.db.CustomDeckDao
 import com.koto.app.feature.cards.data.db.CustomDeckEntity
 import com.koto.app.feature.cards.data.db.CustomDeckWithCards
-import com.koto.app.feature.translator.data.KanaConverter
 import com.koto.app.feature.translator.data.db.KotoDatabase
-import com.koto.app.ui.screens.cards.CardContext
 import com.koto.app.ui.screens.cards.CardContextLoader
-import com.koto.app.ui.screens.cards.CardExample
 import com.koto.app.ui.screens.cards.Flashcard
 import com.koto.app.ui.screens.cards.FlashcardDeck
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 
 data class CustomCardItem(
     val id: String = "",
@@ -31,6 +30,7 @@ data class CustomCardItem(
     val example3Romaji: String = "",
     val example3English: String = "",
     val notes: String = "",
+    val kanji: String = "",
 ) {
     val example1Kana: String get() = exampleKana
     val example1Romaji: String get() = exampleRomaji
@@ -52,35 +52,17 @@ class CustomDeckStore(context: Context) {
         }
     }
 
-    fun loadCustomDecks(): List<FlashcardDeck> {
+    fun loadCustomDecks(): List<FlashcardDeck> = runBlocking(Dispatchers.IO) {
         val list = runCatching { dao.getAllDecksWithCards() }.getOrElse { emptyList() }
-        return list.map { withCards ->
+        list.map { withCards ->
             registerCardsContext(withCards.cards)
             withCards.toFlashcardDeck()
         }
     }
 
-    fun getDeckCardsDetails(deckId: String): List<CustomCardItem> {
-        val withCards = runCatching { dao.getDeckWithCards(deckId) }.getOrNull() ?: return emptyList()
-        return withCards.cards.sortedBy { it.orderIndex }.map { entity ->
-            CustomCardItem(
-                id = entity.id,
-                japanese = entity.japanese,
-                romaji = entity.romaji,
-                english = entity.english,
-                furigana = entity.furigana,
-                exampleKana = entity.exampleKana,
-                exampleRomaji = entity.exampleRomaji,
-                exampleEnglish = entity.exampleEnglish,
-                example2Kana = entity.example2Kana,
-                example2Romaji = entity.example2Romaji,
-                example2English = entity.example2English,
-                example3Kana = entity.example3Kana,
-                example3Romaji = entity.example3Romaji,
-                example3English = entity.example3English,
-                notes = entity.notes,
-            )
-        }
+    fun getDeckCardsDetails(deckId: String): List<CustomCardItem> = runBlocking(Dispatchers.IO) {
+        val withCards = runCatching { dao.getDeckWithCards(deckId) }.getOrNull() ?: return@runBlocking emptyList()
+        withCards.cards.sortedBy { it.orderIndex }.map { it.toCustomCardItem() }
     }
 
     fun saveDeck(
@@ -88,7 +70,7 @@ class CustomDeckStore(context: Context) {
         title: String,
         icon: String = CUSTOM_DECK_ICON,
         cards: List<CustomCardItem>,
-    ): FlashcardDeck {
+    ): FlashcardDeck = runBlocking(Dispatchers.IO) {
         val effectiveDeckId = if (!deckId.isNullOrBlank()) deckId else "custom_deck_${System.currentTimeMillis()}"
         val cleanTitle = title.trim()
         val cleanIcon = CUSTOM_DECK_ICON
@@ -105,74 +87,19 @@ class CustomDeckStore(context: Context) {
         )
 
         val cardEntities = cards.mapIndexed { index, item ->
-            val cardId = if (item.id.isNotBlank()) item.id else "${effectiveDeckId}_card_${index}_${now}"
-            val cleanJapanese = item.japanese.trim()
-            val romaji = if (item.romaji.isNotBlank()) {
-                item.romaji.trim()
-            } else {
-                KanaConverter.toRomaji(KanaConverter.toPureKana(cleanJapanese))
-            }
-            val pureEx1Kana = item.exampleKana.trim()
-            val ex1Romaji = if (item.exampleRomaji.isNotBlank()) {
-                item.exampleRomaji.trim()
-            } else if (pureEx1Kana.isNotBlank()) {
-                KanaConverter.toRomaji(KanaConverter.toPureKana(pureEx1Kana))
-            } else {
-                ""
-            }
-            val pureEx2Kana = item.example2Kana.trim()
-            val ex2Romaji = if (item.example2Romaji.isNotBlank()) {
-                item.example2Romaji.trim()
-            } else if (pureEx2Kana.isNotBlank()) {
-                KanaConverter.toRomaji(KanaConverter.toPureKana(pureEx2Kana))
-            } else {
-                ""
-            }
-            val pureEx3Kana = item.example3Kana.trim()
-            val ex3Romaji = if (item.example3Romaji.isNotBlank()) {
-                item.example3Romaji.trim()
-            } else if (pureEx3Kana.isNotBlank()) {
-                KanaConverter.toRomaji(KanaConverter.toPureKana(pureEx3Kana))
-            } else {
-                ""
-            }
-
-            CustomCardEntity(
-                id = cardId,
+            item.toCustomCardEntity(
                 deckId = effectiveDeckId,
-                japanese = cleanJapanese,
-                romaji = romaji,
-                english = item.english.trim(),
-                furigana = item.furigana.trim(),
-                exampleKana = pureEx1Kana,
-                exampleRomaji = ex1Romaji,
-                exampleEnglish = item.exampleEnglish.trim(),
-                example2Kana = pureEx2Kana,
-                example2Romaji = ex2Romaji,
-                example2English = item.example2English.trim(),
-                example3Kana = pureEx3Kana,
-                example3Romaji = ex3Romaji,
-                example3English = item.example3English.trim(),
-                notes = item.notes.trim(),
                 orderIndex = index,
                 createdAt = now,
             )
         }
 
-            dao.saveDeckWithCards(deckEntity, cardEntities)
-            registerCardsContext(cardEntities)
+        dao.saveDeckWithCards(deckEntity, cardEntities)
+        registerCardsContext(cardEntities)
 
-            val flashcards = cardEntities.map { entity ->
-                Flashcard(
-                    id = entity.id,
-                    japanese = entity.japanese,
-                    romaji = entity.romaji,
-                    english = entity.english,
-                    furigana = entity.furigana.takeIf { it.isNotBlank() },
-                )
-            }
+        val flashcards = cardEntities.map { it.toFlashcard() }
 
-        return FlashcardDeck(
+        FlashcardDeck(
             id = effectiveDeckId,
             title = cleanTitle,
             icon = cleanIcon,
@@ -183,11 +110,11 @@ class CustomDeckStore(context: Context) {
         )
     }
 
-    fun addCardsToDeck(deckId: String, newCards: List<CustomCardItem>): FlashcardDeck? {
-        val withCards = runCatching { dao.getDeckWithCards(deckId) }.getOrNull() ?: return null
+    fun addCardsToDeck(deckId: String, newCards: List<CustomCardItem>): FlashcardDeck? = runBlocking(Dispatchers.IO) {
+        val withCards = runCatching { dao.getDeckWithCards(deckId) }.getOrNull() ?: return@runBlocking null
         val existingCards = getDeckCardsDetails(deckId)
         val combined = existingCards + newCards
-        return saveDeck(
+        saveDeck(
             deckId = deckId,
             title = withCards.deck.title,
             icon = CUSTOM_DECK_ICON,
@@ -195,7 +122,7 @@ class CustomDeckStore(context: Context) {
         )
     }
 
-    fun deleteDeck(deckId: String) {
+    fun deleteDeck(deckId: String) = runBlocking(Dispatchers.IO) {
         val withCards = runCatching { dao.getDeckWithCards(deckId) }.getOrNull()
         if (withCards != null) {
             for (card in withCards.cards) {
@@ -207,67 +134,10 @@ class CustomDeckStore(context: Context) {
 
     private fun registerCardsContext(cards: List<CustomCardEntity>) {
         for (card in cards) {
-            val examples = mutableListOf<CardExample>()
-            if (card.exampleKana.isNotBlank() || card.exampleEnglish.isNotBlank()) {
-                examples.add(
-                    CardExample(
-                        kana = card.exampleKana,
-                        romaji = card.exampleRomaji,
-                        english = card.exampleEnglish,
-                    )
-                )
-            }
-            if (card.example2Kana.isNotBlank() || card.example2English.isNotBlank()) {
-                examples.add(
-                    CardExample(
-                        kana = card.example2Kana,
-                        romaji = card.example2Romaji,
-                        english = card.example2English,
-                    )
-                )
-            }
-            if (card.example3Kana.isNotBlank() || card.example3English.isNotBlank()) {
-                examples.add(
-                    CardExample(
-                        kana = card.example3Kana,
-                        romaji = card.example3Romaji,
-                        english = card.example3English,
-                    )
-                )
-            }
-
             CardContextLoader.registerContext(
                 cardId = card.id,
-                context = CardContext(
-                    cardId = card.id,
-                    kana = card.japanese,
-                    romaji = card.romaji,
-                    english = card.english,
-                    usageNote = card.notes,
-                    examples = examples,
-                ),
+                context = card.toCardContext(),
             )
         }
-    }
-
-    private fun CustomDeckWithCards.toFlashcardDeck(): FlashcardDeck {
-        val sortedCards = cards.sortedBy { it.orderIndex }
-        return FlashcardDeck(
-            id = deck.id,
-            title = deck.title,
-            icon = CUSTOM_DECK_ICON,
-            cards = sortedCards.map { entity ->
-                Flashcard(
-                    id = entity.id,
-                    japanese = entity.japanese,
-                    romaji = entity.romaji,
-                    english = entity.english,
-                    furigana = entity.furigana.takeIf { it.isNotBlank() },
-                )
-            },
-            number = deck.number,
-            category = deck.category,
-            tier = 1,
-        )
     }
 }

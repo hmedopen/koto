@@ -20,12 +20,12 @@ interface TranslationCardDao {
     @Query("DELETE FROM translation_cards WHERE id = :id")
     fun deleteById(id: String): Int
 
-    @Query("DELETE FROM translation_cards WHERE (TRIM(japanese) = TRIM(:japanese) AND TRIM(english) = TRIM(:english)) OR (TRIM(japanese) = TRIM(:english) AND TRIM(english) = TRIM(:japanese))")
+    @Query("DELETE FROM translation_cards WHERE (japanese = :japanese AND english = :english) OR (japanese = :english AND english = :japanese)")
     fun deleteByPair(japanese: String, english: String): Int
 
     @Query("DELETE FROM translation_cards")
     fun clearAll()
 
-    @Query("SELECT EXISTS(SELECT 1 FROM translation_cards WHERE (TRIM(japanese) = TRIM(:japanese) AND TRIM(english) = TRIM(:english)) OR (TRIM(japanese) = TRIM(:english) AND TRIM(english) = TRIM(:japanese)))")
+    @Query("SELECT EXISTS(SELECT 1 FROM translation_cards WHERE (japanese = :japanese AND english = :english) OR (japanese = :english AND english = :japanese))")
     fun isStarred(japanese: String, english: String): Boolean
 }

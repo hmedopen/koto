@@ -39,15 +39,21 @@ interface CustomDeckDao {
     @Query("DELETE FROM custom_cards WHERE deckId = :deckId")
     fun deleteCardsByDeckId(deckId: String)
 
+    @Query("DELETE FROM custom_cards WHERE deckId = :deckId AND id NOT IN (:activeCardIds)")
+    fun deleteCardsNotInList(deckId: String, activeCardIds: List<String>)
+
     @Query("DELETE FROM custom_decks WHERE id = :deckId")
     fun deleteDeckById(deckId: String)
 
     @Transaction
     fun saveDeckWithCards(deck: CustomDeckEntity, cards: List<CustomCardEntity>) {
         insertDeck(deck)
-        deleteCardsByDeckId(deck.id)
         if (cards.isNotEmpty()) {
+            val activeIds = cards.map { it.id }
+            deleteCardsNotInList(deck.id, activeIds)
             insertCards(cards)
+        } else {
+            deleteCardsByDeckId(deck.id)
         }
     }
 }

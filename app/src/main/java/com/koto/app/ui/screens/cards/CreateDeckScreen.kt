@@ -217,12 +217,15 @@ fun CreateDeckScreen(
                             val jp = quickKana.trim()
                             val en = quickEnglish.trim()
                             if (jp.isNotBlank() && en.isNotBlank()) {
-                                val rom = KanaConverter.toRomaji(KanaConverter.toPureKana(jp))
+                                val pureKana = KanaConverter.toPureKana(jp)
+                                val rom = KanaConverter.toRomaji(pureKana)
+                                val kanji = if (KanaConverter.containsKanji(jp)) jp else ""
                                 val newCard = CustomCardItem(
                                     id = "card_${System.currentTimeMillis()}_${cardsList.size}",
-                                    japanese = jp,
+                                    japanese = if (kanji.isNotBlank()) pureKana else jp,
                                     romaji = rom,
                                     english = en,
+                                    kanji = kanji,
                                 )
                                 cardsList = cardsList + newCard
                                 quickKana = ""
@@ -231,7 +234,7 @@ fun CreateDeckScreen(
                         },
                         onEditCard = { card ->
                             editingCardId = card.id
-                            editorKana = card.japanese
+                            editorKana = if (card.kanji.isNotBlank()) card.kanji else card.japanese
                             editorEnglish = card.english
                             editorNotes = card.notes ?: ""
                             editorEx1Jp = card.example1Kana ?: ""
@@ -301,13 +304,16 @@ fun CreateDeckScreen(
                             val jp = editorKana.trim()
                             val en = editorEnglish.trim()
                             if (jp.isNotBlank() && en.isNotBlank()) {
-                                val rom = KanaConverter.toRomaji(KanaConverter.toPureKana(jp))
+                                val pureKana = KanaConverter.toPureKana(jp)
+                                val rom = KanaConverter.toRomaji(pureKana)
+                                val kanji = if (KanaConverter.containsKanji(jp)) jp else ""
                                 val updatedCard = CustomCardItem(
                                     id = editingCardId ?: "card_${System.currentTimeMillis()}_${cardsList.size}",
-                                    japanese = jp,
+                                    japanese = if (kanji.isNotBlank()) pureKana else jp,
                                     furigana = "",
                                     romaji = rom,
                                     english = en,
+                                    kanji = kanji,
                                     notes = editorNotes.trim(),
                                     exampleKana = editorEx1Jp.trim(),
                                     exampleRomaji = editorEx1Romaji.trim().ifEmpty {

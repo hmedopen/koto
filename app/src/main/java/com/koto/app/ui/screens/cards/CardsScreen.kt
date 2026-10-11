@@ -50,7 +50,10 @@ import com.koto.app.R
 import com.koto.app.feature.cards.data.CustomDeckStore
 import com.koto.app.feature.cards.data.DeckFavoriteStore
 import com.koto.app.feature.translator.data.TranslatorCardStore
+import com.koto.app.feature.translator.model.SavedTranslationCard
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 private enum class CardsStage {
@@ -84,17 +87,26 @@ fun CardsScreen(
     val customDeckStore = remember(context) { CustomDeckStore(context) }
     val deckFavoriteStore = remember(context) { DeckFavoriteStore(context) }
     val coroutineScope = rememberCoroutineScope()
-    var starredTranslationCards by remember { mutableStateOf(cardStore.loadStarredCards()) }
-    var customDecks by remember { mutableStateOf(customDeckStore.loadCustomDecks()) }
+    var starredTranslationCards by remember { mutableStateOf<List<SavedTranslationCard>>(emptyList()) }
+    var customDecks by remember { mutableStateOf<List<FlashcardDeck>>(emptyList()) }
 
     var state by rememberSaveable(stateSaver = FlashcardState.Saver) {
-        val initialSrs = srsStore.loadAll()
-        val initialPinned = deckFavoriteStore.loadBookmarkedDeckIds()
-        val initialFavorites = deckFavoriteStore.loadStarredCardIds()
-        mutableStateOf(FlashcardState(srsRecords = initialSrs, pinned = initialPinned, favorites = initialFavorites))
+        mutableStateOf(FlashcardState())
     }
 
     LaunchedEffect(Unit) {
+        launch(Dispatchers.IO) {
+            val initialSrs = srsStore.loadAll()
+            val initialPinned = deckFavoriteStore.loadBookmarkedDeckIds()
+            val initialFavorites = deckFavoriteStore.loadStarredCardIds()
+            withContext(Dispatchers.Main) {
+                state = state.copy(
+                    srsRecords = initialSrs,
+                    pinned = initialPinned,
+                    favorites = initialFavorites,
+                )
+            }
+        }
         launch {
             cardStore.starredCardsFlow.collect { cards ->
                 starredTranslationCards = cards
@@ -233,11 +245,15 @@ fun CardsScreen(
         }
     }
     val pinDeck: (String) -> Unit = remember(deckFavoriteStore) { { deckId ->
-        deckFavoriteStore.toggleDeckBookmark(deckId)
+        coroutineScope.launch(Dispatchers.IO) {
+            deckFavoriteStore.toggleDeckBookmark(deckId)
+        }
         state = state.pin(deckId)
     } }
     val favoriteCard: (String) -> Unit = remember(deckFavoriteStore) { { cardId ->
-        deckFavoriteStore.toggleCardStar(cardId)
+        coroutineScope.launch(Dispatchers.IO) {
+            deckFavoriteStore.toggleCardStar(cardId)
+        }
         state = state.favorite(cardId)
     } }
 
@@ -304,13 +320,15 @@ fun CardsScreen(
                                 showCreateDeck = true
                             },
                             onDeleteDeck = { deckId ->
-                                coroutineScope.launch {
+                                coroutineScope.launch(Dispatchers.IO) {
                                     if (deckId == "deck_quick_translations") {
                                         cardStore.clearAll()
                                     } else {
                                         customDeckStore.deleteDeck(deckId)
                                     }
-                                    state = state.back()
+                                    withContext(Dispatchers.Main) {
+                                        state = state.back()
+                                    }
                                 }
                             },
                             onAddCard = { deckId ->
@@ -363,11 +381,13 @@ fun CardsScreen(
                             openDeck(savedDeck)
                         },
                         onDeleteDeck = { deckId ->
-                            coroutineScope.launch {
+                            coroutineScope.launch(Dispatchers.IO) {
                                 customDeckStore.deleteDeck(deckId)
-                                showCreateDeck = false
-                                editingCustomDeckId = null
-                                state = state.back()
+                                withContext(Dispatchers.Main) {
+                                    showCreateDeck = false
+                                    editingCustomDeckId = null
+                                    state = state.back()
+                                }
                             }
                         },
                     )

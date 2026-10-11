@@ -34,8 +34,11 @@ data class SpreadsheetCard(
     val example3: String? = null,
 ) {
     fun toCustomCardItem(idPrefix: String = "import"): CustomCardItem {
+        val cleanJp = japanese.trim()
+        val pureKana = KanaConverter.toPureKana(cleanJp)
+        val kanji = if (KanaConverter.containsKanji(cleanJp)) cleanJp else ""
         val calculatedRomaji = romaji?.takeIf { it.isNotBlank() }
-            ?: KanaConverter.toRomaji(KanaConverter.toPureKana(japanese))
+            ?: KanaConverter.toRomaji(pureKana)
 
         fun parseExample(raw: String?): Triple<String, String, String> {
             if (raw.isNullOrBlank()) return Triple("", "", "")
@@ -58,7 +61,7 @@ data class SpreadsheetCard(
 
         return CustomCardItem(
             id = "${idPrefix}_${System.currentTimeMillis()}_${(1000..9999).random()}",
-            japanese = japanese,
+            japanese = cleanJp,
             romaji = calculatedRomaji,
             english = english,
             furigana = furigana ?: "",
@@ -72,6 +75,7 @@ data class SpreadsheetCard(
             example3Romaji = ex3Rom,
             example3English = ex3En,
             notes = notes ?: "",
+            kanji = kanji,
         )
     }
 }

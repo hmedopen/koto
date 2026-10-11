@@ -89,17 +89,22 @@ object CardContextLoader {
         }
         cachedData?.let { return it }
 
-        val jsonString = readJsonString(context ?: appContext) ?: return emptyMap()
-        val parsed = parseJson(jsonString)
+        val stream = openInputStream(context ?: appContext) ?: return emptyMap()
+        val parsed = runCatching {
+            stream.bufferedReader(Charsets.UTF_8).use { reader ->
+                parseJsonStream(reader)
+            }
+        }.getOrNull() ?: emptyMap()
+
         cachedData = parsed
         return parsed
     }
 
-    private fun readJsonString(context: Context?): String? {
+    private fun openInputStream(context: Context?): java.io.InputStream? {
         val ctx = context ?: appContext
         if (ctx != null) {
             runCatching {
-                ctx.assets.open(ASSET_FILE).bufferedReader(Charsets.UTF_8).use { it.readText() }
+                ctx.assets.open(ASSET_FILE)
             }.getOrNull()?.let { return it }
         }
 
@@ -108,153 +113,101 @@ object CardContextLoader {
             File("src/main/assets/$ASSET_FILE"),
             File("app/src/main/assets/$ASSET_FILE"),
             File("../app/src/main/assets/$ASSET_FILE"),
-            File("c:/Users/HMED OPEN/Documents/koto/koto the project/app/src/main/assets/$ASSET_FILE"),
         )
         for (f in candidates) {
             if (f.exists() && f.isFile) {
-                return runCatching { f.readText(Charsets.UTF_8) }.getOrNull()
+                return runCatching { f.inputStream() }.getOrNull()
             }
         }
 
-        val stream = javaClass.classLoader?.getResourceAsStream(ASSET_FILE)
+        return javaClass.classLoader?.getResourceAsStream(ASSET_FILE)
             ?: javaClass.classLoader?.getResourceAsStream("assets/$ASSET_FILE")
-        if (stream != null) {
-            return runCatching { stream.bufferedReader(Charsets.UTF_8).use { it.readText() } }.getOrNull()
-        }
-
-        return null
     }
 
-    private fun parseJson(jsonString: String): Map<String, CardContext> {
-        val jsonResult = runCatching {
-            val root = JSONObject(jsonString)
-            val result = mutableMapOf<String, CardContext>()
-            val keys = root.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                val obj = root.getJSONObject(key)
-                val cardId = obj.optString("cardId", "")
-                val kana = obj.optString("kana")
-                val kanji = obj.optString("kanji", "").takeIf { it.isNotBlank() }
-                val romaji = obj.optString("romaji")
-                val english = obj.optString("english")
-                val usageNote = obj.optString("usageNote")
-                val examplesArray = obj.optJSONArray("examples")
-                val examples = mutableListOf<CardExample>()
-                if (examplesArray != null) {
-                    for (i in 0 until examplesArray.length()) {
-                        val ex = examplesArray.getJSONObject(i)
-                        examples.add(
-                            CardExample(
-                                kana = ex.optString("kana"),
-                                romaji = ex.optString("romaji"),
-                                english = ex.optString("english"),
-                                kanji = ex.optString("kanji", "").takeIf { it.isNotBlank() },
-                            ),
-                        )
-                    }
-                }
-                result[key] = CardContext(
-                    cardId = cardId,
-                    kana = kana,
-                    romaji = romaji,
-                    english = english,
-                    usageNote = usageNote,
-                    examples = examples,
-                    kanji = kanji,
-                )
-            }
-            result
-        }.getOrNull()
-
-        if (jsonResult != null && jsonResult.isNotEmpty()) {
-            return jsonResult
+    private fun parseJsonStream(reader: java.io.Reader): Map<String, CardContext> {
+        val jsonReader = android.util.JsonReader(reader).apply { isLenient = true }
+        val result = HashMap<String, CardContext>(3800)
+        jsonReader.beginObject()
+        while (jsonReader.hasNext()) {
+            if (jsonReader.peek() == android.util.JsonToken.END_OBJECT) break
+            val key = jsonReader.nextName()
+            val ctx = readCardContext(jsonReader)
+            result[key] = ctx
         }
-
-        return parseJsonFallback(jsonString)
-    }
-
-    private fun parseJsonFallback(jsonString: String): Map<String, CardContext> {
-        val result = mutableMapOf<String, CardContext>()
-
-        for (line in jsonString.lineSequence()) {
-            val trimmed = line.trim().removeSuffix(",")
-            if (!trimmed.startsWith("\"") || !trimmed.contains("\": {")) continue
-
-            val keyEnd = trimmed.indexOf("\": {")
-            if (keyEnd == -1) continue
-            val key = unescapeJson(trimmed.substring(1, keyEnd))
-            val body = trimmed.substring(keyEnd + 3)
-
-            val cardId = extractJsonString(body, "cardId")
-            val kana = extractJsonString(body, "kana")
-            val kanji = extractJsonString(body, "kanji").takeIf { it.isNotBlank() }
-            val romaji = extractJsonString(body, "romaji")
-            val english = extractJsonString(body, "english")
-            val usageNote = extractJsonString(body, "usageNote")
-
-            val examples = mutableListOf<CardExample>()
-            val exStart = body.indexOf("\"examples\":[")
-            if (exStart != -1) {
-                val exContent = body.substring(exStart + "\"examples\":[".length).substringBefore("]")
-                var searchFrom = 0
-                while (searchFrom < exContent.length) {
-                    val objStart = exContent.indexOf("{", searchFrom)
-                    if (objStart == -1) break
-                    val objEnd = exContent.indexOf("}", objStart)
-                    if (objEnd == -1) break
-                    val exStr = exContent.substring(objStart, objEnd + 1)
-                    examples.add(
-                        CardExample(
-                            kana = extractJsonString(exStr, "kana"),
-                            romaji = extractJsonString(exStr, "romaji"),
-                            english = extractJsonString(exStr, "english"),
-                            kanji = extractJsonString(exStr, "kanji").takeIf { it.isNotBlank() },
-                        ),
-                    )
-                    searchFrom = objEnd + 1
-                }
-            }
-
-            result[key] = CardContext(cardId, kana, romaji, english, usageNote, examples, kanji)
-        }
+        jsonReader.endObject()
         return result
     }
 
-    private fun extractJsonString(source: String, key: String): String {
-        val search = "\"$key\":\""
-        val startIdx = source.indexOf(search)
-        if (startIdx == -1) return ""
-        val valStart = startIdx + search.length
-        val sb = StringBuilder()
-        var i = valStart
-        while (i < source.length) {
-            val c = source[i]
-            if (c == '\\' && i + 1 < source.length) {
-                when (val next = source[i + 1]) {
-                    '"' -> sb.append('"')
-                    '\\' -> sb.append('\\')
-                    'n' -> sb.append('\n')
-                    'r' -> sb.append('\r')
-                    't' -> sb.append('\t')
-                    else -> { sb.append('\\'); sb.append(next) }
+    private fun readCardContext(reader: android.util.JsonReader): CardContext {
+        var cardId = ""
+        var kana = ""
+        var kanji: String? = null
+        var romaji = ""
+        var english = ""
+        var usageNote = ""
+        val examples = ArrayList<CardExample>(3)
+
+        reader.beginObject()
+        while (reader.hasNext()) {
+            when (reader.nextName()) {
+                "cardId" -> cardId = reader.nextString()
+                "kana" -> kana = reader.nextString()
+                "kanji" -> {
+                    val k = reader.nextString()
+                    if (k.isNotBlank()) kanji = k
                 }
-                i += 2
-            } else if (c == '"') {
-                break
-            } else {
-                sb.append(c)
-                i++
+                "romaji" -> romaji = reader.nextString()
+                "english" -> english = reader.nextString()
+                "usageNote" -> usageNote = reader.nextString()
+                "examples" -> {
+                    reader.beginArray()
+                    while (reader.hasNext()) {
+                        examples.add(readCardExample(reader))
+                    }
+                    reader.endArray()
+                }
+                else -> reader.skipValue()
             }
         }
-        return sb.toString()
+        reader.endObject()
+
+        return CardContext(
+            cardId = cardId,
+            kana = kana,
+            romaji = romaji,
+            english = english,
+            usageNote = usageNote,
+            examples = examples,
+            kanji = kanji,
+        )
     }
 
-    private fun unescapeJson(str: String): String {
-        return str.replace("\\\"", "\"")
-            .replace("\\n", "\n")
-            .replace("\\r", "\r")
-            .replace("\\t", "\t")
-            .replace("\\\\", "\\")
+    private fun readCardExample(reader: android.util.JsonReader): CardExample {
+        var kana = ""
+        var romaji = ""
+        var english = ""
+        var kanji: String? = null
+
+        reader.beginObject()
+        while (reader.hasNext()) {
+            when (reader.nextName()) {
+                "kana" -> kana = reader.nextString()
+                "romaji" -> romaji = reader.nextString()
+                "english" -> english = reader.nextString()
+                "kanji" -> {
+                    val k = reader.nextString()
+                    if (k.isNotBlank()) kanji = k
+                }
+                else -> reader.skipValue()
+            }
+        }
+        reader.endObject()
+
+        return CardExample(
+            kana = kana,
+            romaji = romaji,
+            english = english,
+            kanji = kanji,
+        )
     }
 }

@@ -3,8 +3,13 @@ package com.koto.app
 import com.koto.app.ui.screens.cards.*
 import org.junit.Assert.*
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
 class FlashcardDatabaseSeedingTest {
 
     private fun loadDecksAsset(): List<FlashcardDeck> {
@@ -13,7 +18,6 @@ class FlashcardDatabaseSeedingTest {
             File(rootDir, "src/main/assets/flashcard_decks.json"),
             File(rootDir, "app/src/main/assets/flashcard_decks.json"),
             File("../app/src/main/assets/flashcard_decks.json"),
-            File("c:/Users/HMED OPEN/Documents/koto/koto the project/app/src/main/assets/flashcard_decks.json"),
         )
         val file = candidates.firstOrNull { it.exists() }
         assertNotNull("flashcard_decks.json must exist in assets", file)
@@ -78,6 +82,8 @@ class FlashcardDatabaseSeedingTest {
     @Test
     fun verifyCardContextsAndExamplesCoverage() {
         val decks = loadDecksAsset()
+        val data = CardContextLoader.loadData()
+        assertTrue("CardContextLoader data must not be empty", data.isNotEmpty())
 
         decks.forEach { deck ->
             deck.cards.forEach { card ->

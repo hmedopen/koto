@@ -32,16 +32,25 @@ import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.koto.app.R
+import com.koto.app.ui.screens.cards.CardsColors
 import com.koto.app.ui.theme.KotoColors
 
 @Composable
 internal fun StageLabel(@StringRes title: Int) {
     Box(Modifier.fillMaxWidth().heightIn(min = 72.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.width(1.dp).height(72.dp).background(KotoColors.Hairline))
-        Text(stringResource(title), color = KotoColors.QuietInk,
+        Box(Modifier.width(1.dp).height(72.dp).background(CardsColors.Edge))
+        Text(
+            text = stringResource(title),
+            color = CardsColors.Ink,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(KotoColors.SoftGrey)
-                .padding(horizontal = 18.dp, vertical = 9.dp).semantics { heading() })
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(6.dp))
+                .background(CardsColors.Surface)
+                .border(1.dp, CardsColors.Edge, RoundedCornerShape(6.dp))
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .semantics { heading() },
+        )
     }
 }
 

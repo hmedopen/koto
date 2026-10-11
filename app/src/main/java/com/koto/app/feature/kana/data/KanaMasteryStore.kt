@@ -41,12 +41,22 @@ class KanaMasteryStore(context: Context) {
     val selectedKanaIds: Set<String>
         get() = selectedHiraganaIds + selectedKatakanaIds
 
+    private val masteredSet = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+    private val scoresCache = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
     var scoreVersion by mutableIntStateOf(0)
         private set
 
     init {
         val loadedMastered = prefs.getStringSet(KEY_MASTERED, null) ?: defaultMasteredSeed()
-        masteredCount = loadedMastered.size
+        masteredSet.addAll(loadedMastered)
+        masteredCount = masteredSet.size
+
+        prefs.all.forEach { (key, value) ->
+            if (key.startsWith("score_") && value is Int) {
+                scoresCache[key] = value
+            }
+        }
 
         val loadedRows = prefs.getStringSet(KEY_SELECTED_ROWS, null) ?: setOf("row_a", "row_k")
         selectedPracticeRows = loadedRows
@@ -68,10 +78,13 @@ class KanaMasteryStore(context: Context) {
     fun getCharacterMastery(kanaId: String, isHiragana: Boolean): Int {
         val prefix = if (isHiragana) "score_hira_" else "score_kata_"
         val key = prefix + kanaId
-        if (prefs.contains(key)) {
-            return prefs.getInt(key, 0)
+        val cached = scoresCache[key]
+        if (cached != null) {
+            return cached
         }
-        return if (isMastered(kanaId, isHiragana)) 95 else 10
+        val defaultScore = if (isMastered(kanaId, isHiragana)) 95 else 10
+        scoresCache[key] = defaultScore
+        return defaultScore
     }
 
     fun updateMasteryScore(kanaId: String, isHiragana: Boolean, delta: Int): Int {
@@ -79,41 +92,41 @@ class KanaMasteryStore(context: Context) {
         val newScore = (current + delta).coerceIn(0, 100)
         val prefix = if (isHiragana) "score_hira_" else "score_kata_"
         val key = prefix + kanaId
+        scoresCache[key] = newScore
         prefs.edit().putInt(key, newScore).apply()
 
         val masteredKey = if (isHiragana) "hira_$kanaId" else "kata_$kanaId"
-        val currentMastered = (prefs.getStringSet(KEY_MASTERED, null) ?: defaultMasteredSeed()).toMutableSet()
         if (newScore >= 90) {
-            currentMastered.add(masteredKey)
+            masteredSet.add(masteredKey)
         } else {
-            currentMastered.remove(masteredKey)
+            masteredSet.remove(masteredKey)
         }
-        prefs.edit().putStringSet(KEY_MASTERED, currentMastered).apply()
-        masteredCount = currentMastered.size
+        prefs.edit().putStringSet(KEY_MASTERED, masteredSet.toSet()).apply()
+        masteredCount = masteredSet.size
         scoreVersion++
         return newScore
     }
 
     fun isMastered(kanaId: String, isHiragana: Boolean): Boolean {
         val key = if (isHiragana) "hira_$kanaId" else "kata_$kanaId"
-        val current = prefs.getStringSet(KEY_MASTERED, null) ?: defaultMasteredSeed()
-        return current.contains(key)
+        return masteredSet.contains(key)
     }
 
     fun toggleMastered(kanaId: String, isHiragana: Boolean): Boolean {
         val key = if (isHiragana) "hira_$kanaId" else "kata_$kanaId"
-        val current = (prefs.getStringSet(KEY_MASTERED, null) ?: defaultMasteredSeed()).toMutableSet()
-        val newState = if (current.contains(key)) {
-            current.remove(key)
+        val newState = if (masteredSet.contains(key)) {
+            masteredSet.remove(key)
             false
         } else {
-            current.add(key)
+            masteredSet.add(key)
             true
         }
-        prefs.edit().putStringSet(KEY_MASTERED, current).apply()
-        masteredCount = current.size
+        prefs.edit().putStringSet(KEY_MASTERED, masteredSet.toSet()).apply()
+        masteredCount = masteredSet.size
         val scoreKey = (if (isHiragana) "score_hira_" else "score_kata_") + kanaId
-        prefs.edit().putInt(scoreKey, if (newState) 95 else 20).apply()
+        val newScore = if (newState) 95 else 20
+        scoresCache[scoreKey] = newScore
+        prefs.edit().putInt(scoreKey, newScore).apply()
         scoreVersion++
         return newState
     }

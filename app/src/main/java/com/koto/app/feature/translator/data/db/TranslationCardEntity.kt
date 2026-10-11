@@ -1,9 +1,15 @@
 package com.koto.app.feature.translator.data.db
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "translation_cards")
+@Entity(
+    tableName = "translation_cards",
+    indices = [
+        Index(value = ["japanese", "english"]),
+    ],
+)
 data class TranslationCardEntity(
     @PrimaryKey
     val id: String,

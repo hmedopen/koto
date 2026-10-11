@@ -6,7 +6,10 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "card_srs",
-    indices = [Index(value = ["deckId"])],
+    indices = [
+        Index(value = ["deckId"]),
+        Index(value = ["due"]),
+    ],
 )
 data class CardSrsEntity(
     @PrimaryKey

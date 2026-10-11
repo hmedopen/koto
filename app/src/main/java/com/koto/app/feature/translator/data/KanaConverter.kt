@@ -2,6 +2,9 @@ package com.koto.app.feature.translator.data
 
 import com.atilika.kuromoji.ipadic.Tokenizer
 import com.koto.app.ui.screens.settings.RubyToken
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 object KanaConverter {
 
@@ -10,6 +13,17 @@ object KanaConverter {
             Tokenizer()
         } catch (_: Exception) {
             Tokenizer.Builder().build()
+        }
+    }
+
+    /**
+     * Non-blocking background pre-initialization of the Kuromoji IPADIC tokenizer.
+     * Parses the dictionary off the main UI thread during application launch
+     * to eliminate first-use frame drops.
+     */
+    fun warmUp() {
+        CoroutineScope(Dispatchers.Default).launch {
+            runCatching { tokenizer.tokenize("日本語") }
         }
     }
 
@@ -236,9 +250,6 @@ object KanaConverter {
         return sb.toString()
     }
 
-    /**
-     * Converts Hiragana characters in the string into Katakana.
-     */
     fun hiraganaToKatakana(text: String): String {
         val sb = StringBuilder(text.length)
         for (ch in text) {

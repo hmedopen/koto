@@ -26,7 +26,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.koto.app.R
-import com.koto.app.ui.components.DepthButton
+import com.koto.app.ui.screens.cards.CardsButton
+import com.koto.app.ui.screens.cards.CardsColors
 import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.theme.KotoColors
 
@@ -48,40 +49,60 @@ internal fun LevelPopup(level: MapLevel, onDismiss: () -> Unit, onPlay: () -> Un
         AnimatedVisibility(visibleState = visibility,
             enter = fadeIn(tween(180)) + scaleIn(tween(180), initialScale = .96f),
             exit = fadeOut(tween(160)) + scaleOut(tween(160), targetScale = .96f)) {
-            Surface(shape = RoundedCornerShape(28.dp), color = KotoColors.Background,
-                modifier = Modifier.padding(24.dp).widthIn(max = 340.dp).fillMaxWidth().testTag("level_popup")) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = CardsColors.Surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, CardsColors.Edge),
+                modifier = Modifier.padding(24.dp).widthIn(max = 340.dp).fillMaxWidth().testTag("level_popup"),
+            ) {
                 Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.map_level, level.displayNumber),
-                            style = MaterialTheme.typography.titleLarge, color = KotoColors.Navy,
+                            style = MaterialTheme.typography.titleLarge, color = CardsColors.Ink,
                             modifier = Modifier.weight(1f).semantics { heading() })
                         IconButton(onClick = { visibility.targetState = false }, modifier = Modifier.size(48.dp)) {
                             Icon(painterResource(R.drawable.ic_close), stringResource(R.string.map_close),
-                                tint = KotoColors.QuietInk, modifier = Modifier.size(20.dp))
+                                tint = CardsColors.Ink, modifier = Modifier.size(20.dp))
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text(level.lessonTitle?.let { "$it · ${level.questionCount} questions" } ?: "More lessons are coming later.", color = KotoColors.QuietInk,
+                    Text(level.lessonTitle?.let { "$it · ${level.questionCount} questions" } ?: "More lessons are coming later.", color = CardsColors.Muted,
                         style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                     level.preview?.let { preview ->
                         Spacer(Modifier.height(24.dp))
-                        Text(preview.romaji, color = KotoColors.QuietInk,
-                            style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
-                        Spacer(Modifier.height(6.dp))
-                        Text(preview.kana, color = KotoColors.Navy, fontSize = 28.sp,
+                        Text(
+                            text = preview.kana,
+                            color = CardsColors.Ink,
+                            fontSize = 28.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             fontFamily = LocalJapaneseFont.current,
-                            textAlign = TextAlign.Center, modifier = Modifier.testTag("kana_preview"))
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.testTag("kana_preview"),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = preview.romaji,
+                            color = CardsColors.Muted,
+                            style = MaterialTheme.typography.labelMedium,
+                            textAlign = TextAlign.Center,
+                        )
                     }
                     if (level.state == LevelState.Locked) {
                         Spacer(Modifier.height(16.dp))
                         Text(stringResource(R.string.map_locked_hint), style = MaterialTheme.typography.labelMedium,
-                            color = KotoColors.QuietInk, textAlign = TextAlign.Center)
+                            color = CardsColors.Muted, textAlign = TextAlign.Center)
                     }
                     Spacer(Modifier.height(24.dp))
-                    DepthButton(stringResource(if (level.state == LevelState.Completed) R.string.map_replay else R.string.map_play),
+                    CardsButton(
+                        label = stringResource(if (level.state == LevelState.Completed) R.string.map_replay else R.string.map_play),
+                        onClick = { playRequested = true; visibility.targetState = false },
                         enabled = level.state != LevelState.Locked && visibility.targetState,
-                        onClick = { playRequested = true; visibility.targetState = false })
+                        background = CardsColors.Blue,
+                        ink = androidx.compose.ui.graphics.Color.White,
+                        depth = CardsColors.BlueDepth,
+                        modifier = Modifier.fillMaxWidth().testTag("level_action"),
+                    )
                 }
             }
         }

@@ -57,6 +57,7 @@ import com.koto.app.feature.translator.data.KanaConverter
 import com.koto.app.feature.translator.data.MlKitTranslationEngine
 import com.koto.app.feature.translator.data.TranslationHistoryStore
 import com.koto.app.feature.translator.data.TranslatorCardStore
+import com.koto.app.feature.translator.model.SavedTranslationCard
 import com.koto.app.feature.translator.model.TranslationLanguage
 import com.koto.app.ui.components.RubyText
 import com.koto.app.ui.screens.cards.CardsColors
@@ -100,17 +101,27 @@ fun TranslatorScreen(
     var showHistoryDialog by rememberSaveable { mutableStateOf(false) }
     var showInternalSettings by rememberSaveable { mutableStateOf(false) }
     var showInternalAdvanced by rememberSaveable { mutableStateOf(false) }
-    var savedCards by remember { mutableStateOf(cardStore.loadStarredCards()) }
+    var savedCards by remember { mutableStateOf<List<SavedTranslationCard>>(emptyList()) }
     var historyItems by remember { mutableStateOf(historyStore.getHistory()) }
     var playingSpeakerTag by remember { mutableStateOf<String?>(null) }
 
     val inputFocusRequester = remember { FocusRequester() }
 
-    // Model Pack Management: Check if Japanese offline pack (~60MB) is downloaded.
+    // Model Pack Management & Reactive Starred Cards Subscription
     LaunchedEffect(Unit) {
         val isReady = translationEngine.checkModelStatus()
         if (!isReady) {
             translationEngine.downloadModel()
+        }
+        launch {
+            cardStore.starredCardsFlow.collect { cards ->
+                savedCards = cards
+                val query = inputText.trim()
+                val target = translatedText.trim()
+                if (query.isNotBlank() && target.isNotBlank()) {
+                    isStarred = cardStore.isStarred(query, target, cards)
+                }
+            }
         }
     }
 
@@ -142,7 +153,7 @@ fun TranslatorScreen(
             ""
         }
         isOfflineResult = result.isOffline
-        isStarred = cardStore.isStarred(query, result.translatedText)
+        isStarred = cardStore.isStarred(query, result.translatedText, savedCards)
         isTranslating = false
 
         if (result.translatedText.isNotBlank()) {
@@ -197,7 +208,6 @@ fun TranslatorScreen(
             targetLang = targetLang,
         )
         isStarred = currentlyStarred
-        savedCards = cardStore.loadStarredCards()
         showToast(if (currentlyStarred) "Saved to Starred Cards" else "Removed from Starred Cards")
     }
 
@@ -746,7 +756,6 @@ fun TranslatorScreen(
                 cards = savedCards,
                 onDismiss = {
                     showSavedDialog = false
-                    savedCards = cardStore.loadStarredCards()
                     isStarred = cardStore.isStarred(inputText, translatedText, savedCards)
                 },
                 onSpeak = { text, lang -> tts.speak(text, lang) },
@@ -792,7 +801,6 @@ fun TranslatorScreen(
                         sourceLang = item.sourceLang,
                         targetLang = item.targetLang,
                     )
-                    savedCards = cardStore.loadStarredCards()
                     historyItems = historyStore.getHistory()
                     if (inputText.equals(item.sourceText, ignoreCase = true) || inputText.equals(item.targetText, ignoreCase = true)) {
                         isStarred = cardStore.isStarred(inputText, translatedText, savedCards)

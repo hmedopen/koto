@@ -9,60 +9,61 @@ object MockTranslationEngine {
         val english: String,
         val japanese: String,
         val romaji: String,
+        val kana: String = "",
     )
 
     private val DICTIONARY = listOf(
-        Entry("hello", "こんにちは", "konnichiwa"),
-        Entry("hi", "こんにちは", "konnichiwa"),
-        Entry("hello friend", "こんにちは、 友よ", "konnichiwa, tomoyo"),
-        Entry("hello, friend", "こんにちは、 友よ", "konnichiwa, tomoyo"),
-        Entry("friend", "ともだち", "tomodachi"),
-        Entry("my friend", "わたしのともだち", "watashi no tomodachi"),
-        Entry("good morning", "おはようございます", "ohayou gozaimasu"),
-        Entry("good evening", "こんばんは", "konbanwa"),
-        Entry("good night", "おやすみなさい", "oyasuminasai"),
-        Entry("thank you", "ありがとうございます", "arigatou gozaimasu"),
-        Entry("thanks", "ありがとう", "arigatou"),
-        Entry("thank you very much", "どうもありがとうございます", "doumo arigatou gozaimasu"),
-        Entry("you are welcome", "どういたしまして", "douitashimashite"),
-        Entry("welcome", "ようこそ", "youkoso"),
-        Entry("goodbye", "さようなら", "sayounara"),
-        Entry("see you later", "またね", "mata ne"),
-        Entry("yes", "はい", "hai"),
-        Entry("no", "いいえ", "iie"),
-        Entry("please", "おねがいします", "onegaishimasu"),
-        Entry("excuse me", "すみません", "sumimasen"),
-        Entry("sorry", "ごめんなさい", "gomennasai"),
-        Entry("how are you", "おげんきですか？", "ogenki desu ka?"),
-        Entry("how are you?", "おげんきですか？", "ogenki desu ka?"),
-        Entry("i am fine", "げんきです", "genki desu"),
-        Entry("what is your name", "おなまえはなんですか？", "onamae wa nan desu ka?"),
-        Entry("what is your name?", "おなまえはなんですか？", "onamae wa nan desu ka?"),
-        Entry("nice to meet you", "はじめまして", "hajimemashite"),
-        Entry("water", "みず", "mizu"),
-        Entry("tea", "おちゃ", "ocha"),
-        Entry("coffee", "コーヒー", "koohii"),
-        Entry("bread", "パン", "pan"),
-        Entry("book", "ほん", "hon"),
-        Entry("cat", "ねこ", "neko"),
-        Entry("dog", "いぬ", "inu"),
-        Entry("teacher", "せんせい", "sensei"),
-        Entry("student", "がくせい", "gakusei"),
-        Entry("i", "わたし", "watashi"),
-        Entry("i am a student", "わたしはがくせいです", "watashi wa gakusei desu"),
-        Entry("i am a teacher", "わたしはせんせいです", "watashi wa sensei desu"),
-        Entry("i drink water", "わたしはみずをのみます", "watashi wa mizu o nomimasu"),
-        Entry("i eat bread", "わたしはパンをたべます", "watashi wa pan o tabemasu"),
-        Entry("where is the station", "えきはどこですか？", "eki wa doko desu ka?"),
-        Entry("where is the station?", "えきはどこですか？", "eki wa doko desu ka?"),
-        Entry("station", "えき", "eki"),
-        Entry("train", "でんしゃ", "densha"),
-        Entry("delicious", "おいしい", "oishii"),
-        Entry("beautiful", "うつくしい", "utsukushii"),
-        Entry("help", "たすけて", "tasukete"),
-        Entry("love", "あい", "ai"),
-        Entry("i love you", "あいしています", "aishiteimasu"),
-        Entry("see you tomorrow", "またあした", "mata ashita"),
+        Entry("hello", "こんにちは", "konnichiwa", "こんにちは"),
+        Entry("hi", "こんにちは", "konnichiwa", "こんにちは"),
+        Entry("hello friend", "こんにちは、 友よ", "konnichiwa, tomoyo", "こんにちは、 ともよ"),
+        Entry("hello, friend", "こんにちは、 友よ", "konnichiwa, tomoyo", "こんにちは、 ともよ"),
+        Entry("friend", "友達", "tomodachi", "ともだち"),
+        Entry("my friend", "私の友達", "watashi no tomodachi", "わたしのともだち"),
+        Entry("good morning", "おはようございます", "ohayou gozaimasu", "おはようございます"),
+        Entry("good evening", "こんばんは", "konbanwa", "こんばんは"),
+        Entry("good night", "おやすみなさい", "oyasuminasai", "おやすみなさい"),
+        Entry("thank you", "ありがとうございます", "arigatou gozaimasu", "ありがとうございます"),
+        Entry("thanks", "ありがとう", "arigatou", "ありがとう"),
+        Entry("thank you very much", "どうもありがとうございます", "doumo arigatou gozaimasu", "どうもありがとうございます"),
+        Entry("you are welcome", "どういたしまして", "douitashimashite", "どういたしまして"),
+        Entry("welcome", "ようこそ", "youkoso", "ようこそ"),
+        Entry("goodbye", "さようなら", "sayounara", "さようなら"),
+        Entry("see you later", "またね", "mata ne", "またね"),
+        Entry("yes", "はい", "hai", "はい"),
+        Entry("no", "いいえ", "iie", "いいえ"),
+        Entry("please", "お願いします", "onegaishimasu", "おねがいします"),
+        Entry("excuse me", "すみません", "sumimasen", "すみません"),
+        Entry("sorry", "ごめんなさい", "gomennasai", "ごめんなさい"),
+        Entry("how are you", "お元気ですか？", "ogenki desu ka?", "おげんきですか？"),
+        Entry("how are you?", "お元気ですか？", "ogenki desu ka?", "おげんきですか？"),
+        Entry("i am fine", "元気です", "genki desu", "げんきです"),
+        Entry("what is your name", "お名前は何ですか？", "onamae wa nan desu ka?", "おなまえはなんですか？"),
+        Entry("what is your name?", "お名前は何ですか？", "onamae wa nan desu ka?", "おなまえはなんですか？"),
+        Entry("nice to meet you", "初めまして", "hajimemashite", "はじめまして"),
+        Entry("water", "水", "mizu", "みず"),
+        Entry("tea", "お茶", "ocha", "おちゃ"),
+        Entry("coffee", "コーヒー", "koohii", "コーヒー"),
+        Entry("bread", "パン", "pan", "パン"),
+        Entry("book", "本", "hon", "ほん"),
+        Entry("cat", "猫", "neko", "ねこ"),
+        Entry("dog", "犬", "inu", "いぬ"),
+        Entry("teacher", "先生", "sensei", "せんせい"),
+        Entry("student", "学生", "gakusei", "がくせい"),
+        Entry("i", "私", "watashi", "わたし"),
+        Entry("i am a student", "私は学生です", "watashi wa gakusei desu", "わたしはがくせいです"),
+        Entry("i am a teacher", "私は先生です", "watashi wa sensei desu", "わたしはせんせいです"),
+        Entry("i drink water", "私は水を飲みます", "watashi wa mizu o nomimasu", "わたしはみずをのみます"),
+        Entry("i eat bread", "私はパンを食べます", "watashi wa pan o tabemasu", "わたしはパンをたべます"),
+        Entry("where is the station", "駅はどこですか？", "eki wa doko desu ka?", "えきはどこですか？"),
+        Entry("where is the station?", "駅はどこですか？", "eki wa doko desu ka?", "えきはどこですか？"),
+        Entry("station", "駅", "eki", "えき"),
+        Entry("train", "電車", "densha", "でんしゃ"),
+        Entry("delicious", "美味しい", "oishii", "おいしい"),
+        Entry("beautiful", "美しい", "utsukushii", "うつくしい"),
+        Entry("help", "助けて", "tasukete", "たすけて"),
+        Entry("love", "愛", "ai", "あい"),
+        Entry("i love you", "愛しています", "aishiteimasu", "あいしています"),
+        Entry("see you tomorrow", "また明日", "mata ashita", "またあした"),
     )
 
     fun translate(
@@ -110,12 +111,15 @@ object MockTranslationEngine {
         }
 
         if (match != null) {
+            val kana = if (match.kana.isNotBlank()) match.kana else KanaConverter.toPureKana(match.japanese)
             return TranslationResult(
                 sourceText = english,
                 translatedText = match.japanese,
                 romaji = match.romaji,
                 sourceLanguage = sourceLanguage,
                 targetLanguage = targetLanguage,
+                kanaText = kana,
+                isOffline = true,
             )
         }
 
@@ -128,7 +132,16 @@ object MockTranslationEngine {
         if (matchedTokens.size == words.size && matchedTokens.isNotEmpty()) {
             val jp = matchedTokens.joinToString(" ") { it.japanese }
             val ro = matchedTokens.joinToString(" ") { it.romaji }
-            return TranslationResult(english, jp, ro, sourceLanguage, targetLanguage)
+            val kn = matchedTokens.joinToString(" ") { if (it.kana.isNotBlank()) it.kana else it.japanese }
+            return TranslationResult(
+                sourceText = english,
+                translatedText = jp,
+                romaji = ro,
+                sourceLanguage = sourceLanguage,
+                targetLanguage = targetLanguage,
+                kanaText = kn,
+                isOffline = true,
+            )
         }
 
         // Realistic offline fallback
@@ -145,6 +158,7 @@ object MockTranslationEngine {
         val cleanJp = japanese.trim()
         val match = DICTIONARY.firstOrNull {
             it.japanese == cleanJp || cleanJp.contains(it.japanese) ||
+                (it.kana.isNotBlank() && (it.kana == cleanJp || cleanJp.contains(it.kana))) ||
                 it.romaji.equals(cleanJp, ignoreCase = true)
         }
 

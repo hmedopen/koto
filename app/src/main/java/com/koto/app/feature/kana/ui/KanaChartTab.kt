@@ -275,9 +275,9 @@ private fun KanaTile(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp))
-            .background(KanaColors.TileBackground)
-            .border(1.dp, KanaColors.TileBorder, RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(6.dp))
+            .background(CardsColors.Surface)
+            .border(1.dp, CardsColors.Edge, RoundedCornerShape(6.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 4.dp, horizontal = 2.dp)
             .testTag("kana_tile_${character.id}"),

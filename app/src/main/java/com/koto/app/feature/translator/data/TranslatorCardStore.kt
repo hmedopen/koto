@@ -9,8 +9,10 @@ import com.koto.app.feature.translator.model.TranslationLanguage
 import com.koto.app.ui.screens.cards.CardContext
 import com.koto.app.ui.screens.cards.CardContextLoader
 import com.koto.app.ui.screens.cards.CardExample
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 
 class TranslatorCardStore(context: Context) {
     private val db = KotoDatabase.getInstance(context.applicationContext)
@@ -20,20 +22,20 @@ class TranslatorCardStore(context: Context) {
         entities.map { it.toSavedCard() }
     }
 
-    fun loadStarredCards(): List<SavedTranslationCard> {
+    fun loadStarredCards(): List<SavedTranslationCard> = runBlocking(Dispatchers.IO) {
         val entities = runCatching { dao.getAllCards() }.getOrElse { emptyList() }
         // Ensure contexts are registered
         for (entity in entities) {
             registerEntityContext(entity)
         }
-        return entities.map { it.toSavedCard() }
+        entities.map { it.toSavedCard() }
     }
 
-    fun isStarred(sourceText: String, targetText: String): Boolean {
-        if (sourceText.isBlank() || targetText.isBlank()) return false
+    fun isStarred(sourceText: String, targetText: String): Boolean = runBlocking(Dispatchers.IO) {
+        if (sourceText.isBlank() || targetText.isBlank()) return@runBlocking false
         val s = sourceText.trim()
         val t = targetText.trim()
-        return runCatching {
+        runCatching {
             if (dao.isStarred(s, t) || dao.isStarred(t, s)) return@runCatching true
             val pureS = KanaConverter.toPureKana(s)
             val pureT = KanaConverter.toPureKana(t)
@@ -67,8 +69,8 @@ class TranslatorCardStore(context: Context) {
         targetRomaji: String,
         sourceLang: TranslationLanguage,
         targetLang: TranslationLanguage,
-    ): Boolean {
-        if (sourceText.isBlank() || targetText.isBlank()) return false
+    ): Boolean = runBlocking(Dispatchers.IO) {
+        if (sourceText.isBlank() || targetText.isBlank()) return@runBlocking false
 
         val isJpTarget = targetLang == TranslationLanguage.Japanese
         val rawJp = if (isJpTarget) targetText.trim() else sourceText.trim()
@@ -89,7 +91,7 @@ class TranslatorCardStore(context: Context) {
                 dao.deleteByPair(rawJp, enText)
                 dao.deleteByPair(sourceText.trim(), targetText.trim())
             }
-            return false
+            false
         } else {
             val id = "trans_${System.currentTimeMillis()}_${(rawJp + enText).hashCode()}"
             val isSentence = isSentenceText(sourceText) || isSentenceText(targetText)
@@ -108,16 +110,16 @@ class TranslatorCardStore(context: Context) {
             )
             runCatching { dao.insertCard(entity) }
             registerEntityContext(entity)
-            return true
+            true
         }
     }
 
-    fun removeCard(cardId: String) {
+    fun removeCard(cardId: String) = runBlocking(Dispatchers.IO) {
         runCatching { dao.deleteById(cardId) }
         CardContextLoader.removeContext(cardId)
     }
 
-    fun clearAll() {
+    fun clearAll() = runBlocking(Dispatchers.IO) {
         runCatching { dao.clearAll() }
     }
 

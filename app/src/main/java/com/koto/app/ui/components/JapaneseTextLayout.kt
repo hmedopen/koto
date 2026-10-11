@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -156,7 +157,7 @@ fun RubyText(
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
     onFuriganaClick: (() -> Unit)? = null,
 ) {
-    val tokens = KanaConverter.extractRubyTokens(text)
+    val tokens = remember(text) { KanaConverter.extractRubyTokens(text) }
     RubyText(
         tokens = tokens,
         modifier = modifier,
@@ -197,9 +198,9 @@ fun JapaneseWordDisplay(
     horizontalAlignment: Alignment.Horizontal = Alignment.CenterHorizontally,
     onFuriganaClick: (() -> Unit)? = null,
 ) {
-    val effectiveKanji = kanji.ifBlank { kana }
-    val effectiveKana = kana.ifBlank { KanaConverter.toPureKana(effectiveKanji) }
-    val effectiveRomaji = romaji.ifBlank { KanaConverter.toRomaji(effectiveKana) }
+    val effectiveKanji = remember(kanji, kana) { kanji.ifBlank { kana } }
+    val effectiveKana = remember(kana, effectiveKanji) { kana.ifBlank { KanaConverter.toPureKana(effectiveKanji) } }
+    val effectiveRomaji = remember(romaji, effectiveKana) { romaji.ifBlank { KanaConverter.toRomaji(effectiveKana) } }
 
     Column(
         modifier = modifier,
@@ -233,8 +234,9 @@ fun JapaneseWordDisplay(
 
             DisplayMode.KANJI_FURIGANA -> {
                 val effectiveFuriganaColor = if (revealFuriganaOnTap && !furiganaRevealed) Color.Transparent else furiganaColor
-                if (KanaConverter.containsKanji(effectiveKanji)) {
-                    val tokens = KanaConverter.extractRubyTokens(effectiveKanji)
+                val hasKanji = remember(effectiveKanji) { KanaConverter.containsKanji(effectiveKanji) }
+                if (hasKanji) {
+                    val tokens = remember(effectiveKanji) { KanaConverter.extractRubyTokens(effectiveKanji) }
                     RubyText(
                         tokens = tokens,
                         modifier = wordModifier,

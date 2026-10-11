@@ -37,4 +37,5 @@ data class CustomCardEntity(
     val notes: String = "",
     val orderIndex: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
+    val kanji: String = "",
 )

@@ -10,6 +10,11 @@ import com.koto.app.feature.cards.srs.FsrsRating
 import com.koto.app.feature.cards.srs.FsrsReviewLog
 import com.koto.app.feature.cards.srs.FsrsState
 import com.koto.app.feature.translator.data.db.KotoDatabase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 
 typealias CardRating = FsrsRating
@@ -27,11 +32,12 @@ fun FsrsCard?.isDue(now: Long = System.currentTimeMillis()): Boolean {
 
 /**
  * Persistent store for flashcard FSRS records backed by Room Database,
- * with fallback to SharedPreferences and in-memory caching.
+ * with asynchronous background persistence and in-memory caching.
  */
 class FlashcardSrsStore(context: Context? = null) {
     private val appContext = context?.applicationContext
     private val preferences = appContext?.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val cardSrsDao by lazy {
         appContext?.let { runCatching { KotoDatabase.getInstance(it).cardSrsDao() }.getOrNull() }
     }
@@ -44,7 +50,9 @@ class FlashcardSrsStore(context: Context? = null) {
         // 1. Try Room Database first
         val dao = cardSrsDao
         if (dao != null) {
-            val entities = runCatching { dao.getAll() }.getOrNull()
+            val entities = runCatching {
+                runBlocking(Dispatchers.IO) { dao.getAll() }
+            }.getOrNull()
             if (!entities.isNullOrEmpty()) {
                 val result = entities.associate { entity ->
                     entity.cardId to entityToFsrsCard(entity)
@@ -54,7 +62,7 @@ class FlashcardSrsStore(context: Context? = null) {
             }
         }
 
-        // 2. Try SharedPreferences
+        // 2. One-time migration: Try SharedPreferences if Room was empty
         val json = preferences?.getString(KEY_SRS_DATA, null)
         if (json != null) {
             val loaded = runCatching {
@@ -102,6 +110,7 @@ class FlashcardSrsStore(context: Context? = null) {
             if (loaded.isNotEmpty()) {
                 memoryStore.putAll(loaded)
                 saveAll(loaded)
+                preferences.edit().remove(KEY_SRS_DATA).apply()
                 return loaded
             }
         }
@@ -110,25 +119,26 @@ class FlashcardSrsStore(context: Context? = null) {
     }
 
     /**
-     * Saves a card and review log IMMEDIATELY on every button press.
+     * Saves a card and review log asynchronously on Dispatchers.IO.
+     * Updates memoryStore immediately so the UI responds without lag.
      */
     fun saveCard(card: FsrsCard, log: FsrsReviewLog? = null) {
         memoryStore[card.cardId] = card
 
         val dao = cardSrsDao
-        if (dao != null) {
-            runCatching {
-                dao.insertOrUpdate(fsrsCardToEntity(card))
-            }
-        }
         val rDao = reviewLogDao
-        if (rDao != null && log != null) {
-            runCatching {
-                rDao.insert(reviewLogToEntity(log))
+        ioScope.launch {
+            if (dao != null) {
+                runCatching {
+                    dao.insertOrUpdate(fsrsCardToEntity(card))
+                }
+            }
+            if (rDao != null && log != null) {
+                runCatching {
+                    rDao.insert(reviewLogToEntity(log))
+                }
             }
         }
-
-        saveToPreferences(memoryStore)
     }
 
     fun saveAll(records: Map<String, FsrsCard>) {
@@ -136,43 +146,22 @@ class FlashcardSrsStore(context: Context? = null) {
 
         val dao = cardSrsDao
         if (dao != null && records.isNotEmpty()) {
-            runCatching {
-                val entities = records.values.map { fsrsCardToEntity(it) }
-                dao.insertOrUpdateAll(entities)
+            ioScope.launch {
+                runCatching {
+                    val entities = records.values.map { fsrsCardToEntity(it) }
+                    dao.insertOrUpdateAll(entities)
+                }
             }
         }
-
-        saveToPreferences(memoryStore)
-    }
-
-    private fun saveToPreferences(records: Map<String, FsrsCard>) {
-        if (preferences == null) return
-        val root = JSONObject()
-        for ((id, card) in records) {
-            val obj = JSONObject()
-            obj.put("cardId", card.cardId)
-            obj.put("deckId", card.deckId)
-            obj.put("due", card.due)
-            obj.put("stability", card.stability)
-            obj.put("difficulty", card.difficulty)
-            obj.put("elapsed_days", card.elapsed_days)
-            obj.put("scheduled_days", card.scheduled_days)
-            obj.put("reps", card.reps)
-            obj.put("lapses", card.lapses)
-            obj.put("state", card.state.name)
-            card.last_review?.let { obj.put("last_review", it) }
-            card.last_rating?.let { obj.put("last_rating", it.name) }
-            obj.put("step", card.step)
-            root.put(id, obj)
-        }
-        preferences.edit().putString(KEY_SRS_DATA, root.toString()).apply()
     }
 
     fun clearAll() {
         memoryStore.clear()
         preferences?.edit()?.clear()?.apply()
-        runCatching { cardSrsDao?.clearAll() }
-        runCatching { reviewLogDao?.clearAll() }
+        ioScope.launch {
+            runCatching { cardSrsDao?.clearAll() }
+            runCatching { reviewLogDao?.clearAll() }
+        }
     }
 
     fun clear() = clearAll()
