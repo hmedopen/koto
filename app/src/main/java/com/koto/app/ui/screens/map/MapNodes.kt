@@ -2,12 +2,19 @@ package com.koto.app.ui.screens.map
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -55,13 +62,39 @@ internal fun LevelRow(level: MapLevel, onOpen: (Int) -> Unit, isLast: Boolean) {
 @Composable
 private fun MainLevelNode(level: MapLevel, onOpen: (Int) -> Unit) {
     val interactions = remember { MutableInteractionSource() }
-    val pressed by interactions.collectIsPressedAsState()
-    val scale = animateFloatAsState(if (pressed) .95f else 1f, tween(100), label = "Level press")
+    val actionScope = rememberCoroutineScope()
+    var actionPending by remember { mutableStateOf(false) }
+    var pointerTap by remember { mutableStateOf(false) }
+    var pointerPressed by remember { mutableStateOf(false) }
+    val semanticPressed by interactions.collectIsPressedAsState()
+    val pressed = pointerPressed || semanticPressed
+    val scale = animateFloatAsState(
+        targetValue = if (pressed) .95f else 1f,
+        animationSpec = if (pressed) snap() else tween(100),
+        label = "Level press"
+    )
     val current = level.state == LevelState.Current
     val locked = level.state == LevelState.Locked
     val completed = level.state == LevelState.Completed
     val description = stringResource(R.string.map_level, level.displayNumber)
     val stateLabel = stringResource(level.state.label)
+
+    val activate: () -> Unit = {
+        actionPending = true
+        val wasTap = pointerTap
+        pointerTap = false
+        if (wasTap) {
+            actionScope.launch {
+                delay(70)
+                onOpen(level.number)
+                actionPending = false
+            }
+        } else {
+            onOpen(level.number)
+            actionPending = false
+        }
+    }
+
     Box(Modifier.size(88.dp), contentAlignment = Alignment.Center) {
         if (current) Box(Modifier.size(86.dp).border(2.dp, KotoColors.Gold, CircleShape))
         Column(
@@ -69,7 +102,32 @@ private fun MainLevelNode(level: MapLevel, onOpen: (Int) -> Unit) {
                 .clip(CircleShape)
                 .background(when { locked -> KotoColors.Background; completed -> KotoColors.SoftGrey; else -> KotoColors.Navy })
                 .border(1.dp, if (locked || completed) KotoColors.Hairline else KotoColors.Navy, CircleShape)
-                .clickable(interactionSource = interactions, indication = ripple(), role = Role.Button) { onOpen(level.number) }
+                .pointerInput(level.state) {
+                    if (locked) return@pointerInput
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.changes.any { it.changedToDown() }) {
+                                pointerTap = true
+                                pointerPressed = true
+                            }
+                            if (event.changes.any { it.isConsumed }) {
+                                pointerPressed = false
+                            }
+                            if (event.changes.any { it.changedToUp() }) {
+                                pointerPressed = false
+                            }
+                            if (event.changes.none { it.pressed }) pointerPressed = false
+                        }
+                    }
+                }
+                .clickable(
+                    interactionSource = interactions,
+                    indication = ripple(),
+                    enabled = !actionPending,
+                    role = Role.Button,
+                    onClick = activate,
+                )
                 .testTag("level_${level.number}")
                 .semantics(mergeDescendants = true) { contentDescription = description; stateDescription = stateLabel },
             horizontalAlignment = Alignment.CenterHorizontally,

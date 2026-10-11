@@ -97,7 +97,9 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
     val shape = RoundedCornerShape(17.dp)
     val activate: () -> Unit = {
         actionPending = true
-        if (pointerTap && deferPointerClick) {
+        val wasTap = pointerTap
+        pointerTap = false
+        if (wasTap && deferPointerClick) {
             actionScope.launch {
                 // Keep the instantaneous down state on screen for one brief beat before a
                 // callback can replace it. The local guard also rejects rapid repeat taps.
@@ -129,9 +131,11 @@ fun TactileButton(onClick: () -> Unit, modifier: Modifier = Modifier, enabled: B
                         pointerTap = true
                         pointerPressed = true
                     }
+                    if (event.changes.any { it.isConsumed }) {
+                        pointerPressed = false
+                    }
                     if (event.changes.any { it.changedToUp() }) {
                         pointerPressed = false
-                        pointerTap = false
                     }
                     if (event.changes.none { it.pressed }) pointerPressed = false
                 }

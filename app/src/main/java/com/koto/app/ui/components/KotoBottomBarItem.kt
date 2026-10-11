@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -69,7 +70,7 @@ internal fun KotoBottomBarItem(
     val compression by animateFloatAsState(
         targetValue = if (pressed) 1f else 0f,
         animationSpec = if (pressed) {
-            tween(durationMillis = 75, easing = FastOutSlowInEasing)
+            snap()
         } else {
             spring(dampingRatio = 0.52f, stiffness = Spring.StiffnessMediumLow)
         },

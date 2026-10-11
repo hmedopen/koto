@@ -5,7 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -22,6 +25,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.changedToUp
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -84,31 +93,129 @@ internal fun CardsButton(label: String, onClick: () -> Unit, modifier: Modifier 
 }
 
 /** Fixed 4 dp base and moving face, matching the lesson/map physical button treatment.
- * Only presentation owns this transient press animation; card/session state stays upstream.
+ * Snappy instantaneous compression on touch down, crisp spring-free release.
  */
 @Composable
-internal fun CardsPressable(onClick: () -> Unit, modifier: Modifier = Modifier,
-    face: Color = CardsColors.Surface, depth: Color = CardsColors.Edge,
-    enabled: Boolean = true, padding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 14.dp),
-    content: @Composable () -> Unit) {
+internal fun CardsPressable(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    face: Color = CardsColors.Surface,
+    depth: Color = CardsColors.Edge,
+    enabled: Boolean = true,
+    padding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 14.dp),
+    deferPointerClick: Boolean = true,
+    onLongClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
     val interaction = remember { MutableInteractionSource() }
+    val actionScope = rememberCoroutineScope()
+    var actionPending by remember { mutableStateOf(false) }
+    var pointerTap by remember { mutableStateOf(false) }
+    var pointerPressed by remember { mutableStateOf(false) }
     val semanticPressed by interaction.collectIsPressedAsState()
-    // clickable already emits the press interaction and cancels it when a drag
-    // takes over. Avoid a second pointer-input coroutine on every lazy-list row.
-    val pressed = semanticPressed
-    val displacement by animateFloatAsState(if (pressed && enabled) 3f else 0f,
-        spring(dampingRatio = .65f, stiffness = 1100f), label = "Cards press depth")
+    val pressed = (pointerPressed || semanticPressed) && enabled
+
+    // Press state is applied synchronously on down (snap); only the return uses a short transition.
+    val displacement by animateFloatAsState(
+        targetValue = if (pressed) 4f else 0f,
+        animationSpec = if (pressed) snap() else tween(90),
+        label = "Cards press depth",
+    )
     val shape = CardsShape
-    Box(modifier.padding(bottom = 4.dp)
-        .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick),
-        propagateMinConstraints = true) {
-        Box(Modifier.matchParentSize().graphicsLayer { translationY = 4.dp.toPx() }
-            .background(if (enabled) depth else CardsColors.Edge, shape))
-        Box(Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-            .graphicsLayer { translationY = displacement.dp.toPx() }
-            .clip(shape).background(if (enabled) face else CardsColors.Background)
-            .border(1.dp, if (!enabled || face == CardsColors.Surface) CardsColors.Edge else depth, shape)
-            .padding(padding), contentAlignment = Alignment.Center) { content() }
+
+    val activate: () -> Unit = {
+        actionPending = true
+        val wasTap = pointerTap
+        pointerTap = false
+        if (wasTap && deferPointerClick) {
+            actionScope.launch {
+                // Keep the instantaneous down state on screen for one brief beat before a
+                // callback can replace it. The local guard also rejects rapid repeat taps.
+                delay(70)
+                onClick()
+                actionPending = false
+            }
+        } else {
+            // Accessibility and test semantics have no visible pointer press to preserve.
+            onClick()
+            actionPending = false
+        }
+    }
+
+    val interactiveModifier = modifier
+        .padding(bottom = 4.dp)
+        .pointerInput(enabled) {
+            if (!enabled) {
+                pointerPressed = false
+                pointerTap = false
+                return@pointerInput
+            }
+            awaitPointerEventScope {
+                while (true) {
+                    // Observe without consuming so click, long-click, scroll and drag
+                    // recognizers keep ownership of the gesture. Reading at Initial makes
+                    // the visual depression happen on the first touch-down frame, even in
+                    // a scrollable parent where clickable deliberately delays Press.
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (event.changes.any { it.changedToDown() }) {
+                        pointerTap = true
+                        pointerPressed = true
+                    }
+                    if (event.changes.any { it.isConsumed }) {
+                        pointerPressed = false
+                    }
+                    if (event.changes.any { it.changedToUp() }) {
+                        pointerPressed = false
+                    }
+                    if (event.changes.none { it.pressed }) {
+                        pointerPressed = false
+                    }
+                }
+            }
+        }
+        .let { base ->
+            if (onLongClick == null) {
+                base.clickable(
+                    enabled = enabled && !actionPending,
+                    role = Role.Button,
+                    interactionSource = interaction,
+                    indication = null,
+                    onClick = activate,
+                )
+            } else {
+                base.combinedClickable(
+                    enabled = enabled && !actionPending,
+                    role = Role.Button,
+                    interactionSource = interaction,
+                    indication = null,
+                    onClick = activate,
+                    onLongClick = onLongClick,
+                )
+            }
+        }
+
+    Box(
+        modifier = interactiveModifier,
+        propagateMinConstraints = true,
+    ) {
+        Box(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer { translationY = 4.dp.toPx() }
+                .background(if (enabled) depth else CardsColors.Edge, shape),
+        )
+        Box(
+            Modifier
+                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                .graphicsLayer { translationY = displacement.dp.toPx() }
+                .clip(shape)
+                .background(if (enabled) face else CardsColors.Background)
+                .border(1.dp, if (!enabled || face == CardsColors.Surface) CardsColors.Edge else depth, shape)
+                .padding(padding),
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
+        }
     }
 }
 
