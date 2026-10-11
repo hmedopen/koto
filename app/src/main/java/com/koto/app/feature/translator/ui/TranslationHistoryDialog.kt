@@ -26,6 +26,7 @@ import com.koto.app.R
 import com.koto.app.feature.translator.data.TranslationHistoryItem
 import com.koto.app.feature.translator.model.TranslationLanguage
 import com.koto.app.ui.screens.cards.CardsColors
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.theme.KotoType
 import java.text.DateFormat
 import java.util.Date
@@ -214,12 +215,14 @@ fun TranslationHistoryDialog(
                                 color = CardsColors.Muted,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Normal,
+                                fontFamily = if (item.sourceLang == TranslationLanguage.Japanese) LocalJapaneseFont.current else null,
                             )
                             Text(
                                 text = item.targetText,
                                 color = CardsColors.Ink,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold,
+                                fontFamily = if (item.targetLang == TranslationLanguage.Japanese) LocalJapaneseFont.current else null,
                             )
                             if (item.targetLang == TranslationLanguage.Japanese && item.targetRomaji.isNotBlank()) {
                                 Text(

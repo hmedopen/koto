@@ -56,8 +56,10 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -750,6 +752,7 @@ private fun CreateDeckOverviewView(
                             value = quickKana,
                             onValueChange = onQuickKanaChange,
                             placeholder = "Japanese / Kana",
+                            fontFamily = LocalJapaneseFont.current,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("input_quick_kana"),
@@ -1227,6 +1230,7 @@ private fun CardEditorDetailView(
                     value = kana,
                     onValueChange = onKanaChange,
                     placeholder = "Japanese / Kana",
+                    fontFamily = LocalJapaneseFont.current,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_editor_kana"),
@@ -1588,6 +1592,7 @@ private fun CardContextEditorView(
                     value = ex1Jp,
                     onValueChange = onEx1JpChange,
                     placeholder = "Japanese / Kana",
+                    fontFamily = LocalJapaneseFont.current,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_ex1_jp"),
@@ -1652,6 +1657,7 @@ private fun CardContextEditorView(
                     value = ex2Jp,
                     onValueChange = onEx2JpChange,
                     placeholder = "Japanese / Kana",
+                    fontFamily = LocalJapaneseFont.current,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_ex2_jp"),
@@ -1716,6 +1722,7 @@ private fun CardContextEditorView(
                     value = ex3Jp,
                     onValueChange = onEx3JpChange,
                     placeholder = "Japanese / Kana",
+                    fontFamily = LocalJapaneseFont.current,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("input_ex3_jp"),
@@ -1778,6 +1785,7 @@ private fun CleanInputBox(
     modifier: Modifier = Modifier,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    fontFamily: FontFamily? = null,
 ) {
     BasicTextField(
         value = value,
@@ -1791,6 +1799,7 @@ private fun CleanInputBox(
             color = CardsColors.Ink,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
+            fontFamily = fontFamily,
         ),
         cursorBrush = SolidColor(CardsColors.Blue),
         singleLine = singleLine,

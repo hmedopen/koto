@@ -35,6 +35,7 @@ fun KotoNavigation(
     createDeckTrigger: Boolean = false,
     onCreateDeckHandled: () -> Unit = {},
     onOpenTranslator: () -> Unit = {},
+    onOpenKana: () -> Unit = {},
     onCardsContentOpenChanged: (Boolean) -> Unit = {},
     targetDeckId: String? = null,
     onTargetDeckIdHandled: () -> Unit = {},
@@ -59,7 +60,10 @@ fun KotoNavigation(
         stateHolder.SaveableStateProvider(destination.name) {
             when (destination) {
                 KotoDestination.Map -> MapScreen(completed, onPlay)
-                KotoDestination.Learn -> LearnScreen(onOpenTranslator = onOpenTranslator)
+                KotoDestination.Learn -> LearnScreen(
+                    onOpenTranslator = onOpenTranslator,
+                    onOpenKana = onOpenKana,
+                )
                 KotoDestination.Cards -> CardsScreen(
                     onStudyModeChanged = onCardsStudyModeChanged,
                     onDeckOpenChanged = onCardsDeckOpenChanged,

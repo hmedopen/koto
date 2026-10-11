@@ -32,6 +32,7 @@ import com.koto.app.ui.screens.cards.CardsColors
 import com.koto.app.ui.screens.cards.CardsPressable
 import com.koto.app.ui.screens.settings.DisplayMode
 import com.koto.app.ui.screens.settings.DisplayPreferences
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.screens.settings.RubyToken
 import com.koto.app.ui.theme.KotoType
 
@@ -133,6 +134,7 @@ internal fun SettingsSheet(
                                     text = "みず",
                                     fontSize = 22.sp,
                                     fontWeight = FontWeight.Bold,
+                                    fontFamily = LocalJapaneseFont.current,
                                     color = if (preferences.displayMode == DisplayMode.KANA) CardsColors.Blue else CardsColors.Ink,
                                 )
                             },

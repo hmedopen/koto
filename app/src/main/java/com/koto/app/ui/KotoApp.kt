@@ -51,6 +51,12 @@ import com.koto.app.ui.screens.settings.DisplayPreferences
 import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
 import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 
+private enum class LearnChildRoute {
+    None,
+    Translator,
+    Kana,
+}
+
 @Composable
 fun KotoApp() {
     // Saved instance state preserves the current task through rotation/recreation.
@@ -67,6 +73,7 @@ fun KotoApp() {
     var starredWordsTrigger by rememberSaveable { mutableStateOf(false) }
     var createDeckTrigger by rememberSaveable { mutableStateOf(false) }
     var translatorOpen by rememberSaveable { mutableStateOf(false) }
+    var kanaOpen by rememberSaveable { mutableStateOf(false) }
     var targetDeckId by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
@@ -89,7 +96,7 @@ fun KotoApp() {
         com.koto.app.ui.screens.settings.LocalEnglishFont provides currentEnglishFont,
     ) {
         // Top-level section changes don't accumulate a history of tab taps.
-        BackHandler(enabled = !advancedSettingsOpen && lessonId == null && !translatorOpen && selected != KotoDestination.Learn) {
+        BackHandler(enabled = !advancedSettingsOpen && lessonId == null && !translatorOpen && !kanaOpen && selected != KotoDestination.Learn) {
             selected = KotoDestination.Learn
         }
 
@@ -100,88 +107,107 @@ fun KotoApp() {
             LessonScreen(lesson, audio, progress::complete, onExit = { lessonId = null; selected = KotoDestination.Map })
         }
     } else {
+        val activeLearnRoute = when {
+            translatorOpen -> LearnChildRoute.Translator
+            kanaOpen -> LearnChildRoute.Kana
+            else -> LearnChildRoute.None
+        }
+
         AnimatedContent(
-            targetState = translatorOpen,
+            targetState = activeLearnRoute,
             transitionSpec = {
-                if (targetState) {
+                if (targetState != LearnChildRoute.None && initialState == LearnChildRoute.None) {
                     (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth } +
                         fadeIn(tween(250, easing = LinearOutSlowInEasing))).togetherWith(
                         slideOutHorizontally(tween(280, easing = FastOutSlowInEasing)) { fullWidth -> -fullWidth } +
                             fadeOut(tween(200, easing = FastOutLinearInEasing)),
                     )
-                } else {
+                } else if (targetState == LearnChildRoute.None && initialState != LearnChildRoute.None) {
                     (slideInHorizontally(tween(300, easing = FastOutSlowInEasing)) { fullWidth -> -fullWidth } +
                         fadeIn(tween(250, easing = LinearOutSlowInEasing))).togetherWith(
                         slideOutHorizontally(tween(280, easing = FastOutSlowInEasing)) { fullWidth -> fullWidth } +
                             fadeOut(tween(200, easing = FastOutLinearInEasing)),
                     )
+                } else {
+                    fadeIn(tween(200)).togetherWith(fadeOut(tween(200)))
                 }
             },
-            label = "Translator dedicated screen transition",
-        ) { isTranslator ->
-            if (isTranslator) {
-                TranslatorScreen(
-                    onDismiss = { translatorOpen = false },
-                    onSettings = { settingsOpen = true },
-                    onViewDeck = {
-                        translatorOpen = false
-                        selected = KotoDestination.Cards
-                        targetDeckId = "deck_quick_translations"
-                    },
-                )
-            } else {
-                shellState.SaveableStateProvider("main_shell") {
-                    Column(Modifier.fillMaxSize().background(KotoColors.Background)) {
-                        Column(
-                            Modifier.weight(1f).fillMaxWidth().windowInsetsPadding(
-                                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-                            ),
-                        ) {
-                            if ((selected != KotoDestination.Cards || !cardsStudying) && !cardsCreateDeckOpen) {
-                                val topBarTitle = if (selected == KotoDestination.Cards && cardsContentOpen) {
-                                    "Deck Content"
-                                } else {
-                                    selected.title
+            label = "Learn route coordinated transition",
+        ) { route ->
+            when (route) {
+                LearnChildRoute.Translator -> {
+                    TranslatorScreen(
+                        onDismiss = { translatorOpen = false },
+                        onSettings = { settingsOpen = true },
+                        onViewDeck = {
+                            translatorOpen = false
+                            selected = KotoDestination.Cards
+                            targetDeckId = "deck_quick_translations"
+                        },
+                    )
+                }
+                LearnChildRoute.Kana -> {
+                    com.koto.app.feature.kana.ui.KanaScreen(
+                        onDismiss = { kanaOpen = false },
+                        onSettings = { settingsOpen = true },
+                        audio = audio,
+                    )
+                }
+                LearnChildRoute.None -> {
+                    shellState.SaveableStateProvider("main_shell") {
+                        Column(Modifier.fillMaxSize().background(KotoColors.Background)) {
+                            Column(
+                                Modifier.weight(1f).fillMaxWidth().windowInsetsPadding(
+                                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                                ),
+                            ) {
+                                if ((selected != KotoDestination.Cards || !cardsStudying) && !cardsCreateDeckOpen) {
+                                    val topBarTitle = if (selected == KotoDestination.Cards && cardsContentOpen) {
+                                        "Deck Content"
+                                    } else {
+                                        selected.title
+                                    }
+                                    KotoTopBar(
+                                        title = topBarTitle,
+                                        onSettings = { settingsOpen = true },
+                                        onBack = if (selected == KotoDestination.Cards && cardsDeckOpen) {
+                                            { backDispatcher?.onBackPressed() }
+                                        } else null,
+                                        onRandomDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                            { randomDeckTrigger = true }
+                                        } else null,
+                                        onStarredWords = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                            { starredWordsTrigger = true }
+                                        } else null,
+                                        onCreateDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
+                                            { createDeckTrigger = true }
+                                        } else null,
+                                    )
                                 }
-                                KotoTopBar(
-                                    title = topBarTitle,
-                                    onSettings = { settingsOpen = true },
-                                    onBack = if (selected == KotoDestination.Cards && cardsDeckOpen) {
-                                        { backDispatcher?.onBackPressed() }
-                                    } else null,
-                                    onRandomDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
-                                        { randomDeckTrigger = true }
-                                    } else null,
-                                    onStarredWords = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
-                                        { starredWordsTrigger = true }
-                                    } else null,
-                                    onCreateDeck = if (selected == KotoDestination.Cards && !cardsDeckOpen) {
-                                        { createDeckTrigger = true }
-                                    } else null,
-                                )
+                                KotoNavigation(
+                                    selected = selected,
+                                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                                    completed = progress.completed,
+                                    onPlay = { lessonId = it },
+                                    onCardsStudyModeChanged = { cardsStudying = it },
+                                    onCardsDeckOpenChanged = { cardsDeckOpen = it },
+                                    onCardsCreateDeckModeChanged = { cardsCreateDeckOpen = it },
+                                    onCardsContentOpenChanged = { cardsContentOpen = it },
+                                    randomDeckTrigger = randomDeckTrigger,
+                                    onRandomDeckHandled = { randomDeckTrigger = false },
+                                    starredWordsTrigger = starredWordsTrigger,
+                                    onStarredWordsHandled = { starredWordsTrigger = false },
+                                    createDeckTrigger = createDeckTrigger,
+                                    onCreateDeckHandled = { createDeckTrigger = false },
+                                    onOpenTranslator = { translatorOpen = true },
+                                    onOpenKana = { kanaOpen = true },
+                                    targetDeckId = targetDeckId,
+                                    onTargetDeckIdHandled = { targetDeckId = null },
+                                    )
                             }
-                            KotoNavigation(
-                                selected = selected,
-                                modifier = Modifier.weight(1f).fillMaxWidth(),
-                                completed = progress.completed,
-                                onPlay = { lessonId = it },
-                                onCardsStudyModeChanged = { cardsStudying = it },
-                                onCardsDeckOpenChanged = { cardsDeckOpen = it },
-                                onCardsCreateDeckModeChanged = { cardsCreateDeckOpen = it },
-                                onCardsContentOpenChanged = { cardsContentOpen = it },
-                                randomDeckTrigger = randomDeckTrigger,
-                                onRandomDeckHandled = { randomDeckTrigger = false },
-                                starredWordsTrigger = starredWordsTrigger,
-                                onStarredWordsHandled = { starredWordsTrigger = false },
-                                createDeckTrigger = createDeckTrigger,
-                                onCreateDeckHandled = { createDeckTrigger = false },
-                                onOpenTranslator = { translatorOpen = true },
-                                targetDeckId = targetDeckId,
-                                onTargetDeckIdHandled = { targetDeckId = null },
-                            )
-                        }
-                        if (!cardsStudying && !cardsCreateDeckOpen && !(selected == KotoDestination.Cards && cardsDeckOpen)) {
-                            KotoBottomBar(selected = selected, onSelect = { selected = it })
+                            if (!cardsStudying && !cardsCreateDeckOpen && !(selected == KotoDestination.Cards && cardsDeckOpen)) {
+                                KotoBottomBar(selected = selected, onSelect = { selected = it })
+                            }
                         }
                     }
                 }

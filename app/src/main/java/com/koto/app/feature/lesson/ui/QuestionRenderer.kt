@@ -24,6 +24,7 @@ import com.koto.app.ui.components.*
 import com.koto.app.ui.screens.cards.CardsColors
 import com.koto.app.ui.screens.settings.DisplayMode
 import com.koto.app.ui.screens.settings.LocalJapaneseDisplayMode
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 import com.koto.app.ui.theme.KotoColors
 
@@ -144,7 +145,7 @@ private fun ClozePrompt(
 
     Surface(Modifier.fillMaxWidth(), color = KotoColors.Background, shape = RoundedCornerShape(22.dp), border = BorderStroke(1.dp, KotoColors.Hairline)) {
         Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(underlined(japaneseSource, japaneseReplacement), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = CardsColors.Ink, textAlign = TextAlign.Center)
+            Text(underlined(japaneseSource, japaneseReplacement), fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFamily = LocalJapaneseFont.current, color = CardsColors.Ink, textAlign = TextAlign.Center)
             if (showRomaji) {
                 Text(underlined(q.sentence.romaji, selected?.romaji), fontSize = 16.sp, color = KotoColors.QuietInk, textAlign = TextAlign.Center)
             }

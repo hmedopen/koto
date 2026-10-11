@@ -21,6 +21,7 @@ import com.koto.app.R
 import com.koto.app.feature.cards.data.CustomCardItem
 import com.koto.app.ui.components.TactileButton
 import com.koto.app.ui.components.TactileTone
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.theme.KotoFont
 import java.util.Locale
 
@@ -68,7 +69,7 @@ fun DeckEditorCardItem(
                 Text(
                     text = card.furigana,
                     style = TextStyle(
-                        fontFamily = KotoFont,
+                        fontFamily = LocalJapaneseFont.current,
                         fontWeight = FontWeight.Medium,
                         fontSize = 11.sp, // ~0.55x of 20sp Japanese font
                         color = CardsColors.Blue,
@@ -87,7 +88,7 @@ fun DeckEditorCardItem(
                 Text(
                     text = card.japanese,
                     style = TextStyle(
-                        fontFamily = KotoFont,
+                        fontFamily = LocalJapaneseFont.current,
                         fontWeight = FontWeight.Bold,
                         fontSize = 19.sp,
                         color = CardsColors.Ink,

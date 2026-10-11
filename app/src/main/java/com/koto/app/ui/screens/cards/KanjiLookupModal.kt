@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.R
 import com.koto.app.feature.translator.data.KanaConverter
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.theme.KotoFont
 import com.koto.app.ui.theme.KotoType
 
@@ -143,7 +144,7 @@ fun KanjiLookupModal(
                             ) {
                                 Text(
                                     text = char.toString(),
-                                    fontFamily = KotoFont,
+                                    fontFamily = LocalJapaneseFont.current,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isSelected) CardsColors.Blue else CardsColors.Ink,
@@ -169,7 +170,7 @@ fun KanjiLookupModal(
                     ) {
                         Text(
                             text = currentKanji,
-                            fontFamily = KotoFont,
+                            fontFamily = LocalJapaneseFont.current,
                             fontWeight = FontWeight.Bold,
                             fontSize = 54.sp,
                             color = CardsColors.Ink,
@@ -184,7 +185,7 @@ fun KanjiLookupModal(
                     ) {
                         Text(
                             text = cleanTerm,
-                            fontFamily = KotoFont,
+                            fontFamily = LocalJapaneseFont.current,
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp,
                             color = CardsColors.Ink,
@@ -246,7 +247,7 @@ fun KanjiLookupModal(
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 text = pureKana.ifEmpty { "-" },
-                                fontFamily = KotoFont,
+                                fontFamily = LocalJapaneseFont.current,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CardsColors.Ink,
@@ -269,7 +270,7 @@ fun KanjiLookupModal(
                             Spacer(Modifier.height(2.dp))
                             Text(
                                 text = currentKanji,
-                                fontFamily = KotoFont,
+                                fontFamily = LocalJapaneseFont.current,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CardsColors.Ink,

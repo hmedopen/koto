@@ -63,6 +63,7 @@ import com.koto.app.ui.screens.cards.CardsColors
 import com.koto.app.ui.screens.cards.CardsPressable
 import com.koto.app.ui.screens.map.SettingsSheet
 import com.koto.app.ui.screens.settings.AdvancedSettingsScreen
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.screens.settings.LocalRomajiVisibility
 import com.koto.app.ui.theme.KotoType
 import kotlinx.coroutines.delay
@@ -412,6 +413,7 @@ fun TranslatorScreen(
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Medium,
                                 lineHeight = 30.sp,
+                                fontFamily = if (sourceLang == TranslationLanguage.Japanese) LocalJapaneseFont.current else null,
                             ),
                             cursorBrush = SolidColor(CardsColors.Blue),
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),

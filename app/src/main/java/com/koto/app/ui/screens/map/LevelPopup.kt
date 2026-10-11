@@ -27,6 +27,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.koto.app.R
 import com.koto.app.ui.components.DepthButton
+import com.koto.app.ui.screens.settings.LocalJapaneseFont
 import com.koto.app.ui.theme.KotoColors
 
 @Composable
@@ -69,6 +70,7 @@ internal fun LevelPopup(level: MapLevel, onDismiss: () -> Unit, onPlay: () -> Un
                             style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                         Spacer(Modifier.height(6.dp))
                         Text(preview.kana, color = KotoColors.Navy, fontSize = 28.sp,
+                            fontFamily = LocalJapaneseFont.current,
                             textAlign = TextAlign.Center, modifier = Modifier.testTag("kana_preview"))
                     }
                     if (level.state == LevelState.Locked) {
