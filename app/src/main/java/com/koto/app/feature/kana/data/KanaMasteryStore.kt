@@ -24,6 +24,10 @@ class KanaMasteryStore(context: Context) {
         fun get(context: Context): KanaMasteryStore = instance ?: synchronized(this) {
             instance ?: KanaMasteryStore(context).also { instance = it }
         }
+
+        fun snapToMilestone(score: Int): Int {
+            return (Math.round(score / 25f).toInt() * 25).coerceIn(0, 100)
+        }
     }
 
     var masteredCount by mutableIntStateOf(0)
@@ -48,15 +52,27 @@ class KanaMasteryStore(context: Context) {
         private set
 
     init {
-        val loadedMastered = prefs.getStringSet(KEY_MASTERED, null) ?: defaultMasteredSeed()
-        masteredSet.addAll(loadedMastered)
-        masteredCount = masteredSet.size
-
+        // 1. Load explicit scores from SharedPreferences into cache
         prefs.all.forEach { (key, value) ->
             if (key.startsWith("score_") && value is Int) {
                 scoresCache[key] = value
             }
         }
+
+        // 2. Load and sanitize masteredSet: purge legacy seeds that lack explicit score >= 100
+        val loadedMastered = prefs.getStringSet(KEY_MASTERED, null) ?: emptySet()
+        val validMastered = loadedMastered.filter { key ->
+            val isHira = key.startsWith("hira_")
+            val id = key.removePrefix("hira_").removePrefix("kata_")
+            val scoreKey = (if (isHira) "score_hira_" else "score_kata_") + id
+            scoresCache[scoreKey]?.let { it >= 100 } ?: (prefs.getInt(scoreKey, 0) >= 100)
+        }.toSet()
+
+        if (validMastered.size != loadedMastered.size) {
+            prefs.edit().putStringSet(KEY_MASTERED, validMastered).apply()
+        }
+        masteredSet.addAll(validMastered)
+        masteredCount = masteredSet.size
 
         val loadedRows = prefs.getStringSet(KEY_SELECTED_ROWS, null) ?: setOf("row_a", "row_k")
         selectedPracticeRows = loadedRows
@@ -71,10 +87,6 @@ class KanaMasteryStore(context: Context) {
             ?: defaultKata
     }
 
-    private fun defaultMasteredSeed(): Set<String> {
-        return KanaRepository.allCharacters.take(46).map { "hira_${it.id}" }.toSet()
-    }
-
     fun getCharacterMastery(kanaId: String, isHiragana: Boolean): Int {
         val prefix = if (isHiragana) "score_hira_" else "score_kata_"
         val key = prefix + kanaId
@@ -82,21 +94,64 @@ class KanaMasteryStore(context: Context) {
         if (cached != null) {
             return cached
         }
-        val defaultScore = if (isMastered(kanaId, isHiragana)) 95 else 10
-        scoresCache[key] = defaultScore
-        return defaultScore
+        val stored = if (prefs.contains(key)) prefs.getInt(key, 0) else 0
+        scoresCache[key] = stored
+        return stored
     }
 
-    fun updateMasteryScore(kanaId: String, isHiragana: Boolean, delta: Int): Int {
-        val current = getCharacterMastery(kanaId, isHiragana)
-        val newScore = (current + delta).coerceIn(0, 100)
+    /**
+     * Resets all individual Kana scores and mastered states to 0 (clean slate).
+     */
+    fun clearAllMasteryScores() {
+        scoresCache.clear()
+        masteredSet.clear()
+        masteredCount = 0
+        val editor = prefs.edit()
+        prefs.all.keys.filter { it.startsWith("score_") }.forEach { editor.remove(it) }
+        editor.putStringSet(KEY_MASTERED, emptySet())
+        editor.apply()
+        scoreVersion++
+    }
+
+    /**
+     * Commits final Test session outcomes calculated by the Hybrid Mastery Engine.
+     * Updates scoresCache, synchronizes masteredSet (removing items dropping < 100 and
+     * adding items reaching 100), writes to SharedPreferences, and bumps scoreVersion.
+     */
+    fun commitTestSessionOutcomes(outcomes: List<KanaMasteryOutcome>) {
+        if (outcomes.isEmpty()) return
+        val editor = prefs.edit()
+        for (outcome in outcomes) {
+            val key = (if (outcome.isHiragana) "score_hira_" else "score_kata_") + outcome.kanaId
+            val masteredKey = if (outcome.isHiragana) "hira_${outcome.kanaId}" else "kata_${outcome.kanaId}"
+            val clampedScore = snapToMilestone(outcome.newScore)
+
+            scoresCache[key] = clampedScore
+            editor.putInt(key, clampedScore)
+
+            if (clampedScore >= 100) {
+                masteredSet.add(masteredKey)
+            } else {
+                masteredSet.remove(masteredKey)
+            }
+        }
+        editor.putStringSet(KEY_MASTERED, masteredSet.toSet()).apply()
+        masteredCount = masteredSet.size
+        scoreVersion++
+    }
+
+    /**
+     * Directly updates a Kana character's mastery score, snapped to the nearest 25-point milestone.
+     */
+    fun setCharacterMastery(kanaId: String, isHiragana: Boolean, score: Int): Int {
+        val clampedScore = snapToMilestone(score)
         val prefix = if (isHiragana) "score_hira_" else "score_kata_"
         val key = prefix + kanaId
-        scoresCache[key] = newScore
-        prefs.edit().putInt(key, newScore).apply()
+        scoresCache[key] = clampedScore
+        prefs.edit().putInt(key, clampedScore).apply()
 
         val masteredKey = if (isHiragana) "hira_$kanaId" else "kata_$kanaId"
-        if (newScore >= 90) {
+        if (clampedScore >= 100) {
             masteredSet.add(masteredKey)
         } else {
             masteredSet.remove(masteredKey)
@@ -104,7 +159,7 @@ class KanaMasteryStore(context: Context) {
         prefs.edit().putStringSet(KEY_MASTERED, masteredSet.toSet()).apply()
         masteredCount = masteredSet.size
         scoreVersion++
-        return newScore
+        return clampedScore
     }
 
     fun isMastered(kanaId: String, isHiragana: Boolean): Boolean {
@@ -124,7 +179,7 @@ class KanaMasteryStore(context: Context) {
         prefs.edit().putStringSet(KEY_MASTERED, masteredSet.toSet()).apply()
         masteredCount = masteredSet.size
         val scoreKey = (if (isHiragana) "score_hira_" else "score_kata_") + kanaId
-        val newScore = if (newState) 95 else 20
+        val newScore = if (newState) 100 else 0
         scoresCache[scoreKey] = newScore
         prefs.edit().putInt(scoreKey, newScore).apply()
         scoreVersion++

@@ -30,7 +30,7 @@ data class AdvancedSettingsState(
     // DISPLAY & TYPOGRAPHY
     val furiganaDisplay: Boolean = true,
     val romajiDisplay: Boolean = true,
-    val japaneseFontId: String = "noto_sans_jp",
+    val japaneseFontId: String = "kosugi_maru",
     val englishFontId: String = "inter_roboto",
 
     // AUDIO & SPEECH
@@ -79,7 +79,7 @@ fun Preferences.toAdvancedSettingsState(
     return AdvancedSettingsState(
         furiganaDisplay = this[AdvancedSettingsKeys.FURIGANA_DISPLAY] ?: true,
         romajiDisplay = this[AdvancedSettingsKeys.ROMAJI_DISPLAY] ?: true,
-        japaneseFontId = this[AdvancedSettingsKeys.JAPANESE_FONT_ID] ?: "noto_sans_jp",
+        japaneseFontId = this[AdvancedSettingsKeys.JAPANESE_FONT_ID] ?: "kosugi_maru",
         englishFontId = this[AdvancedSettingsKeys.ENGLISH_FONT_ID] ?: "inter_roboto",
         textToSpeech = this[AdvancedSettingsKeys.TTS_ENABLED] ?: true,
         speechSpeed = this[AdvancedSettingsKeys.SPEECH_SPEED] ?: 1.0f,

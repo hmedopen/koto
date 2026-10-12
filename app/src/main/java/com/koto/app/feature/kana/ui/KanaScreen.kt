@@ -268,12 +268,15 @@ fun KanaScreen(
                 }
                 "word_bank" -> {
                     val allChars = remember { KanaRepository.allCharacters }
-                    val selectedChars = remember(masteryStore.selectedHiraganaIds, masteryStore.selectedKatakanaIds) {
-                        allChars.filter { masteryStore.isCharacterSelected(it.id) }.toSet()
+                    val selectedHiraChars = remember(masteryStore.selectedHiraganaIds) {
+                        allChars.filter { masteryStore.isCharacterSelected(it.id, isHiragana = true) }.toSet()
+                    }
+                    val selectedKataChars = remember(masteryStore.selectedKatakanaIds) {
+                        allChars.filter { masteryStore.isCharacterSelected(it.id, isHiragana = false) }.toSet()
                     }
                     val allWords = remember(context) { KanaWordMatcher.getAllWords(context) }
-                    val availablePracticeWords = remember(selectedChars, allWords) {
-                        KanaWordMatcher.findAvailablePracticeWords(allWords, selectedChars)
+                    val availablePracticeWords = remember(selectedHiraChars, selectedKataChars, allWords) {
+                        KanaWordMatcher.findAvailablePracticeWords(allWords, selectedHiraChars, selectedKataChars)
                     }
                     KanaWordBankView(
                         availableWords = availablePracticeWords,
@@ -296,13 +299,17 @@ fun KanaScreen(
                 "quiz" -> {
                     val currentQuiz = activeQuizMode ?: KanaQuizMode.Test
                     val allChars = remember { KanaRepository.allCharacters }
-                    val selectedChars = remember(masteryStore.selectedKanaIds) {
-                        allChars.filter { masteryStore.isCharacterSelected(it.id) }
+                    val selectedHiraChars = remember(masteryStore.selectedHiraganaIds) {
+                        allChars.filter { masteryStore.isCharacterSelected(it.id, isHiragana = true) }
+                    }
+                    val selectedKataChars = remember(masteryStore.selectedKatakanaIds) {
+                        allChars.filter { masteryStore.isCharacterSelected(it.id, isHiragana = false) }
                     }
                     val vocabulary = remember(context) { KanaWordMatcher.getVocabulary(context) }
                     KanaQuizSessionView(
                         mode = currentQuiz,
-                        selectedKana = selectedChars,
+                        selectedHiragana = selectedHiraChars,
+                        selectedKatakana = selectedKataChars,
                         vocabulary = vocabulary,
                         masteryStore = masteryStore,
                         audio = audio,
@@ -311,6 +318,7 @@ fun KanaScreen(
                             activeSubScreen = "dashboard"
                         },
                         onSettings = onSettings,
+                        activeScript = currentScript,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

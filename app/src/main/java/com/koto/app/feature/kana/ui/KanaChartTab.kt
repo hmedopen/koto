@@ -40,7 +40,6 @@ fun KanaChartTab(
     val context = LocalContext.current
     val masteryStore = remember(context) { KanaMasteryStore.get(context) }
     // Observe scoreVersion to trigger recomposition when scores update
-    @Suppress("UNUSED_VARIABLE")
     val currentScoreVersion = masteryStore.scoreVersion
 
     LazyColumn(
@@ -117,6 +116,7 @@ fun KanaChartTab(
                     row = row,
                     script = script,
                     masteryStore = masteryStore,
+                    scoreVersion = currentScoreVersion,
                     onSelectCharacter = onSelectCharacter,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -201,6 +201,7 @@ private fun KanaMatrixRow(
     row: KanaRow,
     script: KanaScript,
     masteryStore: KanaMasteryStore,
+    scoreVersion: Int,
     onSelectCharacter: (KanaCharacter) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -251,9 +252,9 @@ private fun KanaMatrixRow(
 /**
  * Flat Tile Matrix Tile:
  * - Symmetrical 1:1 square cell geometry
- * - Flat light-gray background fill (#F5F6F8)
- * - Rounded corners (12dp radius)
- * - Dynamic mini progress bar under Romaji (0–100% with Red -> Yellow -> Green -> Blue thresholds)
+ * - Pure white surface background with 1dp hairline border
+ * - Rounded corners (6dp radius)
+ * - Clean mastery progress bar: Visible grey track when unpracticed, Blue loading when in progress, Solid Green when mastered
  */
 @Composable
 private fun KanaTile(
@@ -264,13 +265,6 @@ private fun KanaTile(
     modifier: Modifier = Modifier,
 ) {
     val charGlyph = character.characterFor(script)
-    val progress = (masteryScore / 100f).coerceIn(0f, 1f)
-    val barColor = when {
-        masteryScore <= 30 -> Color(0xFFE53935) // Red (Learning)
-        masteryScore <= 60 -> Color(0xFFFBC02D) // Yellow (Familiar)
-        masteryScore <= 89 -> Color(0xFF43A047) // Green (Proficient)
-        else -> Color(0xFF1976D2)               // Blue (Mastered)
-    }
 
     Box(
         modifier = modifier
@@ -279,18 +273,22 @@ private fun KanaTile(
             .background(CardsColors.Surface)
             .border(1.dp, CardsColors.Edge, RoundedCornerShape(6.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp, horizontal = 2.dp)
             .testTag("kana_tile_${character.id}"),
-        contentAlignment = Alignment.Center,
     ) {
+        // Text Column pinned in upper/center area with bottom margin to never overlap the bar
         Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.TopCenter)
+                .padding(top = 4.dp, bottom = 10.dp, start = 2.dp, end = 2.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             // Japanese character on top
             Text(
                 text = charGlyph,
-                fontSize = if (charGlyph.length > 1) 16.sp else 20.sp,
+                fontSize = if (charGlyph.length > 1) 13.sp else 16.sp,
+                lineHeight = if (charGlyph.length > 1) 15.sp else 18.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = LocalJapaneseFont.current,
                 color = CardsColors.Ink,
@@ -301,31 +299,61 @@ private fun KanaTile(
             // Latin Romaji underneath
             Text(
                 text = character.romaji.uppercase(),
-                fontSize = 9.sp,
+                fontSize = 8.5.sp,
+                lineHeight = 9.5.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = CardsColors.Muted,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.testTag("kana_tile_romaji_${character.id}"),
             )
+        }
 
-            Spacer(Modifier.height(3.dp))
+        // Dynamic mini mastery bar pinned at bottom center with guaranteed clearance (never clipped)
+        KanaMasteryBar(
+            score = masteryScore,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 4.dp)
+                .testTag("kana_tile_progress_${character.id}"),
+        )
+    }
+}
 
-            // Dynamic mini progress bar (fills 0–100% and changes color based on performance)
+/**
+ * Clean, minimalist Kana mastery progress bar:
+ * - Unpracticed (score <= 0): High-contrast neutral grey track (Color(0xFFCBD5E1)), 0% fill
+ * - In Progress (score in 1..99): Blue loading bar (CardsColors.Blue) filling proportionally inside the grey track
+ * - Mastered (score >= 100): Solid green bar (Color(0xFF43A047)) across full width
+ * - No numbers or stats text cluttering the tile
+ */
+@Composable
+private fun KanaMasteryBar(
+    score: Int,
+    modifier: Modifier = Modifier,
+) {
+    val isMastered = score >= 100
+    val isUnpracticed = score <= 0
+    val progressFraction = (score / 100f).coerceIn(0f, 1f)
+
+    // High-contrast slate grey track (clearly distinct on white surface)
+    val trackColor = if (isMastered) Color(0xFF43A047) else Color(0xFFCBD5E1)
+    val fillColor = if (isMastered) Color(0xFF43A047) else CardsColors.Blue
+
+    Box(
+        modifier = modifier
+            .width(26.dp)
+            .height(3.5.dp)
+            .clip(RoundedCornerShape(2.dp))
+            .background(trackColor),
+    ) {
+        if (!isUnpracticed && !isMastered) {
             Box(
                 modifier = Modifier
-                    .width(26.dp)
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(1.5.dp))
-                    .background(Color(0xFFE0E0E0))
-                    .testTag("kana_tile_progress_${character.id}"),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction = progress.coerceAtLeast(0.06f))
-                        .fillMaxHeight()
-                        .background(barColor),
-                )
-            }
+                    .fillMaxWidth(fraction = progressFraction.coerceAtLeast(0.12f))
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(fillColor),
+            )
         }
     }
 }

@@ -27,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.R
+import com.koto.app.feature.kana.model.KanaScript
 import com.koto.app.feature.kana.model.PracticeWord
 import com.koto.app.feature.lesson.audio.JapaneseTtsController
 import com.koto.app.feature.lesson.model.JapaneseText
@@ -60,6 +61,7 @@ fun KanaWordBankView(
     onSettings: () -> Unit = {},
 ) {
     var selectedTab by remember { mutableStateOf(WordBankTab.Available) }
+    var scriptFilter by remember { mutableStateOf<KanaScript?>(null) }
     var searchQuery by remember { mutableStateOf("") }
 
     val currentList = when (selectedTab) {
@@ -67,12 +69,19 @@ fun KanaWordBankView(
         WordBankTab.AllWords -> allWords
     }
 
-    val filteredList = remember(currentList, searchQuery) {
+    val hiraCount = remember(currentList) { currentList.count { it.script == KanaScript.Hiragana } }
+    val kataCount = remember(currentList) { currentList.count { it.script == KanaScript.Katakana } }
+
+    val filteredList = remember(currentList, searchQuery, scriptFilter) {
+        var list = currentList
+        if (scriptFilter != null) {
+            list = list.filter { it.script == scriptFilter }
+        }
         val q = searchQuery.trim().lowercase()
         if (q.isEmpty()) {
-            currentList
+            list
         } else {
-            currentList.filter {
+            list.filter {
                 it.kana.contains(q, ignoreCase = true) ||
                     it.romaji.lowercase().contains(q) ||
                     it.english.lowercase().contains(q)
@@ -247,9 +256,43 @@ fun KanaWordBankView(
             )
         }
 
+        // 4. Script Filter Segment: All | ひらがな | カタカナ
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            val scripts: List<Pair<KanaScript?, String>> = listOf(
+                null to "All (${currentList.size})",
+                KanaScript.Hiragana to "ひらがな ($hiraCount)",
+                KanaScript.Katakana to "カタカナ ($kataCount)",
+            )
+            scripts.forEach { (script, label) ->
+                val isSelected = scriptFilter == script
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSelected) CardsColors.Blue else CardsColors.Surface)
+                        .border(1.dp, if (isSelected) CardsColors.Blue else CardsColors.Edge, RoundedCornerShape(8.dp))
+                        .clickable { scriptFilter = script },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = label,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) Color.White else CardsColors.Ink,
+                    )
+                }
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
 
-        // 4. Content List
+        // 5. Content List
         if (filteredList.isEmpty()) {
             Box(
                 modifier = Modifier

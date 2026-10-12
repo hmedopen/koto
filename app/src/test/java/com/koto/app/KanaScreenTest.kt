@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
+import com.koto.app.feature.kana.data.KanaMasteryOutcome
 import com.koto.app.feature.kana.data.KanaMasteryStore
 import com.koto.app.feature.kana.data.KanaRepository
 import com.koto.app.feature.kana.model.KanaScript
@@ -87,18 +88,18 @@ class KanaScreenTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val store = KanaMasteryStore(context)
 
-        // Default seed is 46 Hiragana characters mastered
-        assertEquals(46, store.masteredCount)
+        // Initial state is 0 characters mastered (clean unpracticed state)
+        assertEquals(0, store.masteredCount)
 
         // Toggle Katakana A to mastered
         val newState = store.toggleMastered("kana_a", isHiragana = false)
         assertTrue(newState)
-        assertEquals(47, store.masteredCount)
+        assertEquals(1, store.masteredCount)
 
         // Toggle back off
         val stateOff = store.toggleMastered("kana_a", isHiragana = false)
         assertFalse(stateOff)
-        assertEquals(46, store.masteredCount)
+        assertEquals(0, store.masteredCount)
 
         // Test character granular selection
         store.selectAllCharacters()
@@ -112,6 +113,35 @@ class KanaScreenTest {
         assertFalse("Katakana selection must be separate from Hiragana", store.isCharacterSelected("kana_a", isHiragana = false))
         assertEquals(1, store.selectedHiraganaIds.size)
         assertEquals(0, store.selectedKatakanaIds.size)
+
+        // Baseline score for unpracticed character is strictly 0
+        assertEquals(0, store.getCharacterMastery("kana_i", isHiragana = true))
+
+        // Set character mastery directly (snapped to milestone 25)
+        store.setCharacterMastery("kana_i", isHiragana = true, score = 25)
+        assertEquals(25, store.getCharacterMastery("kana_i", isHiragana = true))
+
+        // Commit outcomes advancing to 100
+        store.commitTestSessionOutcomes(
+            listOf(KanaMasteryOutcome("kana_u", isHiragana = true, initialScore = 75, newScore = 100))
+        )
+        assertEquals(100, store.getCharacterMastery("kana_u", isHiragana = true))
+        assertTrue("kana_u must be in masteredSet when score reaches 100", store.isMastered("kana_u", isHiragana = true))
+        assertEquals(1, store.masteredCount)
+
+        // Commit outcome degrading to 75 (Requirement 1: explicitly removed from masteredSet)
+        store.commitTestSessionOutcomes(
+            listOf(KanaMasteryOutcome("kana_u", isHiragana = true, initialScore = 100, newScore = 75))
+        )
+        assertEquals(75, store.getCharacterMastery("kana_u", isHiragana = true))
+        assertFalse("kana_u must be explicitly removed from masteredSet when score drops < 100", store.isMastered("kana_u", isHiragana = true))
+        assertEquals(0, store.masteredCount)
+
+        // Clear all mastery data resets to clean slate
+        store.clearAllMasteryScores()
+        assertEquals(0, store.getCharacterMastery("kana_i", isHiragana = true))
+        assertEquals(0, store.getCharacterMastery("kana_u", isHiragana = true))
+        assertEquals(0, store.masteredCount)
     }
 
     @Test
@@ -205,8 +235,10 @@ class KanaScreenTest {
         compose.onNodeWithTag("quiz_progress", useUnmergedTree = true).assertExists()
         compose.onNodeWithTag("btn_quiz_exit").assertIsDisplayed()
 
-        // Exit Quiz back to Practice Dashboard
+        // Exit Quiz back to Practice Dashboard (via confirmation dialog)
         compose.onNodeWithTag("btn_quiz_exit").performClick()
+        compose.waitForIdle()
+        compose.onNodeWithTag("quit_session").performClick()
         compose.waitForIdle()
         compose.onNodeWithTag("kana_quiz_session_view").assertDoesNotExist()
         compose.onNodeWithTag("kana_practice_tab").assertIsDisplayed()

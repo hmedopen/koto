@@ -271,7 +271,7 @@ fun KanaFilterView(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "ひらがな",
+                            text = "ひらがな (${masteryStore.selectedHiraganaIds.size})",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = LocalJapaneseFont.current,
@@ -290,7 +290,7 @@ fun KanaFilterView(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "カタカナ",
+                            text = "カタカナ (${masteryStore.selectedKatakanaIds.size})",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = LocalJapaneseFont.current,

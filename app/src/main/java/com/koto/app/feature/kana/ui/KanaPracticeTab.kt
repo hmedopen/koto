@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -21,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.koto.app.R
@@ -60,12 +62,15 @@ fun KanaPracticeTab(
     val selectedHiraganaIds = masteryStore.selectedHiraganaIds
     val selectedKatakanaIds = masteryStore.selectedKatakanaIds
     val totalSelectedCount = selectedHiraganaIds.size + selectedKatakanaIds.size
-    val selectedChars = remember(selectedHiraganaIds, selectedKatakanaIds) {
-        allCharacters.filter { masteryStore.isCharacterSelected(it.id) }.toSet()
+    val selectedHiraChars = remember(selectedHiraganaIds) {
+        allCharacters.filter { masteryStore.isCharacterSelected(it.id, isHiragana = true) }.toSet()
+    }
+    val selectedKataChars = remember(selectedKatakanaIds) {
+        allCharacters.filter { masteryStore.isCharacterSelected(it.id, isHiragana = false) }.toSet()
     }
     val allWords = remember(context) { KanaWordMatcher.getAllWords(context) }
-    val availablePracticeWords = remember(selectedChars, allWords) {
-        KanaWordMatcher.findAvailablePracticeWords(allWords, selectedChars)
+    val availablePracticeWords = remember(selectedHiraChars, selectedKataChars, allWords) {
+        KanaWordMatcher.findAvailablePracticeWords(allWords, selectedHiraChars, selectedKataChars)
     }
     val availableWordsCount = availablePracticeWords.size
     val vocabulary = remember(allWords) { allWords.map { it.kana to it.english } }
@@ -100,7 +105,8 @@ fun KanaPracticeTab(
     if (internalActiveQuizMode != null && onStartQuiz == null) {
         KanaQuizSessionView(
             mode = internalActiveQuizMode!!,
-            selectedKana = selectedChars.toList(),
+            selectedHiragana = selectedHiraChars.toList(),
+            selectedKatakana = selectedKataChars.toList(),
             vocabulary = vocabulary,
             masteryStore = masteryStore,
             audio = audio,
@@ -138,17 +144,30 @@ fun KanaPracticeTab(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // 1. Section Header: Practice Drills
-            Text(
-                text = "Practice Drills",
-                style = KotoType.Brand,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = CardsColors.Ink,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("practice_header_title"),
-            )
+            // 1. Section Header: Practice Drills + Direct Filter Action
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Practice Drills",
+                    style = KotoType.Brand,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CardsColors.Ink,
+                    modifier = Modifier.testTag("practice_header_title"),
+                )
+                Text(
+                    text = "Edit Filter",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CardsColors.Blue,
+                    modifier = Modifier
+                        .clickable { onOpenFilter?.invoke() ?: run { showFilterModal = true } }
+                        .testTag("btn_warning_open_filter"),
+                )
+            }
 
             // 2. Prominent Metric Cards (Selected Kana & Available Words)
             Row(
@@ -161,6 +180,12 @@ fun KanaPracticeTab(
                 PracticeMetricCard(
                     title = "Selected Kana",
                     value = "$totalSelectedCount",
+                    subtitle = if (totalSelectedCount < 15) {
+                        "Min. 15 for quizzes ($totalSelectedCount/15)"
+                    } else {
+                        "Ready for quizzes"
+                    },
+                    subtitleColor = if (totalSelectedCount < 15) CardsColors.Yellow else CardsColors.Green,
                     onClick = { onOpenFilter?.invoke() ?: run { showFilterModal = true } },
                     modifier = Modifier.weight(1f),
                     cardTag = "card_stat_selected_kana",
@@ -171,6 +196,8 @@ fun KanaPracticeTab(
                 PracticeMetricCard(
                     title = "Available Words",
                     value = "$availableWordsCount",
+                    subtitle = "Tap to view bank",
+                    subtitleColor = CardsColors.Muted,
                     onClick = { onOpenWordBank?.invoke() ?: run { showWordBank = true } },
                     modifier = Modifier.weight(1f),
                     cardTag = "card_stat_available_words",
@@ -178,52 +205,36 @@ fun KanaPracticeTab(
                 )
             }
 
-            // 3. Minimum Selection Warning Banner (if < 15 characters selected)
-            if (totalSelectedCount < 15) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFFFFF3E0))
-                        .border(1.dp, Color(0xFFFFB74D), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                        .testTag("kana_selection_warning_banner"),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = "Select at least 15 Kana to unlock quizzes ($totalSelectedCount/15)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFFE65100),
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            text = "Edit Filter",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CardsColors.Blue,
-                            modifier = Modifier
-                                .clickable { onOpenFilter?.invoke() ?: run { showFilterModal = true } }
-                                .padding(start = 8.dp)
-                                .testTag("btn_warning_open_filter"),
-                        )
-                    }
+            // 3. Crisp Hairline Divider (Anti-Bubble architectural separation)
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = CardsColors.Edge,
+            )
+
+            // 4. Section Title: Quizzes & Drills Catalog (Pure typography on white)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Study Modes",
+                    style = KotoType.Brand,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = CardsColors.Ink,
+                )
+                if (totalSelectedCount < 15) {
+                    Text(
+                        text = "Requires 15+ Kana",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = CardsColors.Muted,
+                    )
                 }
             }
-
-            // 4. Section Title: Quizzes & Drills Catalog
-            Text(
-                text = "Study Modes",
-                style = KotoType.Brand,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = CardsColors.Ink,
-                modifier = Modifier.padding(top = 4.dp),
-            )
 
             // 5. Quiz Cards Catalog (Matching Learn Tab solid-color cards, subtitles removed)
 
@@ -319,6 +330,8 @@ fun KanaPracticeTab(
 private fun PracticeMetricCard(
     title: String,
     value: String,
+    subtitle: String,
+    subtitleColor: Color = CardsColors.Muted,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     cardTag: String = "",
@@ -333,7 +346,7 @@ private fun PracticeMetricCard(
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
                 text = title,
@@ -348,6 +361,14 @@ private fun PracticeMetricCard(
                 fontWeight = FontWeight.ExtraBold,
                 color = CardsColors.Ink,
                 modifier = Modifier.testTag(valueTag),
+            )
+            Text(
+                text = subtitle,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = subtitleColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

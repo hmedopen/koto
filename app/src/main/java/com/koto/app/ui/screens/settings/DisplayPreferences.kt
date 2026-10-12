@@ -42,7 +42,7 @@ class DisplayPreferences private constructor(context: Context) {
     private val _romajiEnabled = mutableStateOf(preferences.getBoolean(KEY_ROMAJI, true))
     val romajiEnabled: Boolean get() = _romajiEnabled.value
 
-    private val _japaneseFontId = mutableStateOf(preferences.getString(KEY_JAPANESE_FONT, "noto_sans_jp") ?: "noto_sans_jp")
+    private val _japaneseFontId = mutableStateOf(preferences.getString(KEY_JAPANESE_FONT, "kosugi_maru") ?: "kosugi_maru")
     val japaneseFontId: String get() = _japaneseFontId.value
 
     private val _englishFontId = mutableStateOf(preferences.getString(KEY_ENGLISH_FONT, "inter_roboto") ?: "inter_roboto")

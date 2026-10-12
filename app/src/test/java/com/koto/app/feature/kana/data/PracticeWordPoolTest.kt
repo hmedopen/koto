@@ -2,6 +2,7 @@ package com.koto.app.feature.kana.data
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.koto.app.feature.kana.data.KanaRepository
 import com.koto.app.feature.kana.model.KanaScript
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -75,5 +76,36 @@ class PracticeWordPoolTest {
 
         val vocabPairs = KanaWordMatcher.getVocabulary(context)
         assertEquals(5000, vocabPairs.size)
+    }
+
+    @Test
+    fun verifyStrictScriptSeparation() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val allWords = KanaWordMatcher.getAllWords(context)
+        val allChars = KanaRepository.allCharacters.toSet()
+
+        // 1. Katakana only selected -> Must yield ONLY Katakana words (0 Hiragana words)
+        val katakanaOnlyWords = KanaWordMatcher.findAvailablePracticeWords(
+            words = allWords,
+            selectedHiragana = emptySet(),
+            selectedKatakana = allChars,
+        )
+        assertTrue("Must find Katakana words when Katakana is selected", katakanaOnlyWords.isNotEmpty())
+        assertTrue(
+            "Every matched word must be Katakana when only Katakana is selected",
+            katakanaOnlyWords.all { it.script == KanaScript.Katakana }
+        )
+
+        // 2. Hiragana only selected -> Must yield ONLY Hiragana words (0 Katakana words)
+        val hiraganaOnlyWords = KanaWordMatcher.findAvailablePracticeWords(
+            words = allWords,
+            selectedHiragana = allChars,
+            selectedKatakana = emptySet(),
+        )
+        assertTrue("Must find Hiragana words when Hiragana is selected", hiraganaOnlyWords.isNotEmpty())
+        assertTrue(
+            "Every matched word must be Hiragana when only Hiragana is selected",
+            hiraganaOnlyWords.all { it.script == KanaScript.Hiragana }
+        )
     }
 }

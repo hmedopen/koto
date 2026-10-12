@@ -2,12 +2,15 @@ package com.koto.app.feature.kana.data
 
 import android.content.Context
 import com.koto.app.feature.kana.model.KanaCharacter
+import com.koto.app.feature.kana.model.KanaScript
 import com.koto.app.feature.kana.model.PracticeWord
 
 /**
  * Vocabulary matching engine:
  * Evaluates words against the user's currently selected Kana set.
  * Powered directly by the dedicated PracticeWordPool, decoupled from the cards database.
+ * Strictly enforces script separation: Hiragana words match only selected Hiragana;
+ * Katakana words match only selected Katakana.
  */
 object KanaWordMatcher {
 
@@ -29,50 +32,111 @@ object KanaWordMatcher {
     )
 
     /**
-     * Counts how many vocabulary words can be formed exclusively using the given set of selected Kana characters.
+     * Finds vocabulary words that can be spelled using the separated selected Hiragana and Katakana sets.
+     * Prevents script cross-bleeding:
+     * - If selectedHiragana is empty, 0 Hiragana words are returned.
+     * - If selectedKatakana is empty, 0 Katakana words are returned.
      */
+    fun findAvailablePracticeWords(
+        words: List<PracticeWord>,
+        selectedHiragana: Set<KanaCharacter>,
+        selectedKatakana: Set<KanaCharacter>,
+    ): List<PracticeWord> {
+        if (selectedHiragana.isEmpty() && selectedKatakana.isEmpty()) return emptyList()
+
+        val hiraAllowed = if (selectedHiragana.isNotEmpty()) buildAllowedHiraganaGlyphs(selectedHiragana) else null
+        val kataAllowed = if (selectedKatakana.isNotEmpty()) buildAllowedKatakanaGlyphs(selectedKatakana) else null
+
+        return words.filter { word ->
+            when (word.script) {
+                KanaScript.Hiragana -> hiraAllowed != null && canSpell(word.kana, hiraAllowed)
+                KanaScript.Katakana -> kataAllowed != null && canSpell(word.kana, kataAllowed)
+            }
+        }
+    }
+
+    /**
+     * Backward-compatible overload when a single selectedKana set is passed.
+     */
+    fun findAvailablePracticeWords(words: List<PracticeWord>, selectedKana: Set<KanaCharacter>): List<PracticeWord> {
+        return findAvailablePracticeWords(words, selectedKana, selectedKana)
+    }
+
+    /**
+     * Counts how many vocabulary words can be formed using the separated Hiragana and Katakana selections.
+     */
+    fun countAvailableWords(
+        words: List<PracticeWord>,
+        selectedHiragana: Set<KanaCharacter>,
+        selectedKatakana: Set<KanaCharacter>,
+    ): Int {
+        return findAvailablePracticeWords(words, selectedHiragana, selectedKatakana).size
+    }
+
     fun countAvailableWords(words: List<PracticeWord>, selectedKana: Set<KanaCharacter>): Int {
-        if (selectedKana.isEmpty()) return 0
-        val allowed = buildAllowedGlyphs(selectedKana)
-        return words.count { canSpell(it.kana, allowed) }
+        return findAvailablePracticeWords(words, selectedKana, selectedKana).size
+    }
+
+    fun findAvailableWords(
+        vocabulary: List<Pair<String, String>>,
+        selectedHiragana: Set<KanaCharacter>,
+        selectedKatakana: Set<KanaCharacter>,
+    ): List<Pair<String, String>> {
+        if (selectedHiragana.isEmpty() && selectedKatakana.isEmpty()) return emptyList()
+
+        val hiraAllowed = if (selectedHiragana.isNotEmpty()) buildAllowedHiraganaGlyphs(selectedHiragana) else null
+        val kataAllowed = if (selectedKatakana.isNotEmpty()) buildAllowedKatakanaGlyphs(selectedKatakana) else null
+
+        return vocabulary.filter { (kana, _) ->
+            val isKatakana = isKatakanaWord(kana)
+            if (isKatakana) {
+                kataAllowed != null && canSpell(kana, kataAllowed)
+            } else {
+                hiraAllowed != null && canSpell(kana, hiraAllowed)
+            }
+        }
+    }
+
+    fun findAvailableWords(vocabulary: List<Pair<String, String>>, selectedKana: Set<KanaCharacter>): List<Pair<String, String>> {
+        return findAvailableWords(vocabulary, selectedKana, selectedKana)
     }
 
     @JvmName("countAvailableWordsPairs")
     fun countAvailableWords(vocabulary: List<Pair<String, String>>, selectedKana: Set<KanaCharacter>): Int {
-        if (selectedKana.isEmpty()) return 0
-        val allowed = buildAllowedGlyphs(selectedKana)
-        return vocabulary.count { canSpell(it.first, allowed) }
+        return findAvailableWords(vocabulary, selectedKana, selectedKana).size
     }
 
-    /**
-     * Finds vocabulary words that can be spelled using the given selected Kana.
-     */
-    fun findAvailablePracticeWords(words: List<PracticeWord>, selectedKana: Set<KanaCharacter>): List<PracticeWord> {
-        if (selectedKana.isEmpty()) return emptyList()
-        val allowed = buildAllowedGlyphs(selectedKana)
-        return words.filter { canSpell(it.kana, allowed) }
+    private fun isKatakanaWord(s: String): Boolean {
+        return s.any { it in '\u30A0'..'\u30FF' }
     }
 
-    fun findAvailableWords(vocabulary: List<Pair<String, String>>, selectedKana: Set<KanaCharacter>): List<Pair<String, String>> {
-        if (selectedKana.isEmpty()) return emptyList()
-        val allowed = buildAllowedGlyphs(selectedKana)
-        return vocabulary.filter { canSpell(it.first, allowed) }
-    }
-
-    private fun buildAllowedGlyphs(selectedKana: Set<KanaCharacter>): AllowedGlyphs {
+    private fun buildAllowedHiraganaGlyphs(selectedKana: Set<KanaCharacter>): AllowedGlyphs {
         val singles = HashSet<Char>(selectedKana.size * 2 + 8)
         val doubles = HashSet<String>(selectedKana.size * 2)
 
         for (kana in selectedKana) {
             val h = kana.hiragana
             if (h.length == 1) singles.add(h[0]) else if (h.isNotEmpty()) doubles.add(h)
+        }
+        singles.add(' ')
+        singles.add('・')
+        singles.add('ー')
+        singles.add('っ')
+
+        return AllowedGlyphs(singles, doubles)
+    }
+
+    private fun buildAllowedKatakanaGlyphs(selectedKana: Set<KanaCharacter>): AllowedGlyphs {
+        val singles = HashSet<Char>(selectedKana.size * 2 + 8)
+        val doubles = HashSet<String>(selectedKana.size * 2)
+
+        for (kana in selectedKana) {
             val k = kana.katakana
             if (k.length == 1) singles.add(k[0]) else if (k.isNotEmpty()) doubles.add(k)
         }
         singles.add(' ')
         singles.add('・')
         singles.add('ー')
-        singles.add('っ')
         singles.add('ッ')
 
         return AllowedGlyphs(singles, doubles)
